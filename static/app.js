@@ -104,13 +104,21 @@ loaders.settings = async () => {
 
   keyField("#stt-key", settings.has_stt, settings.stt_hint, "sk-...");
   $("#stt-status").textContent = settings.has_stt ? "✓ Using this service for 🎤." : "Off: 🎤 uses your browser's voice typing.";
+  $("#stt-provider").value = settings.stt_provider;
   $("#stt-base-url").value = settings.stt_base_url;
   $("#stt-model").value = settings.stt_model;
+  $("#stt-model-wrap").classList.toggle("hidden", settings.stt_provider === "assemblyai");
 
   const saved = { api_key: settings.has_key, backup_key: settings.has_backup, search_key: settings.has_search, stt_key: settings.has_stt,
     hunter_key: settings.has_hunter };
   document.querySelectorAll(".remove-secret").forEach((b) => b.classList.toggle("hidden", !saved[b.dataset.field]));
 };
+
+$("#stt-provider").addEventListener("change", () => {
+  const assembly = $("#stt-provider").value === "assemblyai";
+  $("#stt-base-url").value = assembly ? "https://api.assemblyai.com" : "https://api.siliconflow.cn/v1";
+  $("#stt-model-wrap").classList.toggle("hidden", assembly);
+});
 
 $("#model").addEventListener("change", () => {
   $("#model-custom").classList.toggle("hidden", $("#model").value !== "custom");
@@ -129,7 +137,7 @@ function settingsBody() {
     api_key: val("#api-key"), model: model || null, base_url: val("#base-url"),
     backup_key: val("#backup-key"), backup_model: val("#backup-model"), backup_base_url: val("#backup-base-url"),
     search_key: val("#search-key"), hunter_key: val("#hunter-key"),
-    stt_key: val("#stt-key"), stt_base_url: val("#stt-base-url"), stt_model: val("#stt-model"),
+    stt_key: val("#stt-key"), stt_base_url: val("#stt-base-url"), stt_model: val("#stt-model"), stt_provider: $("#stt-provider").value,
   };
 }
 
@@ -157,7 +165,7 @@ document.querySelectorAll(".test-model").forEach((b) =>
       try {
         await saveSettings();
         const r = await api(`/api/settings/test?which=${b.dataset.which}`, { method: "POST" });
-        setMsg(msg, `Connected ✓ (${r.model})`, "ok");
+        setMsg(msg, `Connected ✓ (${b.dataset.which === "stt" ? r.provider : r.model})`, "ok");
       } catch (err) {
         setMsg(msg, err.message, "err");
       }

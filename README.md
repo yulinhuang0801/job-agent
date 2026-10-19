@@ -54,10 +54,10 @@ Then open http://127.0.0.1:8000, go to **Settings** and paste your DeepSeek API 
 | Service | Used for | Free tier |
 |---|---|---|
 | DeepSeek | All AI steps | Pay as you go |
-| Google Gemini | Automatic backup when DeepSeek is busy | Free key from Google AI Studio |
+| Google Gemini (Flash-Lite by default) | Automatic backup when DeepSeek is busy | Free key from Google AI Studio |
 | Tavily | Find tab searches, interview look-ups | 1,000 searches a month |
 | Hunter.io | Email lookups when a site doesn't list one | About 50 lookups a month |
-| SiliconFlow (or any OpenAI-style transcription) | 🎤 voice when the browser's voice typing doesn't work | See provider |
+| AssemblyAI or SiliconFlow (or any OpenAI-style transcription) | 🎤 voice when the browser's voice typing doesn't work | See provider |
 
 ## Not built yet
 

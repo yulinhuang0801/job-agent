@@ -13,9 +13,10 @@ DEFAULT_SETTINGS = {
     "base_url": "https://api.deepseek.com",
     "backup_key": "",  # used when the main model is down or overloaded
     "backup_base_url": "https://generativelanguage.googleapis.com/v1beta/openai/",
-    "backup_model": "gemini-3.8-flash",
+    "backup_model": "gemini-3.5-flash-lite",
     "search_key": "",  # Tavily
     "hunter_key": "",  # Hunter.io email finder
+    "stt_provider": "openai",  # "openai" = any OpenAI-style /audio/transcriptions API; or "assemblyai"
     "stt_base_url": "https://api.siliconflow.cn/v1",
     "stt_key": "",
     "stt_model": "FunAudioLLM/SenseVoiceSmall",

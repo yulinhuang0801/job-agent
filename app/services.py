@@ -1,8 +1,15 @@
 """Optional outside services: web search (Tavily) and speech-to-text (any OpenAI-style
 /audio/transcriptions endpoint, e.g. SiliconFlow SenseVoice, which works in China)."""
+import io
+import time
+import wave
+
 import httpx
 
 from . import store
+
+
+ASSEMBLYAI_URL = "https://api.assemblyai.com"
 
 
 class ServiceError(Exception):
@@ -59,6 +66,8 @@ def transcribe(filename, content, content_type):
     s = store.get_settings()
     if not s["stt_key"]:
         raise ServiceError("No speech-to-text key. Add one in Settings, or use your browser's voice typing.")
+    if s["stt_provider"] == "assemblyai":
+        return _assemblyai(content, s)
     try:
         resp = httpx.post(f"{s['stt_base_url'].rstrip('/')}/audio/transcriptions", timeout=120,
                           headers={"Authorization": f"Bearer {s['stt_key']}"},
@@ -71,8 +80,63 @@ def transcribe(filename, content, content_type):
     return (resp.json().get("text") or "").strip()
 
 
+def _assemblyai(content, s):
+    """AssemblyAI: upload the raw audio, start a transcript (auto-detecting English or Chinese), poll until done."""
+    base = s["stt_base_url"].rstrip("/") if "assemblyai" in s["stt_base_url"] else ASSEMBLYAI_URL
+    headers = {"authorization": s["stt_key"]}  # AssemblyAI takes the bare key, no "Bearer"
+    try:
+        up = httpx.post(f"{base}/v2/upload", headers=headers, content=content, timeout=60)
+        if up.status_code == 401:
+            raise ServiceError("AssemblyAI rejected the API key. Check it in Settings.")
+        up.raise_for_status()
+        job = httpx.post(f"{base}/v2/transcript", headers=headers, timeout=30,
+                         json={"audio_url": up.json()["upload_url"], "language_detection": True})
+        job.raise_for_status()
+        tid = job.json()["id"]
+        for _ in range(80):  # about two minutes
+            time.sleep(1.5)
+            r = httpx.get(f"{base}/v2/transcript/{tid}", headers=headers, timeout=30)
+            r.raise_for_status()
+            data = r.json()
+            if data["status"] == "completed":
+                return (data.get("text") or "").strip()
+            if data["status"] == "error":
+                raise ServiceError(f"AssemblyAI couldn't transcribe that: {data.get('error', 'unknown error')}")
+    except httpx.HTTPError as e:
+        raise ServiceError(f"Couldn't reach AssemblyAI ({e.__class__.__name__}).")
+    raise ServiceError("AssemblyAI took too long. Try a shorter recording.")
+
+
+def silent_wav(seconds=1):
+    """A tiny silent recording, used to test a speech-to-text key."""
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(16000)
+        w.writeframes(b"\x00\x00" * 16000 * seconds)
+    return buf.getvalue()
+
+
 def hunter_enabled():
     return bool(store.get_settings()["hunter_key"])
+
+
+def hunter_check():
+    """Free account lookup (uses no credits). Returns searches left this month."""
+    key = store.get_settings()["hunter_key"]
+    if not key:
+        raise ServiceError("No Hunter.io key saved.")
+    try:
+        r = httpx.get("https://api.hunter.io/v2/account", params={"api_key": key}, timeout=20)
+    except httpx.HTTPError as e:
+        raise ServiceError(f"Couldn't reach Hunter.io ({e.__class__.__name__}).")
+    if r.status_code == 401:
+        raise ServiceError("Hunter.io doesn't recognize this key. Copy it again from hunter.io → API keys.")
+    if r.status_code != 200:
+        raise ServiceError(f"Hunter.io error ({r.status_code}).")
+    searches = ((r.json().get("data") or {}).get("requests") or {}).get("searches") or {}
+    return searches.get("available", 0) - searches.get("used", 0)
 
 
 def hunter_find(domain, first, last):

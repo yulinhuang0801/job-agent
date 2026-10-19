@@ -58,6 +58,7 @@ class SettingsIn(BaseModel):
     stt_key: Optional[str] = None
     stt_base_url: Optional[str] = None
     stt_model: Optional[str] = None
+    stt_provider: Optional[str] = None
     backup_key: Optional[str] = None
     backup_base_url: Optional[str] = None
     backup_model: Optional[str] = None
@@ -75,6 +76,7 @@ def _public_settings():
         "base_url": s["base_url"],
         "stt_base_url": s["stt_base_url"],
         "stt_model": s["stt_model"],
+        "stt_provider": s["stt_provider"],
         "has_key": bool(s["api_key"]),
         "key_hint": _hint(s["api_key"]),
         "has_search": bool(s["search_key"]),
@@ -119,6 +121,19 @@ def delete_secret(field: str):
 
 @app.post("/api/settings/test")
 def test_settings(which: str = "main"):
+    if which == "hunter":
+        try:
+            left = services.hunter_check()
+        except services.ServiceError as e:
+            raise HTTPException(400, str(e))
+        return {"ok": True, "provider": "Hunter.io", "model": f"{left} lookups left this month"}
+    if which == "stt":
+        try:
+            services.transcribe("test.wav", services.silent_wav(), "audio/wav")
+        except services.ServiceError as e:
+            raise HTTPException(400, str(e))
+        s = store.get_settings()
+        return {"ok": True, "provider": "AssemblyAI" if s["stt_provider"] == "assemblyai" else "speech-to-text", "model": s["stt_model"]}
     name, model, reply = llm.test_provider(which)
     return {"ok": True, "provider": name, "model": model, "reply": reply}
 

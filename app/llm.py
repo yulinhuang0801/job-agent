@@ -42,6 +42,9 @@ def _call_one(p, messages, max_tokens, json_mode, temperature, tools, think, tim
     if "deepseek" in p["base_url"]:
         # DeepSeek thinks before answering by default; skip it for plain extraction work.
         kwargs["extra_body"] = {"thinking": {"type": "enabled" if think else "disabled"}}
+    elif "googleapis" in p["base_url"]:
+        # Gemini thinks at length by default (30s+ even for short replies); keep the backup quick.
+        kwargs["reasoning_effort"] = "low"
     try:
         resp = client.chat.completions.create(**kwargs)
     except openai.AuthenticationError:

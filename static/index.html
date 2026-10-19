@@ -134,7 +134,7 @@
         <input id="backup-key" type="password" placeholder="AIza..." autocomplete="off" spellcheck="false">
         <p id="backup-status" class="muted small"></p>
         <label for="backup-model">Backup model</label>
-        <input id="backup-model" placeholder="gemini-3.8-flash">
+        <input id="backup-model" placeholder="gemini-3.5-flash-lite">
         <details>
           <summary>Advanced</summary>
           <label for="backup-base-url">Backup API base URL</label>
@@ -167,11 +167,20 @@
           <button class="ghost danger remove-secret" data-field="hunter_key" type="button">Remove</button>
         </div>
         <p id="hunter-status" class="muted small"></p>
+        <div class="row actions">
+          <button class="secondary test-model" data-which="hunter" type="button">Test Hunter</button>
+          <span class="msg test-msg" data-which="hunter"></span>
+        </div>
       </div>
 
       <div class="card">
         <h2>Voice <span class="muted small">(optional)</span></h2>
-        <p class="muted small">The 🎤 button uses your browser's built-in voice typing (Chrome, Edge, Safari) with no setup. For better accuracy with mixed Chinese and English, or if browser voice typing doesn't work where you are, add a speech-to-text key. <a href="https://cloud.siliconflow.cn" target="_blank" rel="noopener">SiliconFlow</a> works in China; any OpenAI-style transcription service works.</p>
+        <p class="muted small">The 🎤 button uses your browser's built-in voice typing (Chrome, Edge, Safari) with no setup. For better accuracy with mixed Chinese and English, or if browser voice typing doesn't work where you are, add a speech-to-text key. <a href="https://www.assemblyai.com" target="_blank" rel="noopener">AssemblyAI</a> handles English and Chinese; <a href="https://cloud.siliconflow.cn" target="_blank" rel="noopener">SiliconFlow</a> works in mainland China.</p>
+        <label for="stt-provider">Speech-to-text service</label>
+        <select id="stt-provider">
+          <option value="assemblyai">AssemblyAI</option>
+          <option value="openai">SiliconFlow, OpenAI or another OpenAI-style service</option>
+        </select>
         <label for="stt-key">Speech-to-text API key</label>
         <div class="row">
           <input id="stt-key" type="password" placeholder="sk-..." autocomplete="off" spellcheck="false">
@@ -182,9 +191,15 @@
           <summary>Advanced</summary>
           <label for="stt-base-url">Transcription base URL</label>
           <input id="stt-base-url" placeholder="https://api.siliconflow.cn/v1">
-          <label for="stt-model">Transcription model</label>
-          <input id="stt-model" placeholder="FunAudioLLM/SenseVoiceSmall">
+          <div id="stt-model-wrap">
+            <label for="stt-model">Transcription model</label>
+            <input id="stt-model" placeholder="FunAudioLLM/SenseVoiceSmall">
+          </div>
         </details>
+        <div class="row actions">
+          <button class="secondary test-model" data-which="stt" type="button">Test speech-to-text</button>
+          <span class="msg test-msg" data-which="stt"></span>
+        </div>
       </div>
 
       <div class="savebar">
