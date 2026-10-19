@@ -1,0 +1,641 @@
+{
+  "behavioral": {
+    "_note": "kind 'story' = STAR story (situation, task, action, result, reflection); kind 'answer' = short prepared answer. 'core' is asked by default; 'extra' can be added on the Stories tab. Pasted prep docs are filed into any of these.",
+    "core": [
+      "about_me",
+      "why_field",
+      "teamwork",
+      "conflict",
+      "failure",
+      "success",
+      "weakness"
+    ],
+    "extra": [
+      "strength",
+      "persuade",
+      "priorities",
+      "ownership",
+      "problem_solving",
+      "feedback",
+      "ethics",
+      "pressure",
+      "ambiguity",
+      "communication",
+      "customer",
+      "why_school",
+      "why_hire",
+      "describe_you",
+      "success_meaning",
+      "five_years",
+      "favorite_book",
+      "favorite_class"
+    ],
+    "competencies": {
+      "about_me": {
+        "label": "Tell me about yourself",
+        "group": "Pitch",
+        "kind": "answer",
+        "questions": [
+          "Tell me about yourself."
+        ],
+        "look_for": "About 90 seconds, told as a story rather than a list of resume lines: background (where you're from, school, major) → the spark (a specific person, event or experience that drew you to this field) → how the interest grew (skills, projects, jobs) → why you're applying now and where you want to go."
+      },
+      "why_field": {
+        "label": "Why this field / role",
+        "group": "Motivation",
+        "kind": "answer",
+        "questions": [
+          "Why do you want to work in this field, and in this kind of role?"
+        ],
+        "look_for": "Two or three reasons, each tied to a real experience of theirs. Not generic praise of the industry."
+      },
+      "why_school": {
+        "label": "Why your school and major",
+        "group": "Motivation",
+        "kind": "answer",
+        "questions": [
+          "Why did you choose your school and your major?"
+        ],
+        "look_for": "Concrete reasons tied to their interests and what they've done there since."
+      },
+      "strength": {
+        "label": "Greatest strength",
+        "group": "Strengths & weaknesses",
+        "kind": "story",
+        "questions": [
+          "What is your greatest strength? Tell me about a time it made a difference."
+        ],
+        "look_for": "A strength employers value (work ethic, going above and beyond, problem-solving, being a team player, composure) proven by one specific story. Not just a list of adjectives."
+      },
+      "weakness": {
+        "label": "A real weakness",
+        "group": "Strengths & weaknesses",
+        "kind": "story",
+        "questions": [
+          "What is a real weakness of yours? When did it show up, and what are you doing about it?"
+        ],
+        "look_for": "A genuine but not disqualifying weakness, a specific moment it showed up, and concrete steps they're taking to fix it. Never ends on the weakness."
+      },
+      "teamwork": {
+        "label": "Teamwork or leadership",
+        "group": "Stories",
+        "kind": "story",
+        "questions": [
+          "Tell me about a time you worked well in a team or took on a leadership role.",
+          "Tell me about a team project where things didn't go smoothly. What did you do?"
+        ],
+        "look_for": "Their specific role vs. the team's, how they coordinated or led, and a concrete outcome."
+      },
+      "conflict": {
+        "label": "Disagreement or conflict",
+        "group": "Stories",
+        "kind": "story",
+        "questions": [
+          "Tell me about a time you disagreed with a teammate, manager or professor. How did you handle it?",
+          "Describe a time you worked with someone difficult."
+        ],
+        "look_for": "What the disagreement was about (ideas, priorities, or a task problem like a tight deadline), how they raised it, whether they listened, how it was resolved, the relationship afterwards."
+      },
+      "persuade": {
+        "label": "Convincing someone",
+        "group": "Stories",
+        "kind": "story",
+        "questions": [
+          "Tell me about a time you had to convince someone, or a team, to do something."
+        ],
+        "look_for": "Who they had to convince and why that person was hesitant, how they made the case (evidence, addressing concerns, not just enthusiasm), and the outcome."
+      },
+      "priorities": {
+        "label": "Balancing competing priorities",
+        "group": "Stories",
+        "kind": "story",
+        "questions": [
+          "Tell me about a time you had to balance several competing priorities or deadlines."
+        ],
+        "look_for": "What was competing, how they decided what came first, trade-offs, how they tracked progress, and whether they delivered."
+      },
+      "success": {
+        "label": "Success story",
+        "group": "Stories",
+        "kind": "story",
+        "questions": [
+          "Tell me about an accomplishment you're proud of. What made it succeed?"
+        ],
+        "look_for": "A real achievement with measurable results, and an honest view of what contributed to the success (including other people)."
+      },
+      "failure": {
+        "label": "Failure or mistake",
+        "group": "Stories",
+        "kind": "story",
+        "questions": [
+          "Tell me about a time you failed or made a mistake. What happened?",
+          "Describe a decision you got wrong. What did you do next?"
+        ],
+        "look_for": "A real failure (not a humble brag), owning it without blaming others, how they responded, and what they now do differently."
+      },
+      "ethics": {
+        "label": "Ethical dilemma",
+        "group": "Stories",
+        "kind": "story",
+        "questions": [
+          "Tell me about a time you faced an ethical dilemma. What did you do?"
+        ],
+        "look_for": "What the competing values were, who could be affected, how they decided, what they did, and what they learned."
+      },
+      "problem_solving": {
+        "label": "Solving a hard problem",
+        "group": "Stories",
+        "kind": "story",
+        "questions": [
+          "Describe a difficult problem you solved. How did you approach it?"
+        ],
+        "look_for": "How they broke the problem down, options they considered, the decision, and a measurable result."
+      },
+      "feedback": {
+        "label": "Taking critical feedback",
+        "group": "Stories",
+        "kind": "story",
+        "questions": [
+          "Tell me about a time you received critical feedback. What did you do with it?"
+        ],
+        "look_for": "The specific feedback, their honest first reaction, what they changed, and evidence it worked."
+      },
+      "ownership": {
+        "label": "Ownership or initiative",
+        "group": "Stories",
+        "kind": "story",
+        "questions": [
+          "Tell me about a time you took the lead on something without being asked.",
+          "Describe something you started or improved on your own initiative."
+        ],
+        "look_for": "They drove it (not just took part), decisions they made, how they got others on board, the result."
+      },
+      "ambiguity": {
+        "label": "Learning fast or unclear problems",
+        "group": "Stories",
+        "kind": "story",
+        "questions": [
+          "Tell me about a time you had to learn something new very quickly to get a task done.",
+          "Describe a time you started a task with unclear requirements."
+        ],
+        "look_for": "How they broke the problem down, who or what they learned from, how fast, the result."
+      },
+      "pressure": {
+        "label": "Composure under pressure",
+        "group": "Stories",
+        "kind": "story",
+        "questions": [
+          "Tell me about a time you had to perform under a lot of pressure or a tight deadline."
+        ],
+        "look_for": "What made it high-pressure, how they managed stress and the work, and the outcome."
+      },
+      "communication": {
+        "label": "Explaining something complex",
+        "group": "Stories",
+        "kind": "story",
+        "questions": [
+          "Tell me about a time you had to explain something technical or complicated to someone without that background."
+        ],
+        "look_for": "Who the audience was, how they adapted the message, how they checked understanding, the outcome."
+      },
+      "customer": {
+        "label": "Going above and beyond for someone",
+        "group": "Stories",
+        "kind": "story",
+        "questions": [
+          "Tell me about a time you went above and beyond for a customer, user, client or someone you were serving."
+        ],
+        "look_for": "Who they were helping, what was expected vs. what they did, why, and the impact."
+      },
+      "why_hire": {
+        "label": "Why should we hire you?",
+        "group": "Others",
+        "kind": "answer",
+        "questions": [
+          "Why should we hire you over someone else?"
+        ],
+        "look_for": "Doesn't just list strengths: acknowledges what they may lack, then two qualities, each with one short proof, and ends confidently."
+      },
+      "describe_you": {
+        "label": "How others describe you",
+        "group": "Others",
+        "kind": "answer",
+        "questions": [
+          "How would your friends, colleagues or boss describe you?"
+        ],
+        "look_for": "One or two traits for each group, each backed by a short real example."
+      },
+      "success_meaning": {
+        "label": "What success means to you",
+        "group": "Others",
+        "kind": "answer",
+        "questions": [
+          "What does success mean to you?"
+        ],
+        "look_for": "A thoughtful personal definition, tied to something they've done, not a cliché."
+      },
+      "five_years": {
+        "label": "5 and 10 years from now",
+        "group": "Others",
+        "kind": "answer",
+        "questions": [
+          "Where do you see yourself in 5 and 10 years?"
+        ],
+        "look_for": "Realistic growth in this field (skills and responsibility in 5 years, leading work in 10), tied to the role they're applying for."
+      },
+      "favorite_book": {
+        "label": "Favorite book",
+        "group": "Others",
+        "kind": "answer",
+        "questions": [
+          "What is your favorite book, and why?"
+        ],
+        "look_for": "A real book they can discuss, what they took from it, and how it shaped how they think or work."
+      },
+      "favorite_class": {
+        "label": "Favorite class",
+        "group": "Others",
+        "kind": "answer",
+        "questions": [
+          "What was your favorite class, and why?"
+        ],
+        "look_for": "What specifically they enjoyed or learned, and how it connects to their interests."
+      }
+    }
+  },
+  "technical": {
+    "_note": "Questions for the Skills check. type: concept (explain), practical (write or read code/queries), design (short design reasoning). level: 1 easy, 2 medium, 3 harder. The rubric is what a strong answer includes.",
+    "areas": {
+      "python": {
+        "label": "Python",
+        "questions": [
+          {
+            "id": "py1",
+            "level": 1,
+            "type": "concept",
+            "question": "What is the difference between a list and a tuple in Python, and when would you use each?",
+            "rubric": "Lists are mutable, tuples immutable; tuples hashable (dict keys/set members) if contents are; tuples for fixed records, lists for collections that change."
+          },
+          {
+            "id": "py2",
+            "level": 2,
+            "type": "practical",
+            "question": "Write a Python function that takes a list of words and returns a dictionary mapping each word to how many times it appears, ignoring case.",
+            "rubric": "Lowercases words; counts correctly with dict.get / defaultdict / Counter; returns the dict; handles empty list."
+          },
+          {
+            "id": "py3",
+            "level": 2,
+            "type": "concept",
+            "question": "What does this print, and why?\n\ndef add(item, items=[]):\n    items.append(item)\n    return items\n\nprint(add(1))\nprint(add(2))",
+            "rubric": "Prints [1] then [1, 2]; default argument evaluated once at definition and shared; fix with items=None."
+          },
+          {
+            "id": "py4",
+            "level": 3,
+            "type": "concept",
+            "question": "Explain what a generator is in Python and give one situation where it is better than returning a list.",
+            "rubric": "Function using yield / lazy iterator producing values on demand; saves memory for large or infinite sequences or streaming data (e.g. reading a big file line by line)."
+          },
+          {
+            "id": "py5",
+            "level": 2,
+            "type": "practical",
+            "question": "Write a function that returns the second largest distinct number in a list of integers, or None if there isn't one.",
+            "rubric": "Handles duplicates (distinct values), lists shorter than 2 distinct values return None; O(n) single pass or set+sort acceptable; correct on negatives."
+          }
+        ]
+      },
+      "dsa": {
+        "label": "Data structures & algorithms",
+        "questions": [
+          {
+            "id": "dsa1",
+            "level": 1,
+            "type": "concept",
+            "question": "What is the time complexity of looking up a key in a hash table vs. searching an unsorted array, and why?",
+            "rubric": "Hash table average O(1) via hashing to a bucket (worst case O(n) with collisions); unsorted array O(n) linear scan."
+          },
+          {
+            "id": "dsa2",
+            "level": 2,
+            "type": "practical",
+            "question": "Given an array of integers and a target, return the indices of two numbers that add up to the target. Describe or write an O(n) approach.",
+            "rubric": "Single pass with a hash map from value to index; check target - x before inserting; O(n) time, O(n) space; mentions handling no solution."
+          },
+          {
+            "id": "dsa3",
+            "level": 2,
+            "type": "concept",
+            "question": "When would you use breadth-first search instead of depth-first search?",
+            "rubric": "BFS finds shortest path in unweighted graphs / explores level by level; uses a queue; DFS uses stack/recursion, better for exhaustive search, cycles/topological sort, lower memory on wide graphs."
+          },
+          {
+            "id": "dsa4",
+            "level": 3,
+            "type": "concept",
+            "question": "Explain dynamic programming using an example problem. What makes a problem a good fit for it?",
+            "rubric": "Overlapping subproblems + optimal substructure; memoization or bottom-up table; concrete example (Fibonacci, knapsack, edit distance, coin change) with the recurrence."
+          },
+          {
+            "id": "dsa5",
+            "level": 2,
+            "type": "practical",
+            "question": "How would you check whether a string of brackets like \"({[]})\" is balanced? Describe the algorithm and its complexity.",
+            "rubric": "Stack: push openers, pop and match on closers, fail on mismatch or empty stack, balanced if stack empty at end; O(n) time, O(n) space."
+          }
+        ]
+      },
+      "sql": {
+        "label": "SQL & databases",
+        "questions": [
+          {
+            "id": "sql1",
+            "level": 1,
+            "type": "practical",
+            "question": "Table orders(id, customer_id, amount, created_at). Write a query for the total amount spent by each customer, highest first.",
+            "rubric": "SELECT customer_id, SUM(amount) ... GROUP BY customer_id ORDER BY total DESC."
+          },
+          {
+            "id": "sql2",
+            "level": 2,
+            "type": "concept",
+            "question": "What is the difference between an INNER JOIN and a LEFT JOIN? Give an example where the results differ.",
+            "rubric": "Inner keeps only matching rows; left keeps all rows from the left table with NULLs for missing matches; example like customers with no orders."
+          },
+          {
+            "id": "sql3",
+            "level": 2,
+            "type": "concept",
+            "question": "What is a database index, and what is the trade-off of adding one?",
+            "rubric": "Data structure (usually B-tree) that speeds lookups/sorts on columns; costs extra storage and slower writes (insert/update must maintain it); choose for frequently filtered/joined columns."
+          },
+          {
+            "id": "sql4",
+            "level": 3,
+            "type": "practical",
+            "question": "Using orders(id, customer_id, amount, created_at), find customers who placed orders in at least 3 different months of 2025.",
+            "rubric": "Filter to 2025; group by customer; COUNT(DISTINCT month or date_trunc('month')) >= 3 in HAVING."
+          },
+          {
+            "id": "sql5",
+            "level": 2,
+            "type": "concept",
+            "question": "What is a transaction, and what does ACID stand for?",
+            "rubric": "Group of operations that succeed or fail together; Atomicity, Consistency, Isolation, Durability, each briefly explained."
+          }
+        ]
+      },
+      "backend": {
+        "label": "Backend & APIs",
+        "questions": [
+          {
+            "id": "be1",
+            "level": 1,
+            "type": "concept",
+            "question": "What are the differences between HTTP GET, POST, PUT and DELETE in a REST API?",
+            "rubric": "GET reads (safe, idempotent), POST creates/submits (not idempotent), PUT replaces/updates (idempotent), DELETE removes (idempotent); mentions status codes or request bodies."
+          },
+          {
+            "id": "be2",
+            "level": 2,
+            "type": "concept",
+            "question": "What does it mean for an API endpoint to be idempotent, and why does it matter for something like payments?",
+            "rubric": "Repeating the same request has the same effect as once; matters for retries/network failures to avoid double charges; idempotency keys."
+          },
+          {
+            "id": "be3",
+            "level": 2,
+            "type": "design",
+            "question": "Your API endpoint is slow because it runs the same expensive database query on every request. Name two ways to speed it up and a downside of each.",
+            "rubric": "Caching (staleness/invalidation), indexes or query optimization (write cost), pagination, precomputing/materialized views, async jobs; each with a real trade-off."
+          },
+          {
+            "id": "be4",
+            "level": 3,
+            "type": "design",
+            "question": "How would you design rate limiting for a public API so one user can't send more than 100 requests per minute?",
+            "rubric": "Per-user/API-key counter with a window (fixed/sliding window or token bucket); shared store like Redis for multiple servers; return 429 with Retry-After."
+          },
+          {
+            "id": "be5",
+            "level": 1,
+            "type": "concept",
+            "question": "What is the difference between authentication and authorization?",
+            "rubric": "Authentication = who you are (login, tokens); authorization = what you're allowed to do (permissions, roles); example."
+          }
+        ]
+      },
+      "frontend": {
+        "label": "JavaScript & frontend",
+        "questions": [
+          {
+            "id": "fe1",
+            "level": 1,
+            "type": "concept",
+            "question": "What is the difference between let, const and var in JavaScript?",
+            "rubric": "var function-scoped and hoisted; let/const block-scoped; const can't be reassigned (object contents can still change)."
+          },
+          {
+            "id": "fe2",
+            "level": 2,
+            "type": "concept",
+            "question": "Explain what a Promise is and how async/await relates to it.",
+            "rubric": "Object representing a future value with pending/fulfilled/rejected; then/catch; async functions return promises and await pauses until settled; error handling with try/catch."
+          },
+          {
+            "id": "fe3",
+            "level": 2,
+            "type": "concept",
+            "question": "In React (or a framework you know), what causes a component to re-render, and how can you avoid unnecessary re-renders?",
+            "rubric": "State/props/context changes or parent re-render; memoization (React.memo, useMemo, useCallback), keeping state local, stable keys."
+          },
+          {
+            "id": "fe4",
+            "level": 3,
+            "type": "concept",
+            "question": "What does this print and why?\n\nfor (var i = 0; i < 3; i++) {\n  setTimeout(() => console.log(i), 0);\n}",
+            "rubric": "Prints 3 three times; var shares one binding and callbacks run after the loop; let creates a new binding per iteration and prints 0 1 2."
+          },
+          {
+            "id": "fe5",
+            "level": 1,
+            "type": "concept",
+            "question": "What is the difference between the DOM and HTML source code?",
+            "rubric": "HTML is the text the server sends; the DOM is the browser's live tree of objects built from it that JavaScript can change."
+          }
+        ]
+      },
+      "systems": {
+        "label": "Systems & OS",
+        "questions": [
+          {
+            "id": "os1",
+            "level": 1,
+            "type": "concept",
+            "question": "What is the difference between a process and a thread?",
+            "rubric": "Process has its own memory space; threads share the process memory; threads cheaper to create, need synchronization."
+          },
+          {
+            "id": "os2",
+            "level": 2,
+            "type": "concept",
+            "question": "What is a race condition? Give an example and one way to prevent it.",
+            "rubric": "Outcome depends on timing of concurrent access to shared state; example like two threads incrementing a counter; locks/mutexes, atomic operations."
+          },
+          {
+            "id": "os3",
+            "level": 2,
+            "type": "concept",
+            "question": "What happens, step by step, when you type a URL into a browser and press Enter?",
+            "rubric": "DNS lookup, TCP (and TLS) connection, HTTP request, server response, browser parses HTML and fetches resources, renders."
+          },
+          {
+            "id": "os4",
+            "level": 3,
+            "type": "concept",
+            "question": "What is a deadlock, and what conditions must hold for one to occur?",
+            "rubric": "Processes waiting on each other forever; mutual exclusion, hold and wait, no preemption, circular wait; prevention by lock ordering."
+          }
+        ]
+      },
+      "ml": {
+        "label": "Machine learning",
+        "questions": [
+          {
+            "id": "ml1",
+            "level": 1,
+            "type": "concept",
+            "question": "What is overfitting, and name two ways to reduce it.",
+            "rubric": "Model fits training noise and generalizes poorly (train good, validation bad); more data, regularization, simpler model, dropout, early stopping, cross-validation."
+          },
+          {
+            "id": "ml2",
+            "level": 2,
+            "type": "concept",
+            "question": "Why do we split data into training, validation and test sets?",
+            "rubric": "Train fits parameters; validation tunes hyperparameters/model choice; test gives an unbiased final estimate; avoids leakage."
+          },
+          {
+            "id": "ml3",
+            "level": 2,
+            "type": "concept",
+            "question": "Your classifier has 95% accuracy, but only 5% of the data is the positive class. Is that good? What would you look at instead?",
+            "rubric": "Not necessarily: predicting all negative gives 95%; use precision, recall, F1, ROC-AUC/PR-AUC, confusion matrix."
+          },
+          {
+            "id": "ml4",
+            "level": 3,
+            "type": "concept",
+            "question": "Explain at a high level how a transformer language model generates text.",
+            "rubric": "Tokenization; embeddings; self-attention layers relate tokens; predicts next-token probabilities; sampling/decoding one token at a time, autoregressively."
+          }
+        ]
+      },
+      "data": {
+        "label": "Data analysis",
+        "questions": [
+          {
+            "id": "da1",
+            "level": 1,
+            "type": "concept",
+            "question": "What is the difference between the mean and the median, and when is the median the better summary?",
+            "rubric": "Mean = average, median = middle value; median robust to outliers/skew (e.g. income, house prices)."
+          },
+          {
+            "id": "da2",
+            "level": 2,
+            "type": "practical",
+            "question": "In pandas, given a DataFrame df with columns city and sales, how do you get total sales per city, sorted from highest to lowest?",
+            "rubric": "df.groupby('city')['sales'].sum().sort_values(ascending=False)."
+          },
+          {
+            "id": "da3",
+            "level": 2,
+            "type": "concept",
+            "question": "Sales went up after a website redesign. What would you check before saying the redesign caused it?",
+            "rubric": "Correlation vs. causation; seasonality/trends, marketing or pricing changes, control group / A/B test, statistical significance."
+          },
+          {
+            "id": "da4",
+            "level": 2,
+            "type": "concept",
+            "question": "How would you handle missing values in a dataset?",
+            "rubric": "First understand why they're missing; drop rows/columns, impute (mean/median/mode/model), add missing indicator; effect on analysis."
+          }
+        ]
+      },
+      "java": {
+        "label": "Java",
+        "questions": [
+          {
+            "id": "jv1",
+            "level": 1,
+            "type": "concept",
+            "question": "What is the difference between == and .equals() when comparing objects in Java?",
+            "rubric": "== compares references (same object); equals compares logical value if overridden (e.g. String); override hashCode with equals."
+          },
+          {
+            "id": "jv2",
+            "level": 2,
+            "type": "concept",
+            "question": "What is the difference between an interface and an abstract class in Java?",
+            "rubric": "Class can implement many interfaces but extend one class; abstract classes can hold state/constructors; interfaces define contracts (default methods since Java 8)."
+          },
+          {
+            "id": "jv3",
+            "level": 2,
+            "type": "concept",
+            "question": "When would you use an ArrayList vs. a LinkedList vs. a HashMap?",
+            "rubric": "ArrayList fast index access, amortized append; LinkedList cheap insert/remove at known nodes but slow access; HashMap key-value lookups O(1) average."
+          }
+        ]
+      },
+      "c_cpp": {
+        "label": "C / C++",
+        "questions": [
+          {
+            "id": "cc1",
+            "level": 1,
+            "type": "concept",
+            "question": "What is the difference between the stack and the heap?",
+            "rubric": "Stack: automatic local variables, fast, freed on return, limited size; heap: dynamic allocation (malloc/new), manual or RAII freeing, larger."
+          },
+          {
+            "id": "cc2",
+            "level": 2,
+            "type": "concept",
+            "question": "What is a memory leak, and how do you avoid one in C++?",
+            "rubric": "Allocated memory never freed; RAII, smart pointers (unique_ptr/shared_ptr), matching new/delete, tools like valgrind/ASan."
+          },
+          {
+            "id": "cc3",
+            "level": 2,
+            "type": "concept",
+            "question": "What is the difference between passing by value, by pointer and by reference in C++?",
+            "rubric": "Value copies; pointer passes address (can be null, needs dereference); reference is an alias (not null, can't reseat); const references avoid copies."
+          }
+        ]
+      },
+      "git": {
+        "label": "Git & teamwork tools",
+        "questions": [
+          {
+            "id": "git1",
+            "level": 1,
+            "type": "concept",
+            "question": "What is the difference between git merge and git rebase?",
+            "rubric": "Merge creates a merge commit preserving history; rebase replays commits on a new base for linear history; don't rebase shared branches."
+          },
+          {
+            "id": "git2",
+            "level": 1,
+            "type": "concept",
+            "question": "Walk through how you would contribute a change to a team repository using branches and pull requests.",
+            "rubric": "Create branch, commit, push, open PR, code review, address feedback, CI checks, merge; keep branch up to date."
+          }
+        ]
+      }
+    }
+  }
+}

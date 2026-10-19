@@ -1,0 +1,1176 @@
+"use strict";
+
+const $ = (sel) => document.querySelector(sel);
+
+// Build DOM nodes without innerHTML, so model output and job text are never parsed as HTML.
+function h(tag, attrs, ...children) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v == null || v === false) continue;
+    if (k === "class") el.className = v;
+    else if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+    else el.setAttribute(k, v === true ? "" : v);
+  }
+  for (const c of children.flat(Infinity)) {
+    if (c == null || c === false || c === "") continue;
+    el.append(c instanceof Node ? c : String(c));
+  }
+  return el;
+}
+
+const list = (items) => h("ul", { class: "tight" }, (items || []).map((i) => h("li", {}, i)));
+const chips = (items) => h("div", { class: "chips" }, (items || []).filter(Boolean).map((i) => h("span", { class: "chip" }, i)));
+
+async function api(path, opts = {}) {
+  const init = { method: opts.method || "GET", headers: {} };
+  if (opts.body !== undefined) {
+    init.headers["Content-Type"] = "application/json";
+    init.body = JSON.stringify(opts.body);
+  }
+  let res;
+  try {
+    res = await fetch(path, init);
+  } catch (e) {
+    throw new Error("Can't reach the app server. Is it still running?");
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const d = data.detail;
+    throw new Error(typeof d === "string" ? d : d ? JSON.stringify(d) : `Request failed (${res.status})`);
+  }
+  return data;
+}
+
+function setMsg(el, text, kind) {
+  el.textContent = text || "";
+  el.className = "msg" + (kind ? " " + kind : "");
+}
+
+async function busy(button, label, fn) {
+  const old = button.textContent;
+  button.disabled = true;
+  button.textContent = label;
+  try {
+    return await fn();
+  } finally {
+    button.disabled = false;
+    button.textContent = old;
+  }
+}
+
+// ---------- Tabs ----------
+
+const loaders = {};
+const TABS = ["interview", "stories", "skills", "profile", "find", "jobs", "tracker", "guide", "settings"];
+
+function showTab(name) {
+  if (!TABS.includes(name)) name = "interview";
+  document.querySelectorAll(".view").forEach((v) => v.classList.toggle("active", v.id === "view-" + name));
+  document.querySelectorAll("#tabs a").forEach((a) => a.classList.toggle("active", a.dataset.tab === name));
+  Promise.resolve(loaders[name] && loaders[name]()).catch((e) => console.error(e));
+}
+window.addEventListener("hashchange", () => showTab(location.hash.slice(1)));
+
+// ---------- Settings ----------
+
+const KNOWN_MODELS = ["deepseek-flash", "deepseek-v4-pro"];
+let settings = null;
+
+function keyField(id, has, hint, emptyPlaceholder) {
+  $(id).value = "";
+  $(id).placeholder = has ? `Saved (${hint}). Paste a new key to replace it` : emptyPlaceholder;
+}
+
+loaders.settings = async () => {
+  settings = await api("/api/settings");
+  const known = KNOWN_MODELS.includes(settings.model);
+  $("#model").value = known ? settings.model : "custom";
+  $("#model-custom").value = known ? "" : settings.model;
+  $("#model-custom").classList.toggle("hidden", known);
+  $("#base-url").value = settings.base_url;
+  keyField("#api-key", settings.has_key, settings.key_hint, "sk-...");
+  $("#key-status").textContent = settings.has_key ? "✓ Key saved." : "No key saved yet.";
+
+  keyField("#backup-key", settings.has_backup, settings.backup_hint, "AIza...");
+  $("#backup-status").textContent = settings.has_backup ? "✓ Backup is on." : "Off: if DeepSeek is busy you'll see an error and can retry.";
+  $("#backup-model").value = settings.backup_model;
+  $("#backup-base-url").value = settings.backup_base_url;
+
+  keyField("#search-key", settings.has_search, settings.search_hint, "tvly-...");
+  $("#search-status").textContent = settings.has_search ? "✓ Web lookups are on." : "Off: the coach will ask you instead of looking things up.";
+
+  keyField("#hunter-key", settings.has_hunter, settings.hunter_hint, "Hunter API key");
+  $("#hunter-status").textContent = settings.has_hunter ? "✓ Hunter.io lookups are on." : "Off: use Apollo.io by hand when no email is found.";
+
+  keyField("#stt-key", settings.has_stt, settings.stt_hint, "sk-...");
+  $("#stt-status").textContent = settings.has_stt ? "✓ Using this service for 🎤." : "Off: 🎤 uses your browser's voice typing.";
+  $("#stt-base-url").value = settings.stt_base_url;
+  $("#stt-model").value = settings.stt_model;
+
+  const saved = { api_key: settings.has_key, backup_key: settings.has_backup, search_key: settings.has_search, stt_key: settings.has_stt,
+    hunter_key: settings.has_hunter };
+  document.querySelectorAll(".remove-secret").forEach((b) => b.classList.toggle("hidden", !saved[b.dataset.field]));
+};
+
+$("#model").addEventListener("change", () => {
+  $("#model-custom").classList.toggle("hidden", $("#model").value !== "custom");
+});
+
+$("#toggle-key").addEventListener("click", () => {
+  const input = $("#api-key");
+  input.type = input.type === "password" ? "text" : "password";
+  $("#toggle-key").textContent = input.type === "password" ? "Show" : "Hide";
+});
+
+function settingsBody() {
+  const val = (id) => $(id).value.trim() || null;
+  const model = $("#model").value === "custom" ? $("#model-custom").value.trim() : $("#model").value;
+  return {
+    api_key: val("#api-key"), model: model || null, base_url: val("#base-url"),
+    backup_key: val("#backup-key"), backup_model: val("#backup-model"), backup_base_url: val("#backup-base-url"),
+    search_key: val("#search-key"), hunter_key: val("#hunter-key"),
+    stt_key: val("#stt-key"), stt_base_url: val("#stt-base-url"), stt_model: val("#stt-model"),
+  };
+}
+
+async function saveSettings() {
+  await api("/api/settings", { method: "PUT", body: settingsBody() });
+  await loaders.settings();
+}
+
+$("#save-settings").addEventListener("click", (e) =>
+  busy(e.target, "Saving…", async () => {
+    try {
+      await saveSettings();
+      setMsg($("#settings-msg"), "Saved.", "ok");
+    } catch (err) {
+      setMsg($("#settings-msg"), err.message, "err");
+    }
+  })
+);
+
+document.querySelectorAll(".test-model").forEach((b) =>
+  b.addEventListener("click", () =>
+    busy(b, "Testing…", async () => {
+      const msg = document.querySelector(`.test-msg[data-which="${b.dataset.which}"]`);
+      setMsg(msg, "");
+      try {
+        await saveSettings();
+        const r = await api(`/api/settings/test?which=${b.dataset.which}`, { method: "POST" });
+        setMsg(msg, `Connected ✓ (${r.model})`, "ok");
+      } catch (err) {
+        setMsg(msg, err.message, "err");
+      }
+    })
+  )
+);
+
+document.querySelectorAll(".remove-secret").forEach((b) =>
+  b.addEventListener("click", async () => {
+    if (!confirm("Remove this saved key from this computer?")) return;
+    await api(`/api/settings/${b.dataset.field}`, { method: "DELETE" });
+    await loaders.settings();
+  })
+);
+
+// ---------- Interview ----------
+
+const SECTION_LABELS = {
+  goals: "Your goals", education: "Education", experience: "Work experience", projects: "Projects",
+  technical: "Technical skills", behavioral: "Behavioral stories", contact: "Contact details", done: "Done",
+};
+const GREETING = "Hi! I'm your career coach. What kind of job are you looking for? Tell me in a sentence or two: the role, the field, and where. (You can write in English or 中文.)";
+let interview = { messages: [], section: "goals", progress: 0, complete: false };
+
+function messageBubble(m) {
+  if (m.kind === "upload") return h("div", { class: "bubble user upload" }, `📎 Uploaded ${interview.resume_name || "my CV"}`);
+  const bubble = h("div", { class: `bubble ${m.role}` }, m.content);
+  if (!(m.lookups || []).length) return bubble;
+  return [h("div", { class: "lookups" }, "🔎 Looked up: " + m.lookups.join(" · ")), bubble];
+}
+
+function renderChat(pendingText) {
+  const chat = $("#chat");
+  chat.replaceChildren(h("div", { class: "bubble assistant" }, GREETING));
+  for (const m of interview.messages) chat.append(...[messageBubble(m)].flat());
+  if (pendingText) {
+    chat.append(h("div", { class: "bubble user" }, pendingText));
+    chat.append(h("div", { class: "bubble assistant typing" }, interview.search_enabled ? "Thinking (may look things up)…" : "Thinking…"));
+  }
+  chat.scrollTop = chat.scrollHeight;
+  $("#progress-bar").style.width = interview.progress + "%";
+  $("#progress-label").textContent = interview.messages.length
+    ? `${interview.progress}% done · Now: ${SECTION_LABELS[interview.section] || interview.section}`
+    : "";
+  $("#build-profile").classList.toggle("secondary", !interview.complete);
+  $("#resume-status").textContent = interview.resume_name ? `Using ${interview.resume_name}` : "";
+  $("#search-badge").textContent = interview.search_enabled ? "🔎 Web lookups on" : "";
+}
+
+loaders.interview = async () => {
+  interview = await api("/api/interview");
+  renderChat();
+};
+
+// Read the coach's replies aloud with the computer's built-in voices (works offline, any country).
+const speakToggle = $("#speak-toggle");
+try { speakToggle.checked = localStorage.getItem("speak") === "1"; } catch (e) { /* storage blocked */ }
+speakToggle.addEventListener("change", () => {
+  try { localStorage.setItem("speak", speakToggle.checked ? "1" : "0"); } catch (e) { /* storage blocked */ }
+  if (!speakToggle.checked && window.speechSynthesis) speechSynthesis.cancel();
+});
+
+function speak(text) {
+  if (!speakToggle.checked || !window.speechSynthesis) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = /[一-鿿]/.test(text) ? "zh-CN" : "en-US";
+  speechSynthesis.speak(u);
+}
+
+function lastReply() {
+  const m = interview.messages[interview.messages.length - 1];
+  return m && m.role === "assistant" ? m.content : "";
+}
+
+$("#chat-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  stopVoice();
+  const input = $("#chat-input");
+  const text = input.value.trim();
+  if (!text || $("#send").disabled) return;
+  input.value = "";
+  $("#send").disabled = true;
+  setMsg($("#interview-msg"), "");
+  renderChat(text);
+  try {
+    interview = await api("/api/interview/message", { method: "POST", body: { text } });
+    renderChat();
+    speak(lastReply());
+    if (interview.complete) setMsg($("#interview-msg"), "Interview complete. Click Build my profile.", "ok");
+  } catch (err) {
+    renderChat();
+    input.value = text;
+    setMsg($("#interview-msg"), err.message, "err");
+  } finally {
+    $("#send").disabled = false;
+    input.focus();
+  }
+});
+
+$("#resume-file").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  e.target.value = "";
+  if (!file) return;
+  const msg = $("#interview-msg");
+  setMsg(msg, "");
+  $("#resume-status").textContent = `Reading ${file.name}…`;
+  renderChat(`📎 Uploading ${file.name}`);
+  const form = new FormData();
+  form.append("file", file);
+  try {
+    const res = await fetch("/api/interview/resume", { method: "POST", body: form });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(typeof data.detail === "string" ? data.detail : `Upload failed (${res.status})`);
+    interview = data;
+    renderChat();
+    speak(lastReply());
+    setMsg(msg, "CV read. Answer the coach's questions, or click Build my profile any time.", "ok");
+  } catch (err) {
+    renderChat();
+    setMsg(msg, err.message, "err");
+  }
+});
+
+// ---------- Voice input ----------
+// With a speech-to-text key in Settings: record audio and transcribe on the server.
+// Otherwise: the browser's own voice typing (Chrome, Edge, Safari).
+// attachVoice() wires a 🎤 button to a text box; only one can listen at a time.
+
+const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+let voice = null; // the active {mic, input, lang, msg, recognizer, recorder}
+
+function setMic(mic, on) {
+  mic.classList.toggle("recording", on);
+  mic.textContent = on ? "■" : "🎤";
+  mic.title = on ? "Stop" : "Talk instead of typing";
+}
+
+async function startServerRecording(v) {
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  const chunks = [];
+  const rec = new MediaRecorder(stream);
+  v.recorder = rec;
+  rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+  rec.onstop = async () => {
+    stream.getTracks().forEach((t) => t.stop());
+    const type = rec.mimeType || "audio/webm";
+    const ext = type.includes("mp4") ? "m4a" : type.includes("ogg") ? "ogg" : "webm";
+    const form = new FormData();
+    form.append("file", new Blob(chunks, { type }), `answer.${ext}`);
+    v.msg.textContent = "Transcribing…";
+    try {
+      const res = await fetch("/api/transcribe", { method: "POST", body: form });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(typeof data.detail === "string" ? data.detail : `Transcription failed (${res.status})`);
+      v.input.value = (v.input.value.trim() + " " + data.text).trim();
+      v.msg.textContent = "Check the text, then press Send.";
+      v.input.focus();
+    } catch (err) {
+      v.msg.textContent = err.message;
+    }
+  };
+  rec.start();
+}
+
+function startBrowserRecognition(v) {
+  const before = v.input.value.trim() ? v.input.value.trim() + " " : "";
+  const r = new SpeechRec();
+  v.recognizer = r;
+  r.lang = v.lang.value;
+  r.continuous = true;
+  r.interimResults = true;
+  r.onresult = (e) => {
+    let text = "";
+    for (let i = 0; i < e.results.length; i++) text += e.results[i][0].transcript;
+    v.input.value = before + text;
+  };
+  r.onerror = (e) => {
+    v.msg.textContent = e.error === "network"
+      ? "Browser voice typing can't reach its server from here. Add a speech-to-text key in Settings."
+      : e.error === "not-allowed" ? "Microphone access was blocked. Allow it in your browser's site settings."
+      : `Voice typing stopped (${e.error}).`;
+  };
+  r.onend = () => {
+    if (voice === v) stopVoice();
+  };
+  r.start();
+}
+
+async function startVoice(v) {
+  v.msg.textContent = "";
+  try {
+    if (settings && settings.has_stt && window.MediaRecorder) {
+      await startServerRecording(v);
+    } else if (SpeechRec) {
+      startBrowserRecognition(v);
+    } else {
+      v.msg.textContent = "This browser has no voice typing. Use Chrome, Edge or Safari, or add a speech-to-text key in Settings.";
+      return;
+    }
+    voice = v;
+    setMic(v.mic, true);
+    v.msg.textContent = "Listening… press ■ when you're done.";
+  } catch (err) {
+    v.msg.textContent = err.name === "NotAllowedError" ? "Microphone access was blocked. Allow it in your browser's site settings." : err.message;
+  }
+}
+
+function stopVoice() {
+  const v = voice;
+  if (!v) return;
+  voice = null;
+  setMic(v.mic, false);
+  if (v.recognizer) {
+    v.recognizer.onend = null;
+    v.recognizer.stop();
+    v.recognizer = null;
+    v.msg.textContent = "Check the text, then press Send.";
+  }
+  if (v.recorder && v.recorder.state !== "inactive") v.recorder.stop();
+  v.recorder = null;
+}
+
+function attachVoice(micSel, inputSel, langSel, msgSel) {
+  const v = { mic: $(micSel), input: $(inputSel), lang: $(langSel), msg: $(msgSel) };
+  try { v.lang.value = localStorage.getItem("voiceLang") || "en-US"; } catch (e) { /* storage blocked */ }
+  v.lang.addEventListener("change", () => {
+    try { localStorage.setItem("voiceLang", v.lang.value); } catch (e) { /* storage blocked */ }
+  });
+  v.mic.addEventListener("click", () => {
+    const wasMine = voice === v;
+    stopVoice();
+    if (!wasMine) startVoice(v);
+  });
+}
+
+attachVoice("#mic", "#chat-input", "#voice-lang", "#voice-msg");
+
+// Enter sends, Shift+Enter adds a line. Skip while a Chinese/Japanese IME is composing.
+function enterToSend(inputSel, formSel) {
+  $(inputSel).addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
+      e.preventDefault();
+      $(formSel).requestSubmit();
+    }
+  });
+}
+
+enterToSend("#chat-input", "#chat-form");
+
+$("#reset-interview").addEventListener("click", async () => {
+  if (!confirm("Clear the interview and start over? (Your saved profile is kept.)")) return;
+  interview = await api("/api/interview/reset", { method: "POST" });
+  setMsg($("#interview-msg"), "");
+  renderChat();
+});
+
+$("#build-profile").addEventListener("click", (e) =>
+  busy(e.target, "Building profile…", async () => {
+    try {
+      await api("/api/profile/build", { method: "POST" });
+      location.hash = "#profile";
+    } catch (err) {
+      setMsg($("#interview-msg"), err.message, "err");
+    }
+  })
+);
+
+// ---------- Stories ----------
+
+const STAR_LABELS = { situation: "Situation", task: "Task", action: "What you did", result: "Result", reflection: "Learned" };
+const STATUS_TEXT = { done: "✓ ready", active: "in progress", pending: "to do", skipped: "skipped" };
+let stories = null;
+
+function storyCard(comp) {
+  const s = stories.stories[comp];
+  const kind = stories.kinds[comp];
+  const stars = s.quality ? "★".repeat(s.quality) + "☆".repeat(5 - s.quality) : "";
+  const body = kind === "story"
+    ? h("dl", { class: "star" }, Object.entries(STAR_LABELS).map(([k, lbl]) => [
+        h("dt", {}, lbl), s[k] ? h("dd", {}, s[k]) : h("dd", { class: "missing" }, "missing")]))
+    : h("p", { class: "answer" }, s.answer);
+  return h("div", { class: "card" },
+    h("div", { class: "job-top" },
+      h("div", {}, h("div", { class: "qmeta" }, `${stories.labels[comp]} · ${STATUS_TEXT[s.status] || s.status}`),
+        h("b", {}, s.title || s.question)),
+      stars ? h("span", { class: "quality", title: "How convincing this would be in an interview" }, stars) : null),
+    body,
+    (s.missing || []).length && s.status !== "done" ? h("p", { class: "small missing-note" }, "Still needed: " + s.missing.join(", ")) : null,
+    s.notes ? h("p", { class: "muted small" }, s.notes) : null);
+}
+
+function renderStories(pendingText) {
+  const chat = $("#story-chat");
+  chat.replaceChildren(...stories.messages.map((m) => h("div", { class: `bubble ${m.role}` }, m.content)));
+  if (pendingText) {
+    chat.append(h("div", { class: "bubble user" }, pendingText),
+      h("div", { class: "bubble assistant typing" }, pendingText.startsWith("📄") ? "Reading your document and filing each answer… (up to a minute)" : "Thinking…"));
+  }
+  chat.scrollTop = chat.scrollHeight;
+  $("#story-steps").replaceChildren(...stories.plan.map((c) => {
+    const st = stories.stories[c].status;
+    const cls = c === stories.current ? "active" : st === "done" ? "done" : st === "skipped" ? "skipped" : "";
+    return h("span", { class: `step ${cls}` }, `${stories.labels[c]}${st === "done" ? " ✓" : ""}`);
+  }));
+  // Answers with something in them, grouped like the question bank (Pitch, Motivation, Stories…).
+  const filled = stories.plan.filter((c) => {
+    const s = stories.stories[c];
+    return s.status !== "pending" || s.answer || s.action || s.result;
+  });
+  const ORDER = ["Pitch", "Motivation", "Strengths & weaknesses", "Stories", "Others"];
+  const groups = [...new Set(filled.map((c) => stories.groups[c]))].sort((a, b) => ORDER.indexOf(a) - ORDER.indexOf(b));
+  $("#story-cards").replaceChildren(...(filled.length
+    ? groups.map((g) => [h("h3", { class: "group-title" }, g), filled.filter((c) => stories.groups[c] === g).map(storyCard)])
+    : [h("p", { class: "muted" }, "Answers show up here as you go.")]).flat(2));
+  $("#story-extra").replaceChildren(...stories.extra_left.map((c) => h("option", { value: c }, stories.labels[c])));
+  $("#story-add").disabled = !stories.extra_left.length;
+  $("#story-extra").classList.toggle("hidden", !stories.extra_left.length);
+  $("#story-skip").disabled = stories.done;
+  $("#story-input").disabled = stories.done;
+  $("#story-send").disabled = stories.done;
+  setMsg($("#story-msg"), stories.done ? "All questions done. Next: the Skills check tab, or add another question." : "", stories.done ? "ok" : "");
+}
+
+loaders.stories = async () => {
+  stories = await api("/api/stories");
+  if (!stories.messages.length) stories = await api("/api/stories/start", { method: "POST" });
+  renderStories();
+};
+
+async function sendStory(text) {
+  stopVoice();
+  $("#story-send").disabled = true;
+  setMsg($("#story-msg"), "");
+  renderStories(text.length >= 2500 ? `📄 Pasted document (${text.length.toLocaleString()} characters)` : text);
+  try {
+    stories = await api("/api/stories/message", { method: "POST", body: { text } });
+    renderStories();
+    const last = stories.messages[stories.messages.length - 1];
+    if (last && text.length < 2500) speak(last.content);
+    return true;
+  } catch (err) {
+    renderStories();
+    setMsg($("#story-msg"), err.message, "err");
+    return false;
+  } finally {
+    $("#story-send").disabled = stories.done;
+  }
+}
+
+$("#story-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const input = $("#story-input");
+  const text = input.value.trim();
+  if (!text || $("#story-send").disabled) return;
+  input.value = "";
+  if (!(await sendStory(text))) input.value = text;
+  input.focus();
+});
+enterToSend("#story-input", "#story-form");
+attachVoice("#story-mic", "#story-input", "#story-lang", "#story-voice-msg");
+
+$("#story-skip").addEventListener("click", () => sendStory("I don't have one for this. Can we skip it?"));
+
+$("#story-file").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  e.target.value = "";
+  if (!file) return;
+  setMsg($("#story-msg"), "");
+  renderStories(`📄 Uploading ${file.name}`);
+  const form = new FormData();
+  form.append("file", file);
+  try {
+    const res = await fetch("/api/stories/import", { method: "POST", body: form });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(typeof data.detail === "string" ? data.detail : `Import failed (${res.status})`);
+    stories = data;
+    renderStories();
+  } catch (err) {
+    renderStories();
+    setMsg($("#story-msg"), err.message, "err");
+  }
+});
+
+$("#story-add").addEventListener("click", async () => {
+  try {
+    stories = await api("/api/stories/add", { method: "POST", body: { competency: $("#story-extra").value } });
+    renderStories();
+  } catch (err) {
+    setMsg($("#story-msg"), err.message, "err");
+  }
+});
+
+$("#reset-stories").addEventListener("click", async () => {
+  if (!confirm("Delete all answers and start over?")) return;
+  stories = await api("/api/stories/reset", { method: "POST" });
+  renderStories();
+});
+
+// ---------- Skills check ----------
+
+let skills = null;
+const LEVELS = { 1: "easy", 2: "medium", 3: "harder" };
+
+function collectAnswers() {
+  const answers = {};
+  document.querySelectorAll("#skills-questions textarea").forEach((t) => (answers[t.dataset.id] = t.value));
+  return answers;
+}
+
+function renderSkills() {
+  const graded = skills.status === "graded";
+  const answering = skills.status === "answering";
+  $("#skills-start").classList.toggle("hidden", skills.status !== "none");
+  $("#skills-actions").classList.toggle("hidden", !answering);
+  $("#skills-retake").classList.toggle("hidden", skills.status === "none");
+  $("#skills-reason").textContent = skills.status === "none" ? "" : skills.reason;
+  const grades = graded ? Object.fromEntries(skills.results.grades.map((g) => [g.id, g])) : {};
+
+  $("#skills-questions").replaceChildren(...skills.questions.map((q, i) => {
+    const g = grades[q.id];
+    const answer = (skills.answers || {})[q.id] || "";
+    return h("div", { class: "card question" },
+      h("div", { class: "job-top" },
+        h("div", { class: "qmeta" }, `Question ${i + 1} · ${q.area} · ${LEVELS[q.level] || ""}`),
+        g ? h("span", { class: `score ${g.score >= 3 ? "hi" : g.score >= 2 ? "mid" : "lo"}` }, `${g.score}/4`) : null),
+      h("pre", {}, q.question),
+      answering
+        ? h("textarea", { "data-id": q.id, rows: q.type === "practical" ? 8 : 4, class: q.type === "practical" ? "code" : "",
+            placeholder: q.type === "practical" ? "Write code or steps here…" : "Your answer…", spellcheck: "false" }, answer)
+        : h("pre", { class: "muted" }, answer || "(no answer)"),
+      g ? [h("p", {}, g.feedback), g.model_answer ? h("details", {}, h("summary", {}, "A strong answer"), h("p", {}, g.model_answer)) : null] : null);
+  }));
+  document.querySelectorAll("#skills-questions textarea").forEach((t) =>
+    t.addEventListener("change", () => api("/api/skills/answers", { method: "PUT", body: { answers: collectAnswers() } }).catch(() => {})));
+
+  const r = skills.results;
+  $("#skills-results").replaceChildren(...(graded ? [h("div", { class: "card" },
+    h("div", { class: "big-score" }, `${r.total} / ${r.max}`),
+    h("p", {}, r.summary),
+    chips((r.skills || []).map((s) => `${s.area}: ${s.level}`)),
+    h("p", { class: "muted small" }, "These levels go into your profile when you click Build my profile."))] : []));
+}
+
+loaders.skills = async () => {
+  skills = await api("/api/skills");
+  renderSkills();
+};
+
+$("#skills-start-btn").addEventListener("click", (e) =>
+  busy(e.target, "Picking questions…", async () => {
+    try {
+      skills = await api("/api/skills/start", { method: "POST" });
+      setMsg($("#skills-start-msg"), "");
+      renderSkills();
+    } catch (err) {
+      setMsg($("#skills-start-msg"), err.message, "err");
+    }
+  })
+);
+
+$("#skills-submit").addEventListener("click", (e) => {
+  const answers = collectAnswers();
+  const blank = Object.values(answers).filter((a) => !a.trim()).length;
+  if (blank && !confirm(`${blank} question(s) are blank and will score 0. Submit anyway?`)) return;
+  busy(e.target, "Grading…", async () => {
+    try {
+      skills = await api("/api/skills/grade", { method: "POST", body: { answers } });
+      setMsg($("#skills-msg"), "");
+      renderSkills();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (err) {
+      setMsg($("#skills-msg"), err.message, "err");
+    }
+  });
+});
+
+$("#skills-retake").addEventListener("click", async () => {
+  if (!confirm("Start a new skills check? Your current answers and results will be cleared.")) return;
+  skills = await api("/api/skills/reset", { method: "POST" });
+  renderSkills();
+});
+
+// ---------- Profile ----------
+
+function dates(x) {
+  return [x.start, x.end].filter(Boolean).join(" – ");
+}
+
+function renderEvaluation(ev) {
+  $("#evaluation").replaceChildren(
+    h("h2", {}, "How you stack up"),
+    ev.readiness ? h("p", {}, ev.readiness) : null,
+    h("div", { class: "cols" },
+      h("div", {}, h("b", {}, "Strengths"), list(ev.strengths)),
+      h("div", {}, h("b", {}, "Gaps to work on"), list(ev.gaps))),
+    ev.recommended_roles && ev.recommended_roles.length ? [h("b", {}, "Roles to target"), chips(ev.recommended_roles)] : null,
+    ev.next_steps && ev.next_steps.length ? [h("b", {}, "Next steps"), list(ev.next_steps)] : null
+  );
+}
+
+function renderProfileSummary(p) {
+  const t = p.targets || {};
+  const sk = p.skills || {};
+  const contact = [p.email, p.phone, p.location].filter(Boolean).join(" · ");
+  $("#profile-summary").replaceChildren(
+    h("h2", {}, p.name || "Name not given yet"),
+    contact ? h("p", { class: "muted small" }, contact) : null,
+    p.summary ? h("p", {}, p.summary) : null,
+    h("b", {}, "Looking for"),
+    chips([...(t.roles || []), ...(t.locations || []), t.work_authorization]),
+    (p.experience || []).length ? h("b", {}, "Experience") : null,
+    (p.experience || []).map((x) => h("div", { class: "entry" },
+      h("b", {}, [x.title, x.company].filter(Boolean).join(" — ")), " ", h("span", { class: "muted small" }, dates(x)),
+      list(x.bullets))),
+    (p.projects || []).length ? h("b", {}, "Projects") : null,
+    (p.projects || []).map((x) => h("div", { class: "entry" }, h("b", {}, x.name), list(x.bullets))),
+    (p.education || []).length ? h("b", {}, "Education") : null,
+    (p.education || []).map((x) => h("div", { class: "entry" },
+      h("b", {}, x.school), " ", h("span", { class: "muted small" }, [x.degree, x.field, dates(x)].filter(Boolean).join(" · ")))),
+    (sk.technical || []).length ? [h("b", {}, "Skills"), chips((sk.technical || []).map((s) => (typeof s === "string" ? s : `${s.name}${s.level ? " · " + s.level : ""}${s.verified ? " ✓" : ""}`)))] : null,
+    (p.behavioral_stories || []).length ? [h("b", {}, "Stories for interviews"), chips(p.behavioral_stories.map((s) => s.theme))] : null
+  );
+}
+
+loaders.profile = async () => {
+  const p = await api("/api/profile");
+  const empty = !p || !Object.keys(p).length;
+  $("#profile-empty").classList.toggle("hidden", !empty);
+  $("#profile-body").classList.toggle("hidden", empty);
+  $("#master-resume").classList.toggle("disabled", empty);
+  if (empty) return;
+  $("#profile-json").value = JSON.stringify(p, null, 2);
+  renderEvaluation(p.evaluation || {});
+  renderProfileSummary(p);
+};
+
+$("#save-profile").addEventListener("click", async () => {
+  const msg = $("#profile-msg");
+  let data;
+  try {
+    data = JSON.parse($("#profile-json").value);
+  } catch (err) {
+    setMsg(msg, "That isn't valid JSON: " + err.message, "err");
+    return;
+  }
+  try {
+    await api("/api/profile", { method: "PUT", body: data });
+    await loaders.profile();
+    setMsg(msg, "Saved.", "ok");
+  } catch (err) {
+    setMsg(msg, err.message, "err");
+  }
+});
+
+// ---------- Find ----------
+
+let findCategories = [];
+let candidates = [];
+const DIRECTORIES = [
+  ["Axial", "https://www.axial.net"],
+  ["SearchFunder", "https://www.searchfunder.com"],
+  ["Private Equity List", "https://privateequitylist.com"],
+  ["CT Acquisitions", "https://ctacquisitions.com"],
+  ["Apollo.io", "https://app.apollo.io"],
+];
+
+function linkedinSearch() {
+  const cat = findCategories.find((c) => c.id === $("#find-category").value);
+  const words = [cat ? cat.label.replace(/\(.*\)/, "").replace("&", "") : "", $("#find-industry").value, $("#find-location").value].join(" ").trim();
+  // companySize B = 1-10 employees, C = 11-50 (the guide's "under ~30 employees" rule)
+  return `https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(words)}&companySize=%5B%22B%22%2C%22C%22%5D`;
+}
+
+function renderDirectoryLinks() {
+  $("#directory-links").replaceChildren(
+    ...DIRECTORIES.map(([name, url]) => h("a", { class: "button secondary small", href: url, target: "_blank", rel: "noopener" }, name)),
+    h("a", { class: "button secondary small", href: linkedinSearch(), target: "_blank", rel: "noopener", id: "linkedin-link" }, "LinkedIn company search (1–50 people)"));
+}
+
+function renderCandidates() {
+  const box = $("#find-results");
+  if (!candidates.length) {
+    box.replaceChildren();
+    return;
+  }
+  const rows = candidates.map((c, i) => h("label", { class: "card candidate" + (c.already_added ? " muted" : "") },
+    h("input", { type: "checkbox", "data-i": i, checked: !c.already_added && c.fit_score >= 50, disabled: c.already_added }),
+    h("div", { class: "grow" },
+      h("div", { class: "job-top" },
+        h("b", {}, c.name + (c.title ? ` · ${c.title}` : "")),
+        c.fit_score ? h("span", { class: `score ${scoreClass(c.fit_score)}` }, c.fit_score) : null),
+      h("div", { class: "muted small" },
+        [c.website ? h("a", { href: c.website, target: "_blank", rel: "noopener" }, c.domain || c.website) : "website unknown",
+         c.location, c.size_hint, c.already_added ? "already in Jobs" : ""].filter(Boolean).flatMap((x, k) => (k ? [" · ", x] : [x]))),
+      c.reasons ? h("div", { class: "small" }, c.reasons) : null,
+      c.red_flags ? h("div", { class: "small sev-high" }, "⚠ " + c.red_flags) : null)));
+  const add = h("button", { type: "button" }, "Add selected to Jobs");
+  const msg = h("span", { class: "msg" });
+  add.addEventListener("click", () => busy(add, "Adding…", async () => {
+    const picked = [...box.querySelectorAll("input[type=checkbox]:checked")].map((cb) => candidates[+cb.dataset.i]);
+    if (!picked.length) return setMsg(msg, "Tick at least one.", "err");
+    try {
+      const r = await api("/api/find/add", { method: "POST", body: { candidates: picked } });
+      jobs = r.jobs;
+      candidates = candidates.map((c) => (picked.includes(c) ? { ...c, already_added: true } : c));
+      renderCandidates();
+      setMsg($("#find-msg"), `Added ${r.added}. Open the Jobs tab to research them.`, "ok");
+    } catch (err) {
+      setMsg(msg, err.message, "err");
+    }
+  }));
+  box.replaceChildren(h("h2", { class: "section-title" }, `${candidates.length} results`),
+    h("p", { class: "muted small" }, "Ticked: fit score 50 or more. Check the red flags before adding."),
+    ...rows, h("div", { class: "row actions" }, add, msg));
+}
+
+loaders.find = async () => {
+  if (!findCategories.length) {
+    const r = await api("/api/find/categories");
+    findCategories = r.categories;
+    $("#find-category").replaceChildren(...findCategories.map((c) => h("option", { value: c.id }, c.label)));
+    $("#find-no-search").classList.toggle("hidden", r.search_enabled);
+  } else {
+    const r = await api("/api/find/categories");
+    $("#find-no-search").classList.toggle("hidden", r.search_enabled);
+  }
+  $("#find-role-wrap").classList.toggle("hidden", $("#find-category").value !== "postings");
+  renderDirectoryLinks();
+  renderCandidates();
+};
+
+$("#find-category").addEventListener("change", () => {
+  $("#find-role-wrap").classList.toggle("hidden", $("#find-category").value !== "postings");
+  renderDirectoryLinks();
+});
+["#find-industry", "#find-location"].forEach((s) => $(s).addEventListener("input", renderDirectoryLinks));
+
+$("#find-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  busy($("#find-go"), "Searching… (about a minute)", async () => {
+    setMsg($("#find-msg"), "");
+    try {
+      const r = await api("/api/find/search", { method: "POST", body: {
+        category: $("#find-category").value, location: $("#find-location").value,
+        industry: $("#find-industry").value, role: $("#find-role").value } });
+      candidates = r.candidates;
+      renderCandidates();
+      setMsg($("#find-msg"), candidates.length ? "" : "Nothing useful came back. Try another location or industry word.", candidates.length ? "" : "err");
+    } catch (err) {
+      setMsg($("#find-msg"), err.message, "err");
+    }
+  });
+});
+
+$("#import-go").addEventListener("click", (e) => busy(e.target, "Reading…", async () => {
+  try {
+    const r = await api("/api/find/import", { method: "POST", body: { text: $("#import-text").value } });
+    candidates = r.candidates.map((c) => ({ ...c, fit_score: c.already_added ? 0 : 60 }));
+    renderCandidates();
+    setMsg($("#import-msg"), `Found ${candidates.length}.`, "ok");
+  } catch (err) {
+    setMsg($("#import-msg"), err.message, "err");
+  }
+}));
+
+// ---------- Jobs ----------
+
+let jobs = [];
+const openJobs = new Set();
+const scoreClass = (s) => (s >= 75 ? "hi" : s >= 50 ? "mid" : "lo");
+
+function replaceJob(updated) {
+  jobs = jobs.map((j) => (j.id === updated.id ? updated : j));
+  renderJobs();
+}
+
+async function patchJob(id, changes) {
+  const updated = await api(`/api/jobs/${id}`, { method: "PATCH", body: changes });
+  jobs = jobs.map((j) => (j.id === id ? updated : j));
+  return updated;
+}
+
+function copyButton(getText, label = "Copy") {
+  const b = h("button", { type: "button", class: "ghost small" }, label);
+  b.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(getText());
+      b.textContent = "Copied ✓";
+    } catch (e) {
+      b.textContent = "Select and copy manually";
+    }
+    setTimeout(() => (b.textContent = label), 1500);
+  });
+  return b;
+}
+
+function fitDetails(fit) {
+  return h("details", { class: "fit" },
+    h("summary", {}, `Fit: ${fit.score} · ${fit.verdict}`),
+    fit.summary ? h("p", {}, fit.summary) : null,
+    (fit.matched || []).length ? [h("b", {}, "Where you match"), list(fit.matched.map((m) => `${m.requirement}: ${m.evidence}`))] : null,
+    (fit.gaps || []).length ? [h("b", {}, "Gaps"),
+      h("ul", { class: "tight" }, fit.gaps.map((g) => h("li", {},
+        h("span", { class: `sev-${g.severity}` }, `[${g.severity}] `), g.requirement, g.advice ? ` → ${g.advice}` : "")))] : null,
+    (fit.missing_keywords || []).length ? [h("b", {}, "Keywords you don't show yet"), chips(fit.missing_keywords)] : null);
+}
+
+function researchSection(job, run) {
+  const r = job.research;
+  const c = job.contact || {};
+  const inp = (field, value, placeholder) => {
+    const el = h("input", { value: value || "", placeholder });
+    el.addEventListener("change", () => patchJob(job.id, { [field]: el.value }).then(renderJobs));
+    return el;
+  };
+  const noEmail = r && !c.email;
+  return h("details", { class: "fit", open: !r || noEmail || undefined },
+    h("summary", {}, "1. Research & contact" + (c.name ? ` · ${c.name}` : "")),
+    h("div", { class: "row actions" },
+      h("button", { class: "small" + (r ? " secondary" : ""), onclick: run("Researching… (up to a minute)", "research") }, r ? "Research again" : "Research firm"),
+      job.website ? h("a", { href: job.website, target: "_blank", rel: "noopener", class: "small" }, "Website ↗") : null),
+    !job.website ? [h("label", {}, "Website"), inp("website", job.website, "https://… (leave empty and Research will try to find it)")] : null,
+    r ? [
+      h("p", {}, r.summary || ""),
+      r.focus ? h("p", { class: "small" }, h("b", {}, "Focus: "), r.focus) : null,
+      (r.hooks || []).length ? [h("b", {}, "Hooks for your email"), list(r.hooks)] : null,
+      h("p", { class: "small muted" }, [r.size_estimate, r.closed_deal && r.closed_deal !== "not a search fund" ? `closed a deal: ${r.closed_deal}` : "", r.fit_notes].filter(Boolean).join(" · ")),
+      (r.people || []).length ? h("details", {}, h("summary", {}, `People found (${r.people.length})`),
+        list(r.people.map((p) => [p.name, p.title, p.email].filter(Boolean).join(" · ")))) : null,
+    ] : null,
+    h("div", { class: "grid2" },
+      h("div", {}, h("label", {}, "Contact"), inp("contact_name", c.name, "Name")),
+      h("div", {}, h("label", {}, "Title"), inp("contact_title", c.title, "Founder, MD, Partner…"))),
+    h("label", {}, "Email"), inp("contact_email", c.email, "name@firm.com"),
+    c.email_source ? h("p", { class: "small " + (/guess|not found|general/.test(c.email_source) ? "missing-note" : "muted") }, c.email_source) : null,
+    noEmail ? h("div", { class: "notice" },
+      h("b", {}, "No email found. "), "Look this person up on ",
+      h("a", { href: "https://app.apollo.io", target: "_blank", rel: "noopener" }, "Apollo.io"),
+      " (Search → People → company + title → Access email), then paste it above. ",
+      h("a", { href: "#guide" }, "Step-by-step guide"), ". No luck? Use the LinkedIn note in step 2.") : null,
+    h("label", {}, "How to apply"),
+    (() => {
+      const sel = h("select", {}, [["email", "Cold email"], ["form", "Application form"], ["linkedin", "LinkedIn message"]].map(
+        ([v, t]) => h("option", { value: v, selected: (job.channel || "email") === v }, t)));
+      sel.addEventListener("change", () => patchJob(job.id, { channel: sel.value }).then(renderJobs));
+      return sel;
+    })(),
+    r && r.channel_reason ? h("p", { class: "muted small" }, r.channel_reason) : null);
+}
+
+function emailSection(job, run) {
+  const e = job.email;
+  const c = job.contact || {};
+  const resumeLink = job.documents ? `/api/jobs/${job.id}/resume.pdf` : "/api/profile/resume.pdf";
+  if (!e) {
+    return h("details", { class: "fit", open: !!job.research || undefined },
+      h("summary", {}, "2. Cold email"),
+      h("p", { class: "muted small" }, "Uses your profile, stories, outreach details and the firm research. Research the firm first for a specific hook."),
+      h("button", { class: "small", onclick: run("Writing…", "email") }, "Write email"));
+  }
+  const subject = h("input", { value: e.subject });
+  const body = h("textarea", { rows: 14 }, e.body);
+  const note = h("textarea", { rows: 3 }, e.linkedin_note);
+  const follow = h("textarea", { rows: 4 }, e.followup);
+  const save = (field, el) => el.addEventListener("change", () =>
+    api(`/api/jobs/${job.id}/email`, { method: "PATCH", body: { [field]: el.value } }).then((u) => (jobs = jobs.map((j) => (j.id === u.id ? u : j)))));
+  save("subject", subject); save("body", body); save("linkedin_note", note); save("followup", follow);
+  const count = h("span", { class: "muted small" });
+  const updateCount = () => (count.textContent = `${note.value.length}/300 characters`);
+  note.addEventListener("input", updateCount); updateCount();
+  const compose = (kind) => {
+    const to = encodeURIComponent(c.email || ""), su = encodeURIComponent(subject.value), bo = encodeURIComponent(body.value);
+    return kind === "gmail" ? `https://mail.google.com/mail/?view=cm&fs=1&to=${to}&su=${su}&body=${bo}`
+      : kind === "outlook" ? `https://outlook.office.com/mail/deeplink/compose?to=${to}&subject=${su}&body=${bo}`
+      : `mailto:${to}?subject=${su}&body=${bo}`;
+  };
+  const opener = (kind, label) => {
+    const a = h("a", { class: "button small secondary", target: "_blank", rel: "noopener", href: "#" }, label);
+    a.addEventListener("click", () => (a.href = compose(kind)));
+    return a;
+  };
+  const sent = h("button", { class: "small", type: "button" }, job.contacted_date ? `Sent ${job.contacted_date} ✓` : "I sent it");
+  sent.addEventListener("click", async () => replaceJob(await api(`/api/jobs/${job.id}/sent`, { method: "POST" })));
+  return h("details", { class: "fit", open: true },
+    h("summary", {}, "2. Cold email" + (job.contacted_date ? ` · sent ${job.contacted_date}` : "")),
+    h("label", {}, "To"), h("p", {}, c.email || h("span", { class: "missing-note" }, "No email yet: add it in step 1 (Apollo.io).")),
+    h("label", {}, "Subject"), subject,
+    h("label", {}, "Email"), body,
+    h("p", { class: "small" }, "📎 Attach your resume: ", h("a", { href: resumeLink }, job.documents ? "tailored resume PDF" : "your CV PDF"),
+      job.documents ? null : h("span", { class: "muted" }, " (or write a tailored one below)")),
+    h("div", { class: "row actions" }, opener("gmail", "Open in Gmail"), opener("outlook", "Open in Outlook"), opener("mailto", "Mail app"),
+      copyButton(() => body.value, "Copy email"), sent,
+      h("button", { class: "ghost small", onclick: run("Rewriting…", "email") }, "Rewrite")),
+    h("p", { class: "muted small" }, "Opens a draft in your own mailbox. Nothing is sent until you press Send there."),
+    h("details", {}, h("summary", {}, "LinkedIn connection note"), note, h("div", { class: "row" }, count, copyButton(() => note.value))),
+    h("details", { open: !!job.followup_due || undefined }, h("summary", {}, "Follow-up" + (job.followup_due ? ` (send by ${job.followup_due})` : " (after 7 days)")),
+      follow, h("div", { class: "row" }, copyButton(() => follow.value))));
+}
+
+function formSection(job) {
+  const f = job.form;
+  const box = h("details", { class: "fit", open: true }, h("summary", {}, "2. Application form"));
+  const msg = h("span", { class: "msg" });
+  if (!f) {
+    const url = h("input", { value: job.apply_url || job.url || "", placeholder: "Application page link" });
+    const text = h("textarea", { rows: 6, placeholder: "…or copy everything on the application form and paste it here (works for any site)" });
+    const go = h("button", { class: "small", type: "button" }, "Read the form");
+    go.addEventListener("click", () => busy(go, "Reading and drafting answers… (up to a minute)", async () => {
+      try {
+        replaceJob(await api(`/api/jobs/${job.id}/form`, { method: "POST", body: { url: text.value.trim() ? "" : url.value, text: text.value } }));
+      } catch (err) {
+        setMsg(msg, err.message, "err");
+      }
+    }));
+    box.append(h("p", { class: "muted small" }, "Job Agent drafts every answer from your profile and stories, then walks through them with you one by one."),
+      h("label", {}, "Application link"), url, text, h("div", { class: "row actions" }, go, msg));
+    return box;
+  }
+  const qs = f.questions;
+  let i = Math.min(f.step || 0, qs.length - 1);
+  const panel = h("div");
+  const draw = () => {
+    const q = qs[i];
+    const answer = h("textarea", { rows: q.category === "essay" ? 8 : 2 }, q.answer);
+    answer.addEventListener("change", () => { q.answer = answer.value; api(`/api/jobs/${job.id}/form`, { method: "PATCH", body: { index: i, answer: answer.value } }); });
+    const instr = h("input", { placeholder: "How should it change? (optional)" });
+    const rewrite = h("button", { class: "ghost small", type: "button" }, "Rewrite");
+    rewrite.addEventListener("click", () => busy(rewrite, "Rewriting…", async () => {
+      const u = await api(`/api/jobs/${job.id}/form/rewrite`, { method: "POST", body: { index: i, instruction: instr.value } });
+      jobs = jobs.map((j) => (j.id === u.id ? u : j)); job = u; qs[i] = u.form.questions[i]; draw();
+    }));
+    const go = (d) => { i = Math.max(0, Math.min(qs.length - 1, i + d)); draw(); };
+    const done = h("button", { class: "small", type: "button" }, q.done ? "Done ✓" : "Mark done & next");
+    done.addEventListener("click", async () => {
+      q.done = true; q.answer = answer.value;
+      await api(`/api/jobs/${job.id}/form`, { method: "PATCH", body: { index: i, answer: answer.value, done: true } });
+      go(1);
+    });
+    const finished = qs.filter((x) => x.done).length;
+    panel.replaceChildren(
+      h("div", { class: "qmeta" }, `Question ${i + 1} of ${qs.length} · ${q.category}${q.required ? " · required" : ""} · ${finished} done`),
+      h("p", {}, h("b", {}, q.question)),
+      (q.options || []).length ? h("p", { class: "small muted" }, "Options: " + q.options.join(" | ")) : null,
+      answer,
+      q.note ? h("p", { class: "small missing-note" }, q.note) : null,
+      h("div", { class: "row actions" },
+        h("button", { class: "ghost small", type: "button", onclick: () => go(-1), disabled: i === 0 }, "← Back"),
+        done, copyButton(() => answer.value),
+        h("button", { class: "ghost small", type: "button", onclick: () => go(1), disabled: i === qs.length - 1 }, "Skip →")),
+      h("div", { class: "row" }, instr, rewrite));
+  };
+  draw();
+  box.append(h("p", { class: "muted small" }, "Open the application in another tab and copy each answer in. Answers are saved as you edit."),
+    h("div", { class: "row" },
+      (job.apply_url || job.url) ? h("a", { class: "button small secondary", href: job.apply_url || job.url, target: "_blank", rel: "noopener" }, "Open application ↗") : null,
+      h("a", { class: "button small secondary", href: `/api/jobs/${job.id}/form.txt` }, "Download all answers (.txt)"),
+      h("a", { class: "button small secondary", href: job.documents ? `/api/jobs/${job.id}/resume.pdf` : "/api/profile/resume.pdf" }, "Resume PDF")),
+    panel);
+  return box;
+}
+
+function jobCard(job) {
+  const fit = job.fit;
+  const msg = h("span", { class: "msg" });
+  const run = (label, action) => async (e) => {
+    setMsg(msg, "");
+    await busy(e.target, label, async () => {
+      try {
+        replaceJob(await api(`/api/jobs/${job.id}/${action}`, { method: "POST" }));
+      } catch (err) {
+        setMsg(msg, err.message, "err");
+      }
+    });
+  };
+  const card = h("details", { class: "card job", open: openJobs.has(job.id) || undefined });
+  card.addEventListener("toggle", () => (card.open ? openJobs.add(job.id) : openJobs.delete(job.id)));
+  const where = [job.kind === "firm" ? "Firm" : "Posting", job.location, job.contact && job.contact.name].filter(Boolean).join(" · ");
+  card.append(
+    h("summary", { class: "job-top" },
+      h("div", {}, h("div", { class: "job-title" }, job.company || "Unknown company", job.title && job.kind !== "firm" ? ` · ${job.title}` : ""),
+        h("div", { class: "muted small" }, where, " · ", job.status)),
+      fit ? h("span", { class: `score ${scoreClass(fit.score)}` }, `${fit.score}`) : null),
+    h("div", { class: "row actions" }, msg),
+    researchSection(job, run),
+    job.channel === "form" ? formSection(job) : emailSection(job, run),
+    h("details", { class: "fit" },
+      h("summary", {}, "3. Fit, tailored resume & cover letter"),
+      h("div", { class: "row actions" },
+        h("button", { class: "small" + (fit ? " secondary" : ""), onclick: run("Scoring…", "analyze") }, fit ? "Re-score fit" : "Score my fit"),
+        h("button", { class: "small" + (job.documents ? " secondary" : ""), onclick: run("Writing…", "documents") },
+          job.documents ? "Rewrite resume + cover letter" : "Write resume + cover letter"),
+        job.documents ? [
+          h("a", { class: "button small secondary", href: `/api/jobs/${job.id}/resume.pdf` }, "Resume PDF"),
+          h("a", { class: "button small secondary", href: `/api/jobs/${job.id}/cover-letter.pdf` }, "Cover letter PDF")] : null),
+      fit ? fitDetails(fit) : null,
+      job.documents && (job.documents.notes || []).length ? h("details", {}, h("summary", {}, "What the tailoring changed"), list(job.documents.notes)) : null),
+    job.notes ? h("p", { class: "muted small" }, job.notes) : null);
+  return card;
+}
+
+function renderJobs() {
+  const el = $("#job-list");
+  el.replaceChildren(...(jobs.length ? jobs.map(jobCard) : [h("p", { class: "muted" }, "No jobs yet. Use the Find tab, or add a posting above.")]));
+}
+
+loaders.jobs = async () => {
+  jobs = await api("/api/jobs");
+  renderJobs();
+  const d = await api("/api/outreach");
+  $("#od-intro").value = d.intro; $("#od-hours").value = d.hours_per_week; $("#od-start").value = d.start;
+  $("#od-signature").value = d.signature; $("#od-examples").value = d.examples;
+  if (!d.intro) $("#outreach-card").open = true;
+};
+
+$("#od-save").addEventListener("click", (e) => busy(e.target, "Saving…", async () => {
+  try {
+    await api("/api/outreach", { method: "PUT", body: { intro: $("#od-intro").value, hours_per_week: $("#od-hours").value,
+      start: $("#od-start").value, signature: $("#od-signature").value, examples: $("#od-examples").value } });
+    setMsg($("#od-msg"), "Saved.", "ok");
+  } catch (err) {
+    setMsg($("#od-msg"), err.message, "err");
+  }
+}));
+
+$("#job-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const msg = $("#job-msg");
+  const body = {
+    url: $("#job-url").value.trim(),
+    description: $("#job-desc").value.trim(),
+    title: $("#job-title").value.trim(),
+    company: $("#job-company").value.trim(),
+  };
+  await busy($("#add-job"), "Adding…", async () => {
+    try {
+      setMsg(msg, body.url && !body.description ? "Reading the posting…" : "");
+      const job = await api("/api/jobs", { method: "POST", body });
+      e.target.reset();
+      jobs.unshift(job);
+      openJobs.add(job.id);
+      renderJobs();
+      setMsg(msg, "Added. Scoring your fit…");
+      try {
+        replaceJob(await api(`/api/jobs/${job.id}/analyze`, { method: "POST" }));
+        setMsg(msg, "Added and scored.", "ok");
+      } catch (err) {
+        setMsg(msg, "Added, but couldn't score yet: " + err.message, "err");
+      }
+    } catch (err) {
+      setMsg(msg, err.message, "err");
+    }
+  });
+});
+
+// ---------- Tracker ----------
+
+let statuses = null;
+
+function trackerRow(job) {
+  const fit = job.fit;
+  const c = job.contact || {};
+  const dateInput = h("input", { type: "date", value: job.applied_date || "" });
+  const status = h("select", {}, statuses.map((s) => h("option", { value: s, selected: s === job.status }, s)));
+  status.addEventListener("change", async () => {
+    const updated = await patchJob(job.id, { status: status.value });
+    dateInput.value = updated.applied_date || "";
+  });
+  dateInput.addEventListener("change", () => patchJob(job.id, { applied_date: dateInput.value }));
+  const notes = h("input", { value: job.notes || "", placeholder: "Add a note" });
+  notes.addEventListener("change", () => patchJob(job.id, { notes: notes.value }));
+  const del = h("button", { class: "ghost small danger", title: "Delete" }, "✕");
+  del.addEventListener("click", async () => {
+    if (!confirm(`Delete ${job.company || "this job"}?`)) return;
+    await api(`/api/jobs/${job.id}`, { method: "DELETE" });
+    jobs = jobs.filter((j) => j.id !== job.id);
+    renderTracker();
+  });
+  const today = new Date().toISOString().slice(0, 10);
+  const due = job.followup_due && !["Followed up", "Interviewing", "Offer", "Rejected", "Withdrawn"].includes(job.status) ? job.followup_due : "";
+  return h("tr", {},
+    h("td", {}, job.website ? h("a", { href: job.website, target: "_blank", rel: "noopener" }, job.company || "?") : job.company || "?"),
+    h("td", {}, job.url && job.kind !== "firm" ? h("a", { href: job.url, target: "_blank", rel: "noopener" }, job.title || "posting") : job.title || ""),
+    h("td", { class: "small" }, c.name || "", c.email ? h("div", { class: "muted" }, c.email) : null),
+    h("td", {}, fit ? h("span", { class: `score ${scoreClass(fit.score)}` }, fit.score) : "–"),
+    h("td", {}, status),
+    h("td", {}, dateInput),
+    h("td", { class: "small" + (due && due <= today ? " sev-high" : "") }, due ? (due <= today ? `due ${due}` : due) : ""),
+    h("td", { class: "notes" }, notes),
+    h("td", {}, del));
+}
+
+function renderTracker() {
+  $("#tracker tbody").replaceChildren(...jobs.map(trackerRow));
+  $("#tracker-empty").classList.toggle("hidden", jobs.length > 0);
+  $("#tracker").parentElement.classList.toggle("hidden", jobs.length === 0);
+}
+
+loaders.tracker = async () => {
+  if (!statuses) statuses = (await api("/api/meta")).statuses;
+  jobs = await api("/api/jobs");
+  renderTracker();
+};
+
+// ---------- Start ----------
+
+(async () => {
+  try {
+    await loaders.settings();
+  } catch (e) {
+    console.error(e);
+  }
+  const wanted = location.hash.slice(1);
+  if (wanted) showTab(wanted);
+  else location.hash = settings && settings.has_key ? "#interview" : "#settings";
+})();

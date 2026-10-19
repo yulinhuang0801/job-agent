@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "job-agent",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["run.sh"],
+      "port": 8000
+    }
+  ]
+}
