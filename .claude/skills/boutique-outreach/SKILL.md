@@ -25,6 +25,7 @@ Job Agent automates most of this (Find tab → Jobs tab → Tracker). Use this c
 - Check Team/Leadership and Contact pages first (Jobs → Research firm). Only about 30% of firms publish emails.
 - Otherwise use Apollo.io: Search → People → filter by company and title → Access email (free plan has limited monthly credits; prefer Verified). Or Hunter.io Domain Search / RocketReach.
 - Email patterns: one known address reveals the format (jwang@firm.com for Jason Wang means msmith@firm.com for Mary Smith). Always mark guesses as "verify before sending".
+- In Job Agent, when no confirmed email exists, the job card shows a "Find it yourself" helper: links to the team page, Apollo.io, LinkedIn, Hunter domain search and Google, plus a pattern builder (enter any one person's email at the firm and their name; it builds the contact's email). Walk the user through it in that order.
 
 ## 4. Reach out
 - Cold email: concise (under ~230 words), specific hook about the firm, one or two relevant experiences, availability (hours per week, start date), resume attached, a direct ask for a short call about a part-time, remote or unpaid internship. Match the student's own example emails in voice, never copy them.

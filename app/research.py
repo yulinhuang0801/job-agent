@@ -139,12 +139,14 @@ def contact_email(contact, people, emails, domain):
             if local in {fn(first, last) for fn in PATTERNS.values()}:
                 return e, "published on their website"
         pattern = detect_pattern(emails, people, domain)
-        if pattern:
-            return f"{PATTERNS[pattern](first, last)}@{domain}", f"guessed from the firm's email pattern ({pattern}); verify before sending"
-    if first:
+        guess = f"{PATTERNS[pattern](first, last)}@{domain}" if pattern else ""
         found = services.hunter_find(domain, first, last)
+        if found and found[0].lower() == guess:
+            return guess, f"matches the firm's email pattern and Hunter.io (confidence {found[1]}%)"
         if found:
             return found[0], f"found by Hunter.io (confidence {found[1]}%)"
+        if guess:
+            return guess, f"guessed from the firm's email pattern ({pattern}); verify before sending"
     generic = [e for e in emails if e.split("@")[0] in GENERIC and e.endswith(domain)]
     if generic:
         return generic[0], "general inbox on their website (a named person is better; try Apollo.io)"
@@ -197,4 +199,29 @@ def research(job):
     job["channel"] = channel
     if out.get("apply_url") and not job.get("apply_url"):
         job["apply_url"] = out["apply_url"]
+    return job
+
+
+def email_from_example(job, known_email, known_name):
+    """The user found one real address at the firm (on Apollo, Hunter, LinkedIn...). Learn its pattern
+    and apply it to the contact, e.g. jwang@firm.com for Jason Wang → msmith@firm.com for Mary Smith."""
+    known_email = known_email.strip().lower()
+    contact = job.get("contact") or {}
+    if "@" not in known_email:
+        raise llm.LLMError("That doesn't look like an email address.")
+    if not contact.get("name"):
+        raise llm.LLMError("Add the contact's name first.")
+    local, domain = known_email.split("@", 1)
+    if local in GENERIC:
+        raise llm.LLMError(f"{known_email} is a shared inbox, so it doesn't show how personal emails are formed. "
+                           "Use a specific person's email.")
+    pattern = detect_pattern([known_email], [{"name": known_name}], domain)
+    if not pattern:
+        raise llm.LLMError(f"Couldn't match {known_email} to the name \"{known_name}\". Check the spelling of the name.")
+    first, last = _name_parts(contact["name"])
+    if not first:
+        raise llm.LLMError("Add the contact's full name (first and last).")
+    contact["email"] = f"{PATTERNS[pattern](first, last)}@{domain}"
+    contact["email_source"] = f"built from the {pattern} pattern of {known_email}; verify before sending"
+    job["contact"] = contact
     return job

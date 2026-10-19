@@ -7,6 +7,7 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
+from urllib.parse import parse_qs, urlparse
 
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.concurrency import run_in_threadpool
@@ -104,6 +105,9 @@ def put_settings(body: SettingsIn):
         value = value.strip()
         if not value:  # blank secret box means "keep the saved one"
             continue
+        if field in SECRET_FIELDS and value.startswith("http"):
+            # A whole example request was pasted (Hunter's dashboard shows these); keep only its key.
+            value = (parse_qs(urlparse(value).query).get("api_key") or [value])[0]
         s[field] = value.rstrip("/") if field.endswith("base_url") else value
     store.save("settings", s)
     return _public_settings()
@@ -701,6 +705,16 @@ class FormAnswerIn(BaseModel):
 @app.post("/api/jobs/{job_id}/research")
 def research_job(job_id: str):
     return _update_job(job_id, research.research)
+
+
+class PatternIn(BaseModel):
+    known_email: str
+    known_name: str
+
+
+@app.post("/api/jobs/{job_id}/email-pattern")
+def email_pattern(job_id: str, body: PatternIn):
+    return _update_job(job_id, research.email_from_example, body.known_email, body.known_name)
 
 
 @app.post("/api/jobs/{job_id}/email")

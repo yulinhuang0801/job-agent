@@ -874,6 +874,52 @@ function fitDetails(fit) {
     (fit.missing_keywords || []).length ? [h("b", {}, "Keywords you don't show yet"), chips(fit.missing_keywords)] : null);
 }
 
+// Shown when there's no confirmed email: walks the user through finding it themselves.
+function needsEmailHelp(job) {
+  const c = job.contact || {};
+  return !!job.research && (!c.email || /guess|general|not found|built from/.test(c.email_source || ""));
+}
+
+function findEmailHelper(job) {
+  const c = job.contact || {};
+  const r = job.research || {};
+  const domain = (job.website || "").replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0];
+  const q = encodeURIComponent;
+  const name = c.name || "";
+  const teamPages = (r.pages || []).filter((u) => /team|people|leader|about|contact|partner|professional/i.test(u));
+  const links = [
+    teamPages.length ? ["Team / contact page", teamPages[0]] : job.website ? ["Firm website", job.website] : null,
+    ["Apollo.io", "https://app.apollo.io/#/people"],
+    name ? ["LinkedIn profile", `https://www.linkedin.com/search/results/people/?keywords=${q(`${name} ${job.company || ""}`)}`] : null,
+    domain ? ["Hunter domain search", `https://hunter.io/search/${domain}`] : null,
+    domain ? ["Google for emails", `https://www.google.com/search?q=${q(`"@${domain}"`)}`] : null,
+  ].filter(Boolean);
+  const knownEmail = h("input", { placeholder: `anyone@${domain || "firm.com"}` });
+  const knownName = h("input", { placeholder: "That person's full name" });
+  const msg = h("span", { class: "msg" });
+  const build = h("button", { class: "small", type: "button" }, "Build contact's email");
+  build.addEventListener("click", () => busy(build, "Working…", async () => {
+    try {
+      replaceJob(await api(`/api/jobs/${job.id}/email-pattern`, { method: "POST",
+        body: { known_email: knownEmail.value, known_name: knownName.value } }));
+    } catch (err) {
+      setMsg(msg, err.message, "err");
+    }
+  }));
+  return h("div", { class: "notice" },
+    h("b", {}, c.email ? "This email isn't confirmed yet. Check it yourself:" : "No email found yet. Find it yourself:"),
+    h("ol", { class: "tight" },
+      h("li", {}, "Look on the firm's team or contact page; about 30% of firms list emails there."),
+      h("li", {}, "Search ", h("b", {}, name || "the contact"), " on Apollo.io: Search → People → name and company → Access email (prefer Verified)."),
+      h("li", {}, "Check their LinkedIn profile → Contact info."),
+      h("li", {}, "Still nothing? Find any one person's email at the firm (Hunter domain search or Google), enter it below with that person's name, and Job Agent builds your contact's email from the same pattern.")),
+    h("div", { class: "row" }, links.map(([t, u]) => h("a", { class: "button small secondary", href: u, target: "_blank", rel: "noopener" }, `${t} ↗`))),
+    h("div", { class: "grid2" }, knownEmail, knownName),
+    h("div", { class: "row actions" }, build, msg),
+    h("p", { class: "small muted" }, "Found the email directly? Paste it in the Email box above. No email at all? Use the LinkedIn note in step 2. ",
+      h("a", { href: "#guide" }, "Full guide")));
+}
+
 function researchSection(job, run) {
   const r = job.research;
   const c = job.contact || {};
@@ -882,7 +928,7 @@ function researchSection(job, run) {
     el.addEventListener("change", () => patchJob(job.id, { [field]: el.value }).then(renderJobs));
     return el;
   };
-  const noEmail = r && !c.email;
+  const noEmail = needsEmailHelp(job);
   return h("details", { class: "fit", open: !r || noEmail || undefined },
     h("summary", {}, "1. Research & contact" + (c.name ? ` · ${c.name}` : "")),
     h("div", { class: "row actions" },
@@ -902,11 +948,7 @@ function researchSection(job, run) {
       h("div", {}, h("label", {}, "Title"), inp("contact_title", c.title, "Founder, MD, Partner…"))),
     h("label", {}, "Email"), inp("contact_email", c.email, "name@firm.com"),
     c.email_source ? h("p", { class: "small " + (/guess|not found|general/.test(c.email_source) ? "missing-note" : "muted") }, c.email_source) : null,
-    noEmail ? h("div", { class: "notice" },
-      h("b", {}, "No email found. "), "Look this person up on ",
-      h("a", { href: "https://app.apollo.io", target: "_blank", rel: "noopener" }, "Apollo.io"),
-      " (Search → People → company + title → Access email), then paste it above. ",
-      h("a", { href: "#guide" }, "Step-by-step guide"), ". No luck? Use the LinkedIn note in step 2.") : null,
+    needsEmailHelp(job) ? findEmailHelper(job) : null,
     h("label", {}, "How to apply"),
     (() => {
       const sel = h("select", {}, [["email", "Cold email"], ["form", "Application form"], ["linkedin", "LinkedIn message"]].map(
