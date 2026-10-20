@@ -61,10 +61,10 @@ async function busy(button, label, fn) {
 // ---------- Tabs ----------
 
 const loaders = {};
-const TABS = ["interview", "stories", "skills", "profile", "find", "jobs", "tracker", "guide", "settings"];
+const TABS = ["mentors", "interview", "stories", "skills", "profile", "find", "jobs", "tracker", "guide", "settings"];
 
 function showTab(name) {
-  if (!TABS.includes(name)) name = "interview";
+  if (!TABS.includes(name)) name = "mentors";
   document.querySelectorAll(".view").forEach((v) => v.classList.toggle("active", v.id === "view-" + name));
   document.querySelectorAll("#tabs a").forEach((a) => a.classList.toggle("active", a.dataset.tab === name));
   Promise.resolve(loaders[name] && loaders[name]()).catch((e) => console.error(e));
@@ -1401,6 +1401,193 @@ loaders.tracker = async () => {
   renderTracker();
 };
 
+// ---------- Mentors ----------
+// Today's plan from the lead mentor (left) and chats with the four coaches (right).
+// Coaches suggest actions as buttons; nothing changes until the user clicks one.
+
+const COACH_INFO = {
+  lead: { name: "Lead mentor", intro: "I see everything: your profile, stories, skills, every firm you're working on and what's due. Ask me what to focus on, or tell me where you want to apply.",
+    starters: ["What should I focus on this week?", "How am I doing overall?", "I want to apply to Anthropic. What should I do?"] },
+  behavioral: { name: "Behavioral coach", intro: "I run mock behavioral interviews with your own stories and help you tell them well. Answer out loud with 🎤, like a real interview.",
+    starters: ["Run a mock behavioral interview", "Help me with \"Tell me about yourself\"", "Let's fix my weakest story"] },
+  technical: { name: "Technical coach", intro: "I teach your weak areas and give you practice problems with hints, finance or tech.",
+    starters: ["Teach me my weakest area", "Give me a practice problem", "Quiz me on valuation"] },
+  resume: { name: "Resume coach", intro: "I review your resume line by line and suggest stronger bullets. You choose which rewrites to apply; I never add facts you didn't give.",
+    starters: ["Review my resume", "Make my experience bullets stronger", "What's missing for my target roles?"] },
+};
+let coach = "lead";
+let coachChat = { messages: [] };
+let today = null;
+
+async function runAction(a, button) {
+  const msg = $("#coach-msg");
+  try {
+    if (a.type === "open") location.hash = "#" + a.tab;
+    else if (a.type === "job") { openJobs.add(a.job_id); location.hash = "#jobs"; }
+    else if (a.type === "coach") { await switchCoach(a.coach); if (a.message) await sendCoach(a.message); }
+    else if (a.type === "company_prep") {
+      await busy(button, "Researching… (up to a minute)", () => api("/api/prep", { method: "POST", body: { company: a.company, role: a.role } }));
+      location.hash = "#skills";
+    } else if (a.type === "skills_check") {
+      const current = await api("/api/skills");
+      if (current.status === "answering" && !confirm("Replace your current skills check with this one?")) return;
+      await busy(button, "Picking questions…", () => api("/api/skills/start", { method: "POST", body: { areas: a.areas, count: a.count } }));
+      location.hash = "#skills";
+    } else if (a.type === "edit_profile") {
+      await api("/api/mentor/edit-profile", { method: "POST", body: { path: a.path, old: a.old, new: a.new } });
+      button.textContent = "Applied ✓"; button.disabled = true;
+    } else if (a.type === "save_story") {
+      await api("/api/mentor/save-story", { method: "POST", body: { competency: a.competency, fields: a.fields } });
+      button.textContent = "Saved to Stories ✓"; button.disabled = true;
+    }
+  } catch (err) {
+    setMsg(msg, err.message, "err");
+  }
+}
+
+function actionButtons(actions, cls = "bubble-actions") {
+  if (!(actions || []).length) return null;
+  return h("div", { class: cls }, actions.map((a) => {
+    const b = h("button", { class: "small secondary", type: "button", title: a.type === "edit_profile" ? `Change to: ${a.new}` : "" }, a.label);
+    b.addEventListener("click", () => runAction(a, b));
+    return b;
+  }));
+}
+
+function renderToday() {
+  const t = today;
+  const p = t.plan || {};
+  $("#today-date").textContent = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+  const done = new Set(t.done);
+  $("#today-card").replaceChildren(
+    p.stage ? h("span", { class: "stage" }, p.stage) : null,
+    h("p", { class: "headline" }, p.headline || ""),
+    p.status ? h("p", {}, p.status) : null,
+    ...(p.tasks || []).map((task, i) => {
+      const cb = h("input", { type: "checkbox", checked: done.has(i) });
+      const row = h("div", { class: "task" + (done.has(i) ? " done" : "") }, cb,
+        h("div", { class: "grow" },
+          h("div", { class: "task-title" }, task.title, task.minutes ? h("span", { class: "muted small" }, ` · ${task.minutes} min`) : null),
+          task.why ? h("div", { class: "muted small" }, task.why) : null,
+          task.action ? actionButtons([task.action], "row actions") : null));
+      cb.addEventListener("change", async () => {
+        row.classList.toggle("done", cb.checked);
+        await api("/api/mentor/today/task", { method: "POST", body: { index: i, done: cb.checked } });
+      });
+      return row;
+    }),
+    p.encouragement ? h("p", { class: "muted" }, p.encouragement) : null);
+
+  const c = t.counts;
+  const firstOpen = t.milestones.findIndex((m) => !m.done);
+  const goal = h("input", { type: "number", min: 1, max: 50, value: t.goal_per_day, class: "inline-select", style: "width:70px" });
+  goal.addEventListener("change", () => api("/api/mentor/goal", { method: "PUT", body: { goal: +goal.value } }));
+  $("#progress-card").replaceChildren(
+    h("h2", {}, "Progress"),
+    h("div", { class: "stat-row" },
+      h("div", { class: "stat" }, h("b", {}, `${c.contacted_today}/${t.goal_per_day}`), h("span", {}, "firms contacted today")),
+      h("div", { class: "stat" }, h("b", {}, c.contacted_this_week), h("span", {}, "this week")),
+      h("div", { class: "stat" }, h("b", { class: c.followups_due ? "sev-high" : "" }, c.followups_due), h("span", {}, "follow-ups due")),
+      h("div", { class: "stat" }, h("b", {}, c.jobs_total), h("span", {}, "in your pipeline"))),
+    h("ul", { class: "milestones" }, t.milestones.map((m, i) =>
+      h("li", { class: m.done ? "done" : i === firstOpen ? "next" : "" }, `${m.done ? "✓" : i === firstOpen ? "→" : "○"} ${m.label}`))),
+    h("div", { class: "row actions small" }, "Daily goal:", goal, "firms"));
+}
+
+function renderCoachTabs() {
+  $("#coach-tabs").replaceChildren(...Object.entries(COACH_INFO).map(([id, c]) => {
+    const b = h("button", { class: "coach-tab small" + (id === coach ? " on" : ""), type: "button" }, c.name);
+    b.addEventListener("click", () => switchCoach(id));
+    return b;
+  }));
+}
+
+function renderCoachChat(pending) {
+  const info = COACH_INFO[coach];
+  const chat = $("#coach-chat");
+  const items = [h("div", { class: "bubble assistant" }, info.intro)];
+  if (!coachChat.messages.length && !pending) {
+    items.push(h("div", { class: "bubble-actions starter" }, info.starters.map((s) => {
+      const b = h("button", { class: "small secondary", type: "button" }, s);
+      b.addEventListener("click", () => sendCoach(s));
+      return b;
+    })));
+  }
+  for (const m of coachChat.messages) {
+    items.push(h("div", { class: `bubble ${m.role}` }, m.content));
+    if (m.role === "assistant") items.push(actionButtons(m.actions));
+  }
+  if (pending) items.push(h("div", { class: "bubble user" }, pending), h("div", { class: "bubble assistant typing" }, `${info.name} is thinking…`));
+  chat.replaceChildren(...items.filter(Boolean));
+  chat.scrollTop = chat.scrollHeight;
+}
+
+async function switchCoach(id) {
+  coach = id;
+  renderCoachTabs();
+  setMsg($("#coach-msg"), "");
+  coachChat = await api(`/api/mentor/chat/${id}`);
+  renderCoachChat();
+}
+
+async function sendCoach(text) {
+  stopVoice();
+  $("#coach-send").disabled = true;
+  setMsg($("#coach-msg"), "");
+  renderCoachChat(text);
+  try {
+    coachChat = await api(`/api/mentor/chat/${coach}`, { method: "POST", body: { text } });
+    renderCoachChat();
+    const last = coachChat.messages[coachChat.messages.length - 1];
+    if (last) speak(last.content);
+    return true;
+  } catch (err) {
+    renderCoachChat();
+    setMsg($("#coach-msg"), err.message, "err");
+    return false;
+  } finally {
+    $("#coach-send").disabled = false;
+  }
+}
+
+loaders.mentors = async () => {
+  renderCoachTabs();
+  switchCoach(coach);
+  try {
+    today = await api("/api/mentor/today");
+    renderToday();
+  } catch (err) {
+    $("#today-card").replaceChildren(h("p", { class: "msg err" }, err.message));
+  }
+};
+
+$("#today-refresh").addEventListener("click", (e) => busy(e.target, "Planning…", async () => {
+  try {
+    today = await api("/api/mentor/today?refresh=true");
+    renderToday();
+  } catch (err) {
+    setMsg($("#coach-msg"), err.message, "err");
+  }
+}));
+
+$("#coach-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const input = $("#coach-input");
+  const text = input.value.trim();
+  if (!text || $("#coach-send").disabled) return;
+  input.value = "";
+  if (!(await sendCoach(text))) input.value = text;
+  input.focus();
+});
+enterToSend("#coach-input", "#coach-form");
+attachVoice("#coach-mic", "#coach-input", "#coach-lang", "#coach-voice-msg");
+
+$("#coach-clear").addEventListener("click", async () => {
+  if (!confirm(`Clear your chat with the ${COACH_INFO[coach].name.toLowerCase()}?`)) return;
+  coachChat = await api(`/api/mentor/chat/${coach}`, { method: "DELETE" });
+  renderCoachChat();
+});
+
 // ---------- Start ----------
 
 (async () => {
@@ -1411,5 +1598,5 @@ loaders.tracker = async () => {
   }
   const wanted = location.hash.slice(1);
   if (wanted) showTab(wanted);
-  else location.hash = settings && settings.has_key ? "#interview" : "#settings";
+  else location.hash = settings && settings.has_key ? "#mentors" : "#settings";
 })();

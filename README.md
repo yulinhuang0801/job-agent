@@ -14,6 +14,11 @@ Then open http://127.0.0.1:8000, go to **Settings** and paste your DeepSeek API 
 
 ## How it flows
 
+0. **Mentors** (home tab): your **lead mentor** reads all your progress (profile, stories, skills check, every firm and posting, follow-ups due, notes from the other coaches) and writes today's plan: where you stand, 3–6 concrete tasks with one-click buttons, progress stats against your daily outreach goal, and the program's milestones. Chat with the lead mentor or with three coaches:
+   - **Behavioral coach**: mock interviews using your own stories, feedback (STAR, "I" vs "we", results, length), tightened versions you can save.
+   - **Technical coach**: teaches your weakest areas and gives practice problems with hints before answers.
+   - **Resume coach**: reviews your resume line by line and proposes rewrites you can apply with one click (never adds facts).
+   Coaches suggest actions as buttons; nothing changes until you click.
 1. **Interview**: the coach asks about goals, education, experience, projects, the skills you use, and contact info, one question at a time.
    - **Upload CV** (PDF, .docx, .txt): the coach reads it and only asks about what's missing.
    - **🎤 Voice**: talk instead of typing. Uses the browser's voice typing (Chrome, Edge, Safari) by default, or a speech-to-text service from Settings (e.g. SiliconFlow SenseVoice, which works in China). **🔊 Read replies aloud** uses the computer's built-in voices.
@@ -42,6 +47,7 @@ Then open http://127.0.0.1:8000, go to **Settings** and paste your DeepSeek API 
 | `app/assess.py` | Stories (behavioral STAR follow-ups) and the Skills check |
 | `app/question_bank.json` | Behavioral and technical question bank (~25 behavioral types, ~100 technical questions) |
 | `app/prep.py` | Company-specific interview prep |
+| `app/mentors.py` | Lead mentor (daily plan, progress snapshot) and the behavioral, technical and resume coaches |
 | `static/editor.js` | VS Code (Monaco) code editor for the Skills check, with a basic fallback |
 | `app/sourcing.py` | Find tab: category searches, SimplifyJobs lists, Hacker News, your sites, AI screening, list/CSV import |
 | `app/research.py` | Reads a firm's website, finds the contact and their email (incl. email patterns, Hunter.io) |

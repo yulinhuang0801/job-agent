@@ -1,0 +1,278 @@
+"""The mentor team: a lead mentor who knows where the user stands and plans each day, plus a
+behavioral coach, a technical coach and a resume coach. Coaches suggest actions as buttons; nothing
+changes until the user clicks one."""
+import json
+from datetime import date, datetime, timedelta
+
+from . import assess, llm, prep, prompts, store
+
+COACHES = {
+    "lead": {"name": "Lead mentor", "system": "LEAD_SYSTEM"},
+    "behavioral": {"name": "Behavioral coach", "system": "BEHAVIORAL_COACH_SYSTEM"},
+    "technical": {"name": "Technical coach", "system": "TECHNICAL_COACH_SYSTEM"},
+    "resume": {"name": "Resume coach", "system": "RESUME_COACH_SYSTEM"},
+}
+TABS = {"interview", "stories", "skills", "profile", "find", "jobs", "tracker", "guide", "settings"}
+DEFAULT_GOAL = 10  # firms contacted per day, from the boutique internship guide
+HISTORY_TURNS = 30
+
+
+# ---------- Where the user stands ----------
+
+def _today():
+    return date.today().isoformat()
+
+
+def snapshot():
+    """Plain facts about the user's progress, computed from their data (no AI)."""
+    today = _today()
+    week_ago = (date.today() - timedelta(days=6)).isoformat()
+    profile = store.load("profile", {})
+    interview = store.load("interview", {})
+    stories = assess.public_stories(assess.load_stories())
+    skills = assess.load_skills()
+    jobs = store.load("jobs", [])
+    outreach = store.load("outreach", {})
+    mentor = load_mentor()
+
+    by_status = {}
+    for j in jobs:
+        by_status[j["status"]] = by_status.get(j["status"], 0) + 1
+    contacted = [j for j in jobs if j.get("contacted_date") or j["status"] in ("Contacted", "Followed up", "Applied", "Interviewing", "Offer")]
+    due = [j for j in jobs if j.get("followup_due") and j["followup_due"] <= today and j["status"] == "Contacted"]
+    ready_stories = [c for c in stories["plan"] if stories["stories"][c]["status"] == "done"]
+    thin_stories = [{"type": stories["labels"][c], "missing": stories["stories"][c].get("missing", [])}
+                    for c in stories["plan"] if stories["stories"][c]["status"] in ("pending", "active")]
+    graded = skills["status"] == "graded"
+
+    return {
+        "today": today, "weekday": date.today().strftime("%A"),
+        "goal_per_day": mentor["goal_per_day"],
+        "profile_built": bool(profile),
+        "targets": profile.get("targets") or {},
+        "evaluation": profile.get("evaluation") or {},
+        # The app's first-step intake chat (not a job interview).
+        "intake_chat": {"progress": interview.get("progress", 0), "complete": bool(interview.get("complete")),
+                        "cv_uploaded": bool(interview.get("resume_name"))},
+        "stories": {"ready": len(ready_stories), "total": len(stories["plan"]),
+                    "ready_types": [stories["labels"][c] for c in ready_stories], "need_work": thin_stories[:10]},
+        "skills": {"status": skills["status"],
+                   "score": f"{skills['results']['total']}/{skills['results']['max']}" if graded else None,
+                   "levels": (skills["results"] or {}).get("skills", []) if graded else [],
+                   "weak_questions": [q["area"] for q, g in zip(skills["questions"], skills["results"]["grades"]) if g["score"] <= 1] if graded else []},
+        "company_preps": [f"{p['company']} ({p['role']})" for p in prep.load_preps()],
+        "outreach_details_set": bool(outreach.get("intro") and outreach.get("examples")),
+        "jobs": {
+            "total": len(jobs), "by_status": by_status,
+            "added_today": sum(1 for j in jobs if j["created_at"][:10] == today),
+            "contacted_today": sum(1 for j in jobs if (j.get("contacted_date") or "") == today),
+            "contacted_this_week": sum(1 for j in jobs if (j.get("contacted_date") or "") >= week_ago),
+            "contacted_total": len(contacted),
+            "followups_due": [{"job_id": j["id"], "company": j["company"], "contact": (j.get("contact") or {}).get("name", ""), "due": j["followup_due"]} for j in due],
+            "not_researched": [{"job_id": j["id"], "company": j["company"]} for j in jobs if j.get("kind") == "firm" and not j.get("research") and j["status"] == "Saved"][:8],
+            "missing_email": [{"job_id": j["id"], "company": j["company"]} for j in jobs if j.get("research") and not (j.get("contact") or {}).get("email") and j["status"] == "Saved"][:8],
+            "email_written_not_sent": [{"job_id": j["id"], "company": j["company"]} for j in jobs if j.get("email") and not j.get("contacted_date")][:8],
+            "interviewing": [{"job_id": j["id"], "company": j["company"], "title": j.get("title", "")} for j in jobs if j["status"] == "Interviewing"],
+        },
+        "coach_notes": {c: mentor["notes"].get(c, [])[-3:] for c in COACHES if c != "lead"},
+    }
+
+
+def milestones(s):
+    """The program's checklist, in order, so the user can see where they are."""
+    steps = [
+        ("Intake interview", s["intake_chat"]["complete"] or s["profile_built"]),
+        ("Profile built", s["profile_built"]),
+        ("5+ behavioral answers ready", s["stories"]["ready"] >= 5),
+        ("Skills check graded", s["skills"]["status"] == "graded"),
+        ("Outreach details set", s["outreach_details_set"]),
+        ("First 10 firms contacted", s["jobs"]["contacted_total"] >= 10),
+        ("First interview", bool(s["jobs"]["interviewing"]) or s["jobs"]["by_status"].get("Offer", 0) > 0),
+    ]
+    return [{"label": label, "done": bool(done)} for label, done in steps]
+
+
+# ---------- Mentor state ----------
+
+def load_mentor():
+    return {"goal_per_day": DEFAULT_GOAL, "plan": None, "plan_date": "", "done": [], "notes": {}, "chats": {}, **store.load("mentor", {})}
+
+
+def save_mentor(m):
+    store.save("mentor", m)
+
+
+def _clean_actions(actions):
+    """Keep only actions the page knows how to run, with the fields they need."""
+    out = []
+    for a in actions or []:
+        if not isinstance(a, dict) or not a.get("label"):
+            continue
+        t = a.get("type")
+        if t == "open" and a.get("tab") in TABS:
+            out.append({"type": t, "tab": a["tab"], "label": a["label"]})
+        elif t == "coach" and a.get("coach") in COACHES:
+            out.append({"type": t, "coach": a["coach"], "label": a["label"], "message": str(a.get("message") or "")})
+        elif t == "job" and a.get("job_id"):
+            out.append({"type": t, "job_id": str(a["job_id"]), "label": a["label"]})
+        elif t == "company_prep" and a.get("company"):
+            out.append({"type": t, "company": a["company"], "role": str(a.get("role") or ""), "label": a["label"]})
+        elif t == "skills_check":
+            out.append({"type": t, "areas": [str(x) for x in a.get("areas") or []], "count": int(a.get("count") or 5), "label": a["label"]})
+        elif t == "edit_profile" and a.get("path") and a.get("new"):
+            out.append({"type": t, "path": str(a["path"]), "old": str(a.get("old") or ""), "new": str(a["new"]), "label": a["label"]})
+        elif t == "save_story" and a.get("competency") and isinstance(a.get("fields"), dict):
+            out.append({"type": t, "competency": a["competency"], "fields": {k: str(v) for k, v in a["fields"].items()}, "label": a["label"]})
+    return out[:4]
+
+
+# ---------- Today's plan (lead mentor) ----------
+
+def today_plan(refresh=False):
+    m = load_mentor()
+    s = snapshot()
+    if refresh or m["plan_date"] != s["today"] or not m["plan"]:
+        out = llm.chat_json([
+            {"role": "system", "content": prompts.TODAY_SYSTEM},
+            {"role": "user", "content": "STATUS:\n" + json.dumps(s, ensure_ascii=False)},
+        ], max_tokens=6000, temperature=0.5, timeout=120)
+        tasks = []
+        for t in out.get("tasks") or []:
+            if t.get("title"):
+                acts = _clean_actions([t.get("action")] if t.get("action") else [])
+                tasks.append({"title": str(t["title"]), "why": str(t.get("why") or ""), "minutes": int(t.get("minutes") or 0),
+                              "action": acts[0] if acts else None})
+        m.update({"plan": {"headline": out.get("headline") or "", "stage": out.get("stage") or "", "status": out.get("status") or "",
+                           "tasks": tasks[:6], "encouragement": out.get("encouragement") or ""},
+                  "plan_date": s["today"], "done": []})
+        save_mentor(m)
+    return {"plan": m["plan"], "done": m["done"], "milestones": milestones(s), "goal_per_day": m["goal_per_day"],
+            "counts": {"contacted_today": s["jobs"]["contacted_today"], "contacted_this_week": s["jobs"]["contacted_this_week"],
+                       "followups_due": len(s["jobs"]["followups_due"]), "jobs_total": s["jobs"]["total"]},
+            "coaches": {k: v["name"] for k, v in COACHES.items()}}
+
+
+def mark_task(index, done):
+    m = load_mentor()
+    done_set = set(m["done"])
+    done_set.add(index) if done else done_set.discard(index)
+    m["done"] = sorted(done_set)
+    save_mentor(m)
+    return m["done"]
+
+
+def set_goal(n):
+    m = load_mentor()
+    m["goal_per_day"] = max(1, min(50, int(n)))
+    save_mentor(m)
+    return m["goal_per_day"]
+
+
+# ---------- Coach chats ----------
+
+def _context(coach, s):
+    """What each coach sees: the lead sees everything; the others see what their job needs."""
+    profile = store.load("profile", {})
+    if coach == "lead":
+        return {"status": s}
+    if coach == "behavioral":
+        st = assess.load_stories()
+        comps = assess.comps()
+        answers = {comps[c]["label"]: {k: v for k, v in st["stories"][c].items()
+                                       if k in ("title", "situation", "task", "action", "result", "reflection", "answer", "quality", "missing", "status")}
+                   for c in st["plan"] if c in st["stories"]}
+        return {"targets": s["targets"], "answers": answers, "company_preps": s["company_preps"],
+                "experience": [(e.get("company"), e.get("title")) for e in profile.get("experience", [])]}
+    if coach == "technical":
+        sk = assess.load_skills()
+        return {"targets": s["targets"], "skills_profile": (profile.get("skills") or {}), "skills_check": {
+                    "status": sk["status"], "results": sk["results"],
+                    "questions": [{k: q.get(k) for k in ("id", "area", "level", "type", "question")} for q in sk["questions"]]},
+                "areas_in_bank": [a["label"] for a in assess.skill_areas()], "company_preps": s["company_preps"]}
+    if coach == "resume":
+        keep = {k: profile.get(k) for k in ("name", "targets", "summary", "education", "experience", "projects", "skills")}
+        return {"profile": keep, "evaluation": s["evaluation"], "jobs_applying_to": [
+            {"company": j["company"], "title": j.get("title"), "fit": (j.get("fit") or {}).get("score")} for j in store.load("jobs", [])[:10]]}
+    return {}
+
+
+def _for_model(m):
+    if m["role"] == "user":
+        return {"role": "user", "content": m["content"]}
+    # DeepSeek's JSON mode needs earlier assistant turns in JSON shape too.
+    return {"role": "assistant", "content": json.dumps({"reply": m["content"]}, ensure_ascii=False)}
+
+
+def chat(coach):
+    if coach not in COACHES:
+        raise llm.LLMError("Unknown coach.")
+    return {"coach": coach, "name": COACHES[coach]["name"], "messages": load_mentor()["chats"].get(coach, [])}
+
+
+def coach_turn(coach, text):
+    if coach not in COACHES:
+        raise llm.LLMError("Unknown coach.")
+    m = load_mentor()
+    s = snapshot()
+    history = m["chats"].get(coach, [])
+    system = getattr(prompts, COACHES[coach]["system"]) + prompts.COACH_ACTIONS + "\n\nCONTEXT (today is " + s["today"] + "):\n" \
+        + json.dumps(_context(coach, s), ensure_ascii=False)[:30000]
+    msgs = [{"role": "system", "content": system}] + [_for_model(x) for x in history[-HISTORY_TURNS:]] + [{"role": "user", "content": text}]
+    out = llm.chat_json(msgs, max_tokens=6000, temperature=0.6, timeout=120)
+    reply = str(out.get("reply") or "").strip()
+    if not reply:
+        raise llm.LLMError("The coach returned an empty reply. Please send your message again.")
+    history = history + [{"role": "user", "content": text, "at": datetime.now().isoformat(timespec="seconds")},
+                         {"role": "assistant", "content": reply, "actions": _clean_actions(out.get("actions")),
+                          "at": datetime.now().isoformat(timespec="seconds")}]
+    m = load_mentor()  # re-read: the user may have ticked tasks meanwhile
+    m["chats"][coach] = history[-200:]
+    note = str(out.get("progress_note") or "").strip()
+    if note and coach != "lead":
+        m["notes"].setdefault(coach, []).append(f"{s['today']}: {note}")
+        m["notes"][coach] = m["notes"][coach][-10:]
+    save_mentor(m)
+    return chat(coach)
+
+
+def clear_chat(coach):
+    m = load_mentor()
+    m["chats"][coach] = []
+    save_mentor(m)
+    return chat(coach)
+
+
+# ---------- Actions that change data (run only when the user clicks) ----------
+
+def edit_profile(path, old, new):
+    """Replace one text field in the profile, e.g. path "experience.1.bullets.2"."""
+    profile = store.load("profile", {})
+    node, keys = profile, path.split(".")
+    try:
+        for k in keys[:-1]:
+            node = node[int(k)] if isinstance(node, list) else node[k]
+        last = int(keys[-1]) if isinstance(node, list) else keys[-1]
+        current = node[last]
+    except (KeyError, IndexError, ValueError, TypeError):
+        raise llm.LLMError("That part of your profile doesn't exist anymore. Ask the coach again.")
+    if old and str(current).strip() != old.strip():
+        raise llm.LLMError("That line has changed since the coach suggested this. Ask the coach again.")
+    node[last] = new
+    store.save("profile", profile)
+    return profile
+
+
+def save_story(competency, fields):
+    state = assess.load_stories()
+    if competency not in assess.comps():
+        raise llm.LLMError("Unknown question type.")
+    if competency not in state["plan"]:
+        state["plan"].append(competency)
+    entry = state["stories"].setdefault(competency, assess._new_entry(competency))
+    for k, v in fields.items():
+        if k in assess.ALL_FIELDS and v:
+            entry[k] = v
+    entry["status"] = "done"
+    entry["missing"] = []
+    store.save("stories", state)
+    return assess.public_stories(assess.load_stories())

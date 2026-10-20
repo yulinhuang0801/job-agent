@@ -10,6 +10,7 @@
   <header class="topbar">
     <div class="brand">Job Agent</div>
     <nav id="tabs">
+      <a href="#mentors" data-tab="mentors">Mentors</a>
       <a href="#interview" data-tab="interview">Interview</a>
       <a href="#stories" data-tab="stories">Stories</a>
       <a href="#skills" data-tab="skills">Skills check</a>
@@ -216,6 +217,42 @@
       <div class="savebar">
         <button id="save-settings">Save settings</button>
         <span id="settings-msg" class="msg"></span>
+      </div>
+    </section>
+
+    <!-- Mentors -->
+    <section id="view-mentors" class="view">
+      <div class="mentor-grid">
+        <div>
+          <div class="view-head">
+            <div><h1>Today</h1><p id="today-date" class="muted"></p></div>
+            <button id="today-refresh" class="ghost small" type="button">New plan</button>
+          </div>
+          <div id="today-card" class="card"><p class="muted">Your lead mentor is planning your day…</p></div>
+          <div id="progress-card" class="card"></div>
+        </div>
+        <div>
+          <h2 class="team-title">Your team</h2>
+          <div id="coach-tabs" class="coach-tabs"></div>
+          <div id="coach-chat" class="chat coach-chat"></div>
+          <form id="coach-form" class="chat-form">
+            <textarea id="coach-input" rows="2" placeholder="Ask anything, or press 🎤 and talk…"></textarea>
+            <div class="voice">
+              <button id="coach-mic" type="button" class="secondary" title="Talk instead of typing">🎤</button>
+              <select id="coach-lang" title="Language you'll speak">
+                <option value="en-US">EN</option>
+                <option value="zh-CN">中文</option>
+              </select>
+            </div>
+            <button id="coach-send" type="submit">Send</button>
+          </form>
+          <p id="coach-voice-msg" class="muted small"></p>
+          <div class="row actions">
+            <span id="coach-msg" class="msg"></span>
+            <span class="spacer"></span>
+            <button id="coach-clear" class="ghost small" type="button">Clear this chat</button>
+          </div>
+        </div>
       </div>
     </section>
 

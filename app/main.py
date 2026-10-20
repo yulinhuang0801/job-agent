@@ -15,7 +15,7 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import assess, llm, outreach, pdf, prep, prompts, research, resume_text, services, sourcing, store
+from . import assess, llm, mentors, outreach, pdf, prep, prompts, research, resume_text, services, sourcing, store
 from .jobs_fetch import FetchError, fetch_job
 
 STATIC = Path(__file__).resolve().parent.parent / "static"
@@ -871,6 +871,73 @@ def put_outreach(details: dict):
     clean = {k: str(details.get(k, "")) for k in outreach.DEFAULT_OUTREACH}
     store.save("outreach", clean)
     return clean
+
+
+# ---------- Mentor team ----------
+
+class TaskIn(BaseModel):
+    index: int
+    done: bool
+
+
+class GoalIn(BaseModel):
+    goal: int
+
+
+class ProfileEdit(BaseModel):
+    path: str
+    old: str = ""
+    new: str
+
+
+class StorySave(BaseModel):
+    competency: str
+    fields: dict
+
+
+@app.get("/api/mentor/today")
+def mentor_today(refresh: bool = False):
+    return mentors.today_plan(refresh)
+
+
+@app.post("/api/mentor/today/task")
+def mentor_task(body: TaskIn):
+    return {"done": mentors.mark_task(body.index, body.done)}
+
+
+@app.put("/api/mentor/goal")
+def mentor_goal(body: GoalIn):
+    return {"goal_per_day": mentors.set_goal(body.goal)}
+
+
+@app.get("/api/mentor/chat/{coach}")
+def mentor_chat(coach: str):
+    return mentors.chat(coach)
+
+
+@app.post("/api/mentor/chat/{coach}")
+def mentor_message(coach: str, body: MessageIn):
+    text = body.text.strip()
+    if not text:
+        raise HTTPException(400, "Message is empty.")
+    return mentors.coach_turn(coach, text)
+
+
+@app.delete("/api/mentor/chat/{coach}")
+def mentor_clear(coach: str):
+    return mentors.clear_chat(coach)
+
+
+@app.post("/api/mentor/edit-profile")
+def mentor_edit_profile(body: ProfileEdit):
+    mentors.edit_profile(body.path, body.old, body.new)
+    return {"ok": True}
+
+
+@app.post("/api/mentor/save-story")
+def mentor_save_story(body: StorySave):
+    mentors.save_story(body.competency, body.fields)
+    return {"ok": True}
 
 
 @app.get("/api/meta")
