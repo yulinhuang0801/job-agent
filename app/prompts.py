@@ -315,7 +315,7 @@ Rules:
 - select/radio/checkbox: answer with one of the given options, exactly as written.
 - essay: write a specific, honest answer (respect any word limit in the question; otherwise 100-200 words), using the most relevant story or experience and something specific about this job or firm.
 - eeo (demographic) questions: answer "" and note "Your choice: fill this in yourself or pick 'Decline to answer'." Never guess these.
-- file: answer "" and note which document to upload (resume PDF or cover letter PDF from the Jobs tab).
+- file: answer "" and note which document to upload (resume PDF or cover letter PDF from My jobs).
 - Never invent facts. If unsure, leave it blank with a note.
 
 JSON shape:
@@ -343,12 +343,12 @@ JSON shape:
 
 # ---------- Mentor team ----------
 
-PROGRAM = """You work in a job-search program for students. The program's playbook: build a strong profile and resume, prepare real behavioral stories (STAR) and technical skills, then reach out to many firms every day (the goal is about {goal} firms a day for boutique internships: search funds, small PE, boutique banks, small VC, boutique consulting; or apply to postings for tech roles), follow up after 7 days, and prepare hard for each interview. The candidate uses an app with these tabs: Interview, Stories, Skills check, Profile, Find, Jobs, Tracker, Guide, Settings."""
+PROGRAM = """You work in a job-search program for students. The program's playbook: build a strong profile and resume, prepare real behavioral stories (STAR) and technical skills, then reach out to many firms every day (the goal is about {goal} firms a day for boutique internships: search funds, small PE, boutique banks, small VC, boutique consulting; or apply to postings for tech roles), follow up after 7 days, and prepare hard for each interview. The candidate uses an app with three areas: Home (this mentor team and today's plan); Prepare, in steps: 1 About you (the intake chat; tab id "interview"), 2 Profile, 3 Stories, 4 Skills check (with company prep); and Apply: Find (the firm and job database, web search, import) and My jobs (each firm or posting, with a table view; tab id "jobs"). Guide and Settings sit in the top corner. Call the pages by these names, never "the Interview tab", "Jobs tab" or "Tracker"."""
 
 COACH_ACTIONS = """
 
 Buttons you can offer (the candidate clicks; nothing happens unless they do). Only offer ones that help right now, at most 3:
-- {"type": "open", "tab": "<interview|stories|skills|profile|find|jobs|tracker|guide|settings>", "label": ""}
+- {"type": "open", "tab": "<interview|stories|skills|profile|find|jobs|guide|settings>", "label": ""}
 - {"type": "job", "job_id": "<id from the context>", "label": ""}  (opens that firm or posting in Jobs)
 - {"type": "coach", "coach": "<lead|behavioral|technical|resume>", "label": "", "message": "<what the candidate will say to that coach>"}
 - {"type": "company_prep", "company": "", "role": "", "label": ""}  (researches the company and adds tailored questions)
@@ -416,7 +416,7 @@ Write:
 - encouragement: one short honest line.
 Write in the language the candidate has been using in their profile and stories (Chinese if they mostly write Chinese).
 
-Action buttons: {"type": "open", "tab": "<stories|skills|profile|find|jobs|tracker|guide>", "label": ""}, {"type": "job", "job_id": "", "label": ""}, {"type": "coach", "coach": "<behavioral|technical|resume>", "label": "", "message": ""}, {"type": "skills_check", "areas": [], "count": 5, "label": ""}
+Action buttons: {"type": "open", "tab": "<stories|skills|profile|find|jobs|guide>", "label": ""}, {"type": "job", "job_id": "", "label": ""}, {"type": "coach", "coach": "<behavioral|technical|resume>", "label": "", "message": ""}, {"type": "skills_check", "areas": [], "count": 5, "label": ""}
 
 JSON shape:
 {"headline": "", "stage": "", "status": "", "tasks": [{"title": "", "why": "", "minutes": 15, "action": null}], "encouragement": ""}"""

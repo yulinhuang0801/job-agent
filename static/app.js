@@ -83,15 +83,106 @@ async function busy(button, label, fn) {
 // ---------- Tabs ----------
 
 const loaders = {};
-const TABS = ["mentors", "interview", "stories", "skills", "profile", "find", "jobs", "tracker", "guide", "settings"];
+const TABS = ["mentors", "interview", "stories", "skills", "profile", "find", "jobs", "guide", "settings"];
+// Three areas, each with its own pages. Old page names (#tracker, #mentors…) still work.
+const GROUPS = {
+  home: { views: [["mentors", "Today & coaches"]] },
+  prepare: { views: [["interview", "About you"], ["profile", "Profile"], ["stories", "Stories"], ["skills", "Skills check"]], numbered: true },
+  apply: { views: [["find", "Find"], ["jobs", "My jobs"]] },
+};
+const lastView = {};
+let overview = null;
+let jobsMode = "cards";
+
+function groupOf(view) {
+  return Object.keys(GROUPS).find((g) => GROUPS[g].views.some(([v]) => v === view)) || null;
+}
+
+function firstOpenStep() {
+  const o = overview;
+  if (!o) return "interview";
+  if (!o.intake.complete && !o.profile_built) return "interview";
+  if (!o.profile_built) return "profile";
+  if (o.stories.total && o.stories.ready < o.stories.total) return "stories";
+  if (o.skills.status !== "graded") return "skills";
+  return "profile";
+}
+
+function stepBadge(view) {
+  const o = overview;
+  if (!o) return null;
+  const done = (text) => h("span", { class: "badge ok" }, text || "✓");
+  const info = (text, cls = "") => h("span", { class: "badge " + cls }, text);
+  switch (view) {
+    case "interview": return o.intake.complete || o.profile_built ? done() : o.intake.progress ? info(`${o.intake.progress}%`) : null;
+    case "profile": return o.profile_built ? done() : null;
+    case "stories": return o.stories.total ? (o.stories.ready >= o.stories.total ? done(`${o.stories.ready}/${o.stories.total} ✓`) : info(`${o.stories.ready}/${o.stories.total}`)) : null;
+    case "skills": return o.skills.status === "graded" ? done(`${o.skills.score} ✓`) : o.skills.status === "answering" ? info("in progress") : null;
+    case "jobs": return o.jobs.total ? [info(String(o.jobs.total)), o.jobs.due ? info(`${o.jobs.due} due`, "warn") : null] : null;
+    default: return null;
+  }
+}
+
+function renderSubnav(group, view) {
+  const nav = $("#subnav");
+  const g = GROUPS[group];
+  nav.classList.toggle("hidden", !g || g.views.length < 2);
+  if (!g || g.views.length < 2) return;
+  fill(nav, g.views.map(([v, label], i) => h("a", { href: "#" + v, class: v === view ? "active" : "" },
+    g.numbered ? h("span", { class: "num" }, String(i + 1)) : null, label, stepBadge(v))));
+  const active = nav.querySelector("a.active");
+  if (active && nav.scrollWidth > nav.clientWidth) nav.scrollLeft = active.offsetLeft - nav.clientWidth / 2 + active.offsetWidth / 2;
+}
+
+// "Next" link at the bottom of each step, so the order is obvious.
+const NEXT = {
+  interview: ["profile", "Next: 2 · Build your profile"],
+  profile: ["stories", "Next: 3 · Prepare your stories"],
+  stories: ["skills", "Next: 4 · Take the skills check"],
+  skills: ["find", "Next: Apply · Find firms and jobs"],
+  find: ["jobs", "Next: My jobs · research, email, track"],
+};
+function addNextLinks() {
+  for (const [view, [target, text]] of Object.entries(NEXT)) {
+    const sec = $("#view-" + view);
+    if (sec && !sec.querySelector(":scope > .next-step")) sec.append(h("div", { class: "next-step" }, h("a", { href: "#" + target, class: "button secondary" }, text + " →")));
+  }
+}
+
+async function refreshOverview() {
+  try {
+    overview = await api("/api/overview");
+    const view = location.hash.slice(1);
+    const group = groupOf(view === "tracker" ? "jobs" : view);
+    if (group) renderSubnav(group, view === "tracker" ? "jobs" : view);
+  } catch (e) { /* the page still works without badges */ }
+}
 
 function showTab(name) {
+  if (name === "home") name = "mentors";
+  if (name === "tracker") { jobsMode = "table"; name = "jobs"; }
+  if (name === "prepare") name = lastView.prepare || firstOpenStep();
+  if (name === "apply") name = lastView.apply || "find";
   if (!TABS.includes(name)) name = "mentors";
+  const group = groupOf(name);
+  if (group) lastView[group] = name;
   document.querySelectorAll(".view").forEach((v) => v.classList.toggle("active", v.id === "view-" + name));
-  document.querySelectorAll("#tabs a").forEach((a) => a.classList.toggle("active", a.dataset.tab === name));
+  document.querySelectorAll("#groups a").forEach((a) => a.classList.toggle("active", a.dataset.group === group));
+  document.querySelectorAll("#utility a").forEach((a) => a.classList.toggle("active", a.dataset.tab === name));
+  renderSubnav(group, name);
+  window.scrollTo(0, 0);
   Promise.resolve(loaders[name] && loaders[name]()).catch((e) => console.error(e));
+  refreshOverview();
 }
 window.addEventListener("hashchange", () => showTab(location.hash.slice(1)));
+// Group links remember the page you were on; clicking the current group again keeps you there.
+document.querySelectorAll("#groups a").forEach((a) => a.addEventListener("click", (e) => {
+  e.preventDefault();
+  const g = a.dataset.group;
+  const target = g === "home" ? "mentors" : lastView[g] || (g === "prepare" ? firstOpenStep() : "find");
+  if (location.hash.slice(1) === target) showTab(target);
+  else location.hash = "#" + target;
+}));
 
 // ---------- Settings ----------
 
@@ -299,7 +390,7 @@ $("#chat-form").addEventListener("submit", async (e) => {
     interview = await api("/api/interview/message", { method: "POST", body: { text } });
     renderChat();
     speak(lastReply());
-    if (interview.complete) setMsg($("#interview-msg"), "Interview complete. Click Build my profile.", "ok");
+    if (interview.complete) setMsg($("#interview-msg"), "Done. Next: click Build my profile (step 2).", "ok");
   } catch (err) {
     renderChat();
     input.value = text;
@@ -499,7 +590,7 @@ function storyCard(comp) {
     h("div", { class: "job-top" },
       h("div", {}, h("div", { class: "qmeta" }, `${stories.labels[comp]} · ${STATUS_TEXT[s.status] || s.status}`),
         h("b", {}, s.title || s.question)),
-      stars ? h("span", { class: "quality", title: "How convincing this would be in an interview" }, stars) : null),
+      stars ? h("span", { class: "quality", title: "The coach\u2019s estimate of how convincing this would be in an interview (an AI judgment, not a test)" }, stars) : null),
     body,
     (s.missing || []).length && s.status !== "done" ? h("p", { class: "small missing-note" }, "Still needed: " + s.missing.join(", ")) : null,
     s.notes ? h("p", { class: "muted small" }, s.notes) : null);
@@ -534,7 +625,7 @@ function renderStories(pendingText) {
   $("#story-skip").disabled = stories.done;
   $("#story-input").disabled = stories.done;
   $("#story-send").disabled = stories.done;
-  setMsg($("#story-msg"), stories.done ? "All questions done. Next: the Skills check tab, or add another question." : "", stories.done ? "ok" : "");
+  setMsg($("#story-msg"), stories.done ? "All questions done. Next: step 4, the Skills check, or add another question." : "", stories.done ? "ok" : "");
 }
 
 loaders.stories = async () => {
@@ -1099,7 +1190,7 @@ function renderDbResults() {
     try {
       const res = await api("/api/find/add", { method: "POST", body: { candidates } });
       jobs = res.jobs;
-      setMsg(msg, `Added ${res.added}. Open the Jobs tab to research them.`, "ok");
+      setMsg(msg, `Added ${res.added}. Open My jobs to research them.`, "ok");
     } catch (err) { setMsg(msg, err.message, "err"); }
   }));
   const pages = Math.ceil(r.total / r.per_page);
@@ -1226,7 +1317,7 @@ function renderCandidates() {
       jobs = r.jobs;
       candidates = candidates.map((c) => (picked.includes(c) ? { ...c, already_added: true } : c));
       renderCandidates();
-      setMsg($("#find-msg"), `Added ${r.added}. Open the Jobs tab to research them.`, "ok");
+      setMsg($("#find-msg"), `Added ${r.added}. Open My jobs to research them.`, "ok");
     } catch (err) {
       setMsg(msg, err.message, "err");
     }
@@ -1327,6 +1418,8 @@ function replaceJob(updated) {
 async function patchJob(id, changes) {
   const updated = await api(`/api/jobs/${id}`, { method: "PATCH", body: changes });
   jobs = jobs.map((j) => (j.id === id ? updated : j));
+  if ($("#jobs-summary")) jobsSummary();
+  if (changes.status) refreshOverview();
   return updated;
 }
 
@@ -1592,12 +1685,36 @@ function jobCard(job) {
 
 function renderJobs() {
   const el = $("#job-list");
-  el.replaceChildren(...(jobs.length ? jobs.map(jobCard) : [h("p", { class: "muted" }, "No jobs yet. Use the Find tab, or add a posting above.")]));
+  el.replaceChildren(...(jobs.length ? jobs.map(jobCard) : [h("p", { class: "muted" }, "No jobs yet. Add some from Find, or add one by link above.")]));
+}
+
+function setJobsMode(mode) {
+  jobsMode = mode;
+  $("#jobs-mode-cards").classList.toggle("on", mode === "cards");
+  $("#jobs-mode-table").classList.toggle("on", mode === "table");
+  $("#job-list").classList.toggle("hidden", mode !== "cards");
+  $("#jobs-table").classList.toggle("hidden", mode !== "table");
+  if (mode === "cards") renderJobs(); else renderTracker();
+}
+$("#jobs-mode-cards").addEventListener("click", () => setJobsMode("cards"));
+$("#jobs-mode-table").addEventListener("click", () => setJobsMode("table"));
+
+function jobsSummary() {
+  const today = new Date().toISOString().slice(0, 10);
+  const by = {};
+  for (const j of jobs) by[j.status] = (by[j.status] || 0) + 1;
+  const due = jobs.filter((j) => j.followup_due && j.followup_due <= today && j.status === "Contacted").length;
+  $("#jobs-summary").textContent = jobs.length
+    ? Object.entries(by).map(([k, v]) => `${v} ${k.toLowerCase()}`).join(" · ") + (due ? ` · ${due} follow-up${due === 1 ? "" : "s"} due` : "")
+    : "";
 }
 
 loaders.jobs = async () => {
+  if (!statuses) statuses = (await api("/api/meta")).statuses;
   jobs = await api("/api/jobs");
-  renderJobs();
+  jobsSummary();
+  if (!jobs.length) $("#add-job-card").open = true;
+  setJobsMode(jobsMode);
   const d = await api("/api/outreach");
   $("#od-intro").value = d.intro; $("#od-hours").value = d.hours_per_week; $("#od-start").value = d.start;
   $("#od-signature").value = d.signature; $("#od-examples").value = d.examples;
@@ -1687,11 +1804,6 @@ function renderTracker() {
   $("#tracker").parentElement.classList.toggle("hidden", jobs.length === 0);
 }
 
-loaders.tracker = async () => {
-  if (!statuses) statuses = (await api("/api/meta")).statuses;
-  jobs = await api("/api/jobs");
-  renderTracker();
-};
 
 // ---------- Mentors ----------
 // Today's plan from the lead mentor (left) and chats with the four coaches (right).
@@ -1914,6 +2026,8 @@ $("#coach-clear").addEventListener("click", async () => {
     console.error(e);
   }
   const wanted = location.hash.slice(1);
+  try { overview = await api("/api/overview"); } catch (e) { /* badges are optional */ }
   if (wanted) showTab(wanted);
   else location.hash = settings && settings.has_key ? "#mentors" : "#settings";
+  addNextLinks();
 })();

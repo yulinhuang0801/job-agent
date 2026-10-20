@@ -1106,6 +1106,16 @@ class StorySave(BaseModel):
     fields: dict
 
 
+@app.get("/api/overview")
+def overview():
+    """Where the user is in each step, for the step badges (no AI)."""
+    s = mentors.snapshot()
+    return {"intake": s["intake_chat"], "profile_built": s["profile_built"],
+            "stories": {"ready": s["stories"]["ready"], "total": s["stories"]["total"]},
+            "skills": {"status": s["skills"]["status"], "score": s["skills"]["score"]},
+            "jobs": {"total": s["jobs"]["total"], "due": len(s["jobs"]["followups_due"])}}
+
+
 @app.get("/api/mentor/today")
 def mentor_today(refresh: bool = False):
     return mentors.today_plan(refresh)

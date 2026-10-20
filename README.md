@@ -14,7 +14,14 @@ Then open http://127.0.0.1:8000, go to **Settings** and paste your DeepSeek API 
 
 ## How it flows
 
-0. **Mentors** (home tab): your **lead mentor** reads all your progress (profile, stories, skills check, every firm and posting, follow-ups due, notes from the other coaches) and writes today's plan: where you stand, 3–6 concrete tasks with one-click buttons, progress stats against your daily outreach goal, and the program's milestones. Chat with the lead mentor or with three coaches:
+The app has three areas, plus Guide and Settings in the top corner:
+- **Home**: today's plan and your mentor team.
+- **Prepare**, in numbered steps with progress badges: 1 About you → 2 Profile → 3 Stories → 4 Skills check. **Prepare** opens the first step you haven't finished, and each step ends with a link to the next.
+- **Apply**: Find (database, web search, import) → My jobs (cards to work on each firm, or a table to track them all).
+
+Old links like `#tracker` or `#mentors` still work.
+
+0. **Home** (mentors): your **lead mentor** reads all your progress (profile, stories, skills check, every firm and posting, follow-ups due, notes from the other coaches) and writes today's plan: where you stand, 3–6 concrete tasks with one-click buttons, progress stats against your daily outreach goal, and the program's milestones. Chat with the lead mentor or with three coaches:
    - **Behavioral coach**: mock interviews using your own stories, feedback (STAR, "I" vs "we", results, length), tightened versions you can save.
    - **Technical coach**: teaches your weakest areas and gives practice problems with hints before answers.
    - **Resume coach**: reviews your resume line by line and proposes rewrites you can apply with one click (never adds facts).
@@ -25,7 +32,7 @@ Then open http://127.0.0.1:8000, go to **Settings** and paste your DeepSeek API 
 - **Update buttons** any coach can offer: rewrite a resume line, add an experience/project/education, change targets, update a skill level, update a job's status or contact, add a question, save a story.
 - **Activity log** (profile updates, finished stories, graded checks, emails sent, status changes) that the lead mentor reads.
 - **Profile updates merge, never overwrite**: "Update my profile" only fills gaps and adds items, bullets and skills; it never deletes, never changes how items are identified, and never touches fields you or a coach edited by hand (those are pinned).
-1. **Interview**: the coach asks about goals, education, experience, projects, the skills you use, and contact info, one question at a time.
+1. **About you** (the intake chat): the coach asks about goals, education, experience, projects, the skills you use, and contact info, one question at a time.
    - **Upload CV** (PDF, .docx, .txt): the coach reads it and only asks about what's missing.
    - **🎤 Voice**: talk instead of typing. Uses the browser's voice typing (Chrome, Edge, Safari) by default, or a speech-to-text service from Settings (e.g. SiliconFlow SenseVoice, which works in China). **🔊 Read replies aloud** uses the computer's built-in voices.
    - **Web lookups** (optional Tavily key in Settings): the coach looks up course codes, small companies and labs you mention, and shows "🔎 Looked up: …" in the chat. Without a key it asks you what they are.
@@ -46,11 +53,11 @@ Then open http://127.0.0.1:8000, go to **Settings** and paste your DeepSeek API 
    - **Job alert emails**: LinkedIn, Handshake, Indeed, Glassdoor, ZipRecruiter, Wellfound, Simplify, Jobright, Built In, WayUp, RippleMatch and Google send job recommendations by email. Job Agent reads **only those alerts** from your inbox over IMAP (read-only: nothing is marked read, moved or deleted; LinkedIn messages and other mail are skipped from the headers, before any body is downloaded), pulls out each job's title, company, location and link, and adds them to the database (source "LinkedIn alert", "Handshake alert"…). Set it up in Settings → Job alert emails with an app password (Gmail, iCloud, Yahoo) or authorization code (QQ, 163, 126); it checks every 3 hours while the app runs. Without that, paste an alert or upload it as an .eml file in Find → Data sources. This replaces logging into LinkedIn or Handshake, which their terms forbid (and unofficial "LinkedIn MCP" servers do exactly that with your session cookie, risking a ban).
    - Update each source from Find → Data sources. SEC downloads need a contact email (Settings → Firm database).
 6. **Find → Web search / Import**: search by category (search funds, small PE, boutique banks, small VC, boutique consulting, family offices, quant firms, tech startups, company job boards), pull from SimplifyJobs' summer and off-season internship lists or Hacker News "Who is hiring?", or search your own sites and phrases, with optional location, industry and role. Uses Google results (Serper.dev) when that key is saved, otherwise Tavily. The AI screens results with the boutique-internship rules (under ~30 employees, no big-name firms, search funds still searching). Databases that need a login (Axial, SearchFunder) and LinkedIn are browsed by hand and pasted or imported as a CSV.
-7. **Jobs**: one workspace per firm or posting:
+7. **My jobs** (Cards view): one workspace per firm or posting:
    1. **Research & contact**: reads the firm's home, team, about, contact and careers pages; writes a summary and specific hooks; picks the senior person to contact; finds their email (published on the site, Hunter.io if you add a key, or a guess from the firm's email pattern, clearly marked). If there's no email, it points you to Apollo.io.
    2. **Cold email** (with LinkedIn note and 7-day follow-up) in the voice of your example emails, opened as a draft in Gmail, Outlook or your mail app; or **Application form**: paste the form or its link, and walk through every question with drafted answers; download all answers as a .txt.
    3. **Fit score, tailored resume and cover letter** (addressed to the contact).
-8. **Tracker**: status, contact, applied/contacted date, follow-up due date and notes; export to CSV for Excel or Google Sheets.
+8. **My jobs** (Table view): status, contact, applied/contacted date, follow-up due date and notes; export to CSV for Excel or Google Sheets.
 9. **Guide**: the outreach playbook, including how to find emails with Apollo.io.
 
 ## Layout

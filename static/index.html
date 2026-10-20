@@ -9,19 +9,18 @@
 <body>
   <header class="topbar">
     <div class="brand">Job Agent</div>
-    <nav id="tabs">
-      <a href="#mentors" data-tab="mentors">Mentors</a>
-      <a href="#interview" data-tab="interview">Interview</a>
-      <a href="#stories" data-tab="stories">Stories</a>
-      <a href="#skills" data-tab="skills">Skills check</a>
-      <a href="#profile" data-tab="profile">Profile</a>
-      <a href="#find" data-tab="find">Find</a>
-      <a href="#jobs" data-tab="jobs">Jobs</a>
-      <a href="#tracker" data-tab="tracker">Tracker</a>
-      <a href="#guide" data-tab="guide">Guide</a>
-      <a href="#settings" data-tab="settings">Settings</a>
+    <nav id="groups" aria-label="Main">
+      <a href="#home" data-group="home">Home</a>
+      <a href="#prepare" data-group="prepare">Prepare</a>
+      <a href="#apply" data-group="apply">Apply</a>
+    </nav>
+    <span class="spacer"></span>
+    <nav id="utility" aria-label="Help and settings">
+      <a href="#guide" data-tab="guide" title="Outreach playbook">Guide</a>
+      <a href="#settings" data-tab="settings" title="Settings"><span aria-hidden="true">⚙</span><span class="label"> Settings</span></a>
     </nav>
   </header>
+  <nav id="subnav" class="subnav hidden" aria-label="Steps"></nav>
 
   <main>
     <!-- Guide -->
@@ -32,8 +31,8 @@
       <div class="card">
         <h2>1. Find firms</h2>
         <ul class="tight">
-          <li><b>Search by keyword + location + industry</b>, e.g. "boutique investment banks NYC", "search funds healthcare". Location barely matters; many of these internships are remote. <i>Find tab → Search.</i></li>
-          <li><b>Databases:</b> Axial (search funds and banks) and SearchFunder (search funds hiring interns). <i>Find tab → Directories → paste what you find.</i></li>
+          <li><b>Search by keyword + location + industry</b>, e.g. "boutique investment banks NYC", "search funds healthcare". Location barely matters; many of these internships are remote. <i>Apply → Find → Web search → Search.</i></li>
+          <li><b>Databases:</b> Axial (search funds and banks) and SearchFunder (search funds hiring interns). <i>Apply → Find → Import a list → paste what you find.</i></li>
           <li><b>LinkedIn:</b> company search with an IB / PE / VC / financial services industry filter and 1–50 employees; open "similar pages" on good firms; check where upperclassmen interned.</li>
           <li><b>Ask around:</b> finance clubs, fraternities and upperclassmen.</li>
         </ul>
@@ -79,7 +78,7 @@
           <li><b>Cold email:</b> concise, specific to the firm, asks directly for a short call about a part-time or remote (often unpaid) internship, and attaches your resume. Make it your own; emails that look like everyone else's get ignored. <i>Jobs → Write email → Open in Gmail or Outlook.</i></li>
           <li><b>LinkedIn:</b> InMail (with Premium) can carry the same email. Without credits, a connection request note has only 300 characters, and they'll only see your profile, so polish it first.</li>
           <li><b>Application form:</b> if the firm has a posting, Job Agent walks through every question with you and gives you a .txt to copy from.</li>
-          <li><b>Follow up after 7 days</b> if there's no reply. The Tracker shows who's due.</li>
+          <li><b>Follow up after 7 days</b> if there's no reply. Apply → My jobs shows who's due.</li>
           <li><b>Volume matters:</b> aim for 10+ firms a day. Rejection rates are high; keep finding new firms.</li>
         </ul>
       </div>
@@ -89,7 +88,7 @@
         <ul class="tight">
           <li><b>Firm databases:</b> <a href="https://www.axial.net" target="_blank" rel="noopener">Axial</a>, <a href="https://www.searchfunder.com" target="_blank" rel="noopener">SearchFunder</a>, <a href="https://privateequitylist.com" target="_blank" rel="noopener">Private Equity List</a>, <a href="https://ctacquisitions.com" target="_blank" rel="noopener">CT Acquisitions</a> (search fund partner directory), <a href="https://researchguides.library.syr.edu/investors/nyvc" target="_blank" rel="noopener">Syracuse's New York VC &amp; PE database</a>.</li>
           <li><b>Email finders:</b> <a href="https://www.apollo.io" target="_blank" rel="noopener">Apollo.io</a>, <a href="https://hunter.io" target="_blank" rel="noopener">Hunter.io</a>, <a href="https://rocketreach.co" target="_blank" rel="noopener">RocketReach</a>.</li>
-          <li><b>Job postings:</b> company career pages on Greenhouse, Lever and Ashby (Find → Job postings).</li>
+          <li><b>Job postings:</b> company career pages on Greenhouse, Lever and Ashby (Apply → Find → Database).</li>
         </ul>
       </div>
     </section>
@@ -324,7 +323,7 @@
     <section id="view-interview" class="view">
       <div class="view-head">
         <div>
-          <h1>Intake interview</h1>
+          <h1>About you</h1>
           <p class="muted">Tell the coach what kind of job you want, by typing or talking. Have a CV already? Upload it and the coach only asks about what's missing.</p>
         </div>
         <button id="reset-interview" class="ghost">Start over</button>
@@ -486,7 +485,7 @@
         </div>
         <a id="master-resume" class="button" href="/api/profile/resume.pdf">Download CV (PDF)</a>
       </div>
-      <div id="profile-empty" class="card empty">No profile yet. Finish some of the interview, then click <b>Build my profile</b>.</div>
+      <div id="profile-empty" class="card empty">No profile yet. Answer some questions in <a href="#interview">About you</a>, then click <b>Build my profile</b>.</div>
       <div id="profile-body">
         <div id="evaluation" class="card"></div>
         <div id="profile-summary" class="card"></div>
@@ -592,8 +591,20 @@
 
     <!-- Jobs -->
     <section id="view-jobs" class="view">
-      <h1>Jobs</h1>
-      <p class="muted">Every firm and posting you're working on. Open one to research it, find the right person, then write a cold email or walk through the application form. Add more on the Find tab, or add a single posting here.</p>
+      <div class="view-head">
+        <div>
+          <h1>My jobs</h1>
+          <p class="muted">Every firm and posting you're working on. Open one to research it, find the right person, then write a cold email or walk through the application form. Add more from <a href="#find">Find</a>, or add one by link below.</p>
+        </div>
+        <div class="row">
+          <div class="seg" role="tablist">
+            <button id="jobs-mode-cards" class="on" type="button" role="tab">Cards</button>
+            <button id="jobs-mode-table" type="button" role="tab">Table</button>
+          </div>
+          <a class="button secondary small" href="/api/jobs.csv">Export CSV</a>
+        </div>
+      </div>
+      <p id="jobs-summary" class="muted small"></p>
       <details class="card" id="outreach-card">
         <summary>Your outreach details (used in every email)</summary>
         <label for="od-intro">How you introduce yourself</label>
@@ -608,7 +619,9 @@
         <textarea id="od-examples" rows="8"></textarea>
         <div class="row actions"><button id="od-save" type="button">Save details</button><span id="od-msg" class="msg"></span></div>
       </details>
-      <form id="job-form" class="card">
+      <details class="card" id="add-job-card">
+      <summary>Add a job by link or description</summary>
+      <form id="job-form">
         <label for="job-url">Job link</label>
         <input id="job-url" type="url" placeholder="https://boards.greenhouse.io/...">
         <label for="job-desc">…or paste the job description</label>
@@ -622,26 +635,20 @@
           <span id="job-msg" class="msg"></span>
         </div>
       </form>
+      </details>
       <div id="job-list"></div>
+      <div id="jobs-table" class="hidden">
+        <p class="muted small">Changes save automatically. Open a row's company in Cards view to research it or write the email.</p>
+        <div class="table-wrap">
+          <table id="tracker">
+            <thead><tr><th>Company</th><th>Role</th><th>Contact</th><th>Fit</th><th>Status</th><th>Applied / contacted</th><th>Follow up</th><th>Notes</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p id="tracker-empty" class="muted">No jobs yet. Add some from <a href="#find">Find</a>, or by link above.</p>
+      </div>
     </section>
 
-    <!-- Tracker -->
-    <section id="view-tracker" class="view">
-      <div class="view-head">
-        <div>
-          <h1>Application tracker</h1>
-          <p class="muted">Every job you've added. Changes save automatically.</p>
-        </div>
-        <a class="button secondary" href="/api/jobs.csv">Export CSV</a>
-      </div>
-      <div class="table-wrap">
-        <table id="tracker">
-          <thead><tr><th>Company</th><th>Role</th><th>Contact</th><th>Fit</th><th>Status</th><th>Applied / contacted</th><th>Follow up</th><th>Notes</th><th></th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-      <p id="tracker-empty" class="muted">No jobs yet. Add one on the Jobs tab.</p>
-    </section>
   </main>
 
   <script src="/static/editor.js"></script>
