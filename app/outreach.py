@@ -6,7 +6,7 @@ from datetime import date, timedelta
 import httpx
 from bs4 import BeautifulSoup
 
-from . import assess, llm, prompts, store
+from . import assess, llm, memory, prompts, store
 from .jobs_fetch import HEADERS
 
 DEFAULT_OUTREACH = {"intro": "", "hours_per_week": "", "start": "", "signature": "", "examples": ""}
@@ -19,7 +19,8 @@ def load_details():
 def _candidate(profile):
     keep = {k: v for k, v in profile.items() if k not in ("evaluation",)}
     stories = assess.stories_for_profile() or {}
-    return json.dumps({"profile": keep, "stories": stories.get("stories", [])[:8]}, ensure_ascii=False)[:20000]
+    return json.dumps({"profile": keep, "stories": stories.get("stories", [])[:8]}, ensure_ascii=False)[:20000] \
+        + "\n\n" + memory.shared_block(max_facts=30, max_events=0)
 
 
 def _firm(job):
@@ -48,6 +49,7 @@ def mark_sent(job):
     job["applied_date"] = job.get("applied_date") or today.isoformat()
     job["contacted_date"] = today.isoformat()
     job["followup_due"] = (today + timedelta(days=7)).isoformat()
+    memory.log("job", f"Emailed {job.get('company')}" + (f" ({(job.get('contact') or {}).get('name')})" if (job.get("contact") or {}).get("name") else ""), job["id"])
     return job
 
 

@@ -4,7 +4,7 @@ import json
 import uuid
 from pathlib import Path
 
-from . import llm, prompts, store
+from . import llm, memory, prompts, store
 
 BANK = json.loads((Path(__file__).resolve().parent / "question_bank.json").read_text(encoding="utf-8"))
 BEHAVIORAL = BANK["behavioral"]
@@ -15,13 +15,14 @@ MAX_FOLLOWUPS = 3
 def candidate_background(max_chars=5000):
     """A compact picture of the candidate for the AI: the profile if built, else interview answers."""
     profile = store.load("profile", {})
+    shared = memory.shared_block(max_facts=30, max_events=0)
     if profile:
         keep = {k: profile.get(k) for k in ("targets", "summary", "education", "experience", "projects", "skills")}
-        return json.dumps(keep, ensure_ascii=False)[:max_chars]
+        return json.dumps(keep, ensure_ascii=False)[:max_chars] + ("\n\n" + shared if shared else "")
     interview = store.load("interview", {})
     said = [m["content"] for m in interview.get("messages", []) if m["role"] == "user" and m.get("kind") != "upload"]
     text = (interview.get("resume_text") or "")[:2500] + "\n\nInterview answers:\n" + "\n".join(said)
-    return text[-max_chars:]
+    return text[-max_chars:] + ("\n\n" + shared if shared else "")
 
 
 # ---------- Your own questions (data/custom_questions.json) ----------
@@ -316,6 +317,8 @@ def story_turn(text):
     state["messages"].append({"role": "user", "content": text, "competency": comp})
     if out.get("move_on") or out.get("skipped"):
         entry["status"] = "skipped" if out.get("skipped") else "done"
+        if entry["status"] == "done":
+            memory.log("story", f"Finished the \"{info['label']}\" answer on the Stories tab")
         _activate_next(state)
     else:
         entry["followups"] += 1
@@ -453,6 +456,8 @@ def grade_skills(answers):
     results["total"] = sum(g["score"] for g in results["grades"])
     results["max"] = 4 * len(results["grades"])
     state.update({"status": "graded", "results": results})
+    memory.log("skills", f"Skills check graded: {results['total']}/{results['max']} ("
+               + ", ".join(f"{s.get('area')}: {s.get('level')}" for s in results["skills"]) + ")")
     store.save("skills", state)
     return public_skills(state)
 

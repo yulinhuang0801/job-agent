@@ -5,7 +5,7 @@ import re
 import uuid
 from datetime import datetime
 
-from . import assess, llm, prompts, services, store
+from . import assess, llm, memory, prompts, services, store
 
 
 def load_preps():
@@ -25,7 +25,8 @@ def build(company, role):
                 material.append(f"Q: {q}\nSummary: {found['answer']}")
             material += [f"- {r['title']} ({r['url']}): {r['content']}" for r in found.get("results", [])]
     profile = store.load("profile", {})
-    background = json.dumps({k: profile.get(k) for k in ("targets", "summary", "skills")}, ensure_ascii=False)[:3000]
+    background = json.dumps({k: profile.get(k) for k in ("targets", "summary", "skills")}, ensure_ascii=False)[:3000] \
+        + "\n\n" + memory.shared_block(max_facts=20, max_events=0)
     out = llm.chat_json([
         {"role": "system", "content": prompts.COMPANY_PREP_SYSTEM},
         {"role": "user", "content": f"COMPANY: {company}\nROLE: {role or 'not specified (use the candidate targets)'}\n\n"
@@ -53,6 +54,7 @@ def build(company, role):
     preps = [p for p in load_preps() if not (p["company"].lower() == company.lower() and p["role"].lower() == role.lower())]
     preps.insert(0, prep)
     store.save("prep", preps)
+    memory.log("prep", f"Built company prep for {company}" + (f" ({role})" if role else ""))
     return prep
 
 

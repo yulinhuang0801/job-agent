@@ -4,7 +4,7 @@ changes until the user clicks one."""
 import json
 from datetime import date, datetime, timedelta
 
-from . import assess, llm, prep, prompts, store
+from . import assess, llm, memory, prep, profile_merge, prompts, store
 
 COACHES = {
     "lead": {"name": "Lead mentor", "system": "LEAD_SYSTEM"},
@@ -75,6 +75,8 @@ def snapshot():
             "interviewing": [{"job_id": j["id"], "company": j["company"], "title": j.get("title", "")} for j in jobs if j["status"] == "Interviewing"],
         },
         "coach_notes": {c: mentor["notes"].get(c, [])[-3:] for c in COACHES if c != "lead"},
+        "team_memory": [f"[{f['at'][:10]}, {f['source']}] {f['text']}" for f in memory.facts()[-40:]],
+        "recent_activity": [f"{e['at'][:16].replace('T', ' ')}: {e['text']}" for e in memory.events(15)],
     }
 
 
@@ -123,6 +125,17 @@ def _clean_actions(actions):
             out.append({"type": t, "path": str(a["path"]), "old": str(a.get("old") or ""), "new": str(a["new"]), "label": a["label"]})
         elif t == "save_story" and a.get("competency") and isinstance(a.get("fields"), dict):
             out.append({"type": t, "competency": a["competency"], "fields": {k: str(v) for k, v in a["fields"].items()}, "label": a["label"]})
+        elif t == "add_profile_item" and a.get("section") in profile_merge.LIST_SECTIONS and isinstance(a.get("item"), dict):
+            out.append({"type": t, "section": a["section"], "item": a["item"], "label": a["label"]})
+        elif t == "update_targets" and isinstance(a.get("targets"), dict) and a["targets"]:
+            out.append({"type": t, "targets": a["targets"], "label": a["label"]})
+        elif t == "update_skill" and a.get("name"):
+            out.append({"type": t, "name": str(a["name"]), "level": str(a.get("level") or ""), "evidence": str(a.get("evidence") or ""), "label": a["label"]})
+        elif t == "update_job" and a.get("job_id"):
+            out.append({"type": t, "job_id": str(a["job_id"]), "label": a["label"],
+                        **{k: str(a[k]) for k in ("status", "notes", "contact_email") if a.get(k)}})
+        elif t == "add_question" and a.get("kind") in ("behavioral", "technical") and a.get("question"):
+            out.append({"type": t, "label": a["label"], **{k: str(a.get(k) or "") for k in ("kind", "question", "area", "rubric", "look_for")}})
     return out[:4]
 
 
@@ -215,16 +228,18 @@ def coach_turn(coach, text):
     m = load_mentor()
     s = snapshot()
     history = m["chats"].get(coach, [])
+    shared = memory.shared_block(max_facts=60, max_events=15) if coach != "lead" else ""  # the lead's snapshot already has it
     system = getattr(prompts, COACHES[coach]["system"]) + prompts.COACH_ACTIONS + "\n\nCONTEXT (today is " + s["today"] + "):\n" \
-        + json.dumps(_context(coach, s), ensure_ascii=False)[:30000]
+        + json.dumps(_context(coach, s), ensure_ascii=False)[:30000] + ("\n\nSHARED MEMORY:\n" + shared if shared else "")
     msgs = [{"role": "system", "content": system}] + [_for_model(x) for x in history[-HISTORY_TURNS:]] + [{"role": "user", "content": text}]
     out = llm.chat_json(msgs, max_tokens=6000, temperature=0.6, timeout=120)
     reply = str(out.get("reply") or "").strip()
     if not reply:
         raise llm.LLMError("The coach returned an empty reply. Please send your message again.")
+    remembered = memory.add_facts(out.get("memory") or [], COACHES[coach]["name"].lower())
     history = history + [{"role": "user", "content": text, "at": datetime.now().isoformat(timespec="seconds")},
                          {"role": "assistant", "content": reply, "actions": _clean_actions(out.get("actions")),
-                          "at": datetime.now().isoformat(timespec="seconds")}]
+                          "remembered": remembered, "at": datetime.now().isoformat(timespec="seconds")}]
     m = load_mentor()  # re-read: the user may have ticked tasks meanwhile
     m["chats"][coach] = history[-200:]
     note = str(out.get("progress_note") or "").strip()
@@ -258,7 +273,9 @@ def edit_profile(path, old, new):
     if old and str(current).strip() != old.strip():
         raise llm.LLMError("That line has changed since the coach suggested this. Ask the coach again.")
     node[last] = new
+    memory.pin([profile_merge.path_to_pin(profile, path)])
     store.save("profile", profile)
+    memory.log("profile", f"Applied a coach's rewrite to {path}")
     return profile
 
 
@@ -275,4 +292,67 @@ def save_story(competency, fields):
     entry["status"] = "done"
     entry["missing"] = []
     store.save("stories", state)
+    memory.log("story", f"Saved a coach's version of the \"{assess.comps()[competency]['label']}\" answer")
     return assess.public_stories(assess.load_stories())
+
+
+def add_profile_item(section, item):
+    profile = store.load("profile", {})
+    if not profile:
+        raise llm.LLMError("Build your profile first.")
+    # The candidate chose this item themselves, so only exact duplicates are refused.
+    profile, changes = profile_merge.apply_patch(profile, {"add": {section: [item]}}, memory.pins(), guard_similar=False)
+    if not changes:
+        raise llm.LLMError("That's already in your profile.")
+    store.save("profile", profile)
+    memory.log("profile", changes[0])
+    return profile
+
+
+def update_targets(targets):
+    profile = store.load("profile", {})
+    profile.setdefault("targets", {}).update({k: v for k, v in targets.items() if v not in (None, "", [])})
+    memory.pin([f"targets.{k}" for k in targets])
+    store.save("profile", profile)
+    memory.log("profile", "Updated targets: " + ", ".join(targets))
+    return profile
+
+
+def update_skill(name, level, evidence):
+    profile = store.load("profile", {})
+    tech = profile.setdefault("skills", {}).setdefault("technical", [])
+    current = next((x for x in tech if isinstance(x, dict) and str(x.get("name", "")).lower() == name.lower()), None)
+    if current is None:
+        current = {"name": name}
+        tech.append(current)
+    current.update({k: v for k, v in {"level": level, "evidence": evidence}.items() if v})
+    memory.pin([f"skills::{name.lower()}"])
+    store.save("profile", profile)
+    memory.log("profile", f"Skill updated: {name}" + (f" → {level}" if level else ""))
+    return profile
+
+
+def apply(action):
+    """Run a coach's suggested update after the candidate clicked it."""
+    t = action.get("type")
+    if t == "edit_profile":
+        edit_profile(action["path"], action.get("old", ""), action["new"])
+    elif t == "save_story":
+        save_story(action["competency"], action["fields"])
+    elif t == "add_profile_item":
+        add_profile_item(action["section"], action["item"])
+    elif t == "update_targets":
+        update_targets(action["targets"])
+    elif t == "update_skill":
+        update_skill(action["name"], action.get("level", ""), action.get("evidence", ""))
+    elif t == "add_question":
+        item = {"question": action["question"]}
+        if action["kind"] == "technical":
+            item.update(area=action.get("area") or "From my coaches", rubric=action.get("rubric", ""))
+        else:
+            item.update(look_for=action.get("look_for", ""), label=action["question"][:60], group="From my coaches")
+        assess.add_custom(action["kind"], item)
+        memory.log("question", f"Added a {action['kind']} question: {action['question'][:80]}")
+    else:
+        raise llm.LLMError("This button can't change anything.")
+    return {"ok": True}

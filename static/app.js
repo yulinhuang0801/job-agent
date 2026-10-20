@@ -18,6 +18,21 @@ function h(tag, attrs, ...children) {
   return el;
 }
 
+// "📝 Remembered: …" chips under a reply; ✕ forgets that fact everywhere.
+function rememberedChips(facts) {
+  if (!(facts || []).length) return null;
+  return h("div", { class: "remembered" }, facts.map((f) => {
+    const x = h("button", { class: "ghost small", type: "button", title: "Forget this" }, "✕");
+    const chip = h("span", { class: "memo" }, "📝 Remembered: ", f.text, " ", x);
+    x.addEventListener("click", async () => {
+      await api(`/api/memory/facts/${f.id}`, { method: "DELETE" });
+      chip.classList.add("forgotten");
+      x.remove();
+    });
+    return chip;
+  }));
+}
+
 // Replace an element's content. Accepts nested lists and skips null/false, which the browser's own
 // replaceChildren would otherwise print as "[object HTMLDivElement]" or "null".
 function fill(el, ...children) {
@@ -202,8 +217,8 @@ let interview = { messages: [], section: "goals", progress: 0, complete: false }
 function messageBubble(m) {
   if (m.kind === "upload") return h("div", { class: "bubble user upload" }, `📎 Uploaded ${interview.resume_name || "my CV"}`);
   const bubble = h("div", { class: `bubble ${m.role}` }, m.content);
-  if (!(m.lookups || []).length) return bubble;
-  return [h("div", { class: "lookups" }, "🔎 Looked up: " + m.lookups.join(" · ")), bubble];
+  return [(m.lookups || []).length ? h("div", { class: "lookups" }, "🔎 Looked up: " + m.lookups.join(" · ")) : null,
+          bubble, rememberedChips(m.remembered)].filter(Boolean);
 }
 
 function renderChat(pendingText) {
@@ -227,6 +242,8 @@ function renderChat(pendingText) {
 loaders.interview = async () => {
   interview = await api("/api/interview");
   renderChat();
+  const p = await api("/api/profile");
+  $("#build-profile").textContent = Object.keys(p).length ? "Update my profile (keeps your edits)" : "Build my profile";
 };
 
 // Read the coach's replies aloud with the computer's built-in voices (works offline, any country).
@@ -435,7 +452,10 @@ $("#reset-interview").addEventListener("click", async () => {
 $("#build-profile").addEventListener("click", (e) =>
   busy(e.target, "Building profile…", async () => {
     try {
-      await api("/api/profile/build", { method: "POST" });
+      const r = await api("/api/profile/build", { method: "POST" });
+      const changes = r._changes || [];
+      alert(changes.length ? `Profile updated (nothing was removed; your edits were kept):\n\n• ${changes.slice(0, 12).join("\n• ")}${changes.length > 12 ? `\n…and ${changes.length - 12} more` : ""}`
+                           : "Your profile was already up to date.");
       location.hash = "#profile";
     } catch (err) {
       setMsg($("#interview-msg"), err.message, "err");
@@ -1440,12 +1460,11 @@ async function runAction(a, button) {
       if (current.status === "answering" && !confirm("Replace your current skills check with this one?")) return;
       await busy(button, "Picking questions…", () => api("/api/skills/start", { method: "POST", body: { areas: a.areas, count: a.count } }));
       location.hash = "#skills";
-    } else if (a.type === "edit_profile") {
-      await api("/api/mentor/edit-profile", { method: "POST", body: { path: a.path, old: a.old, new: a.new } });
-      button.textContent = "Applied ✓"; button.disabled = true;
-    } else if (a.type === "save_story") {
-      await api("/api/mentor/save-story", { method: "POST", body: { competency: a.competency, fields: a.fields } });
-      button.textContent = "Saved to Stories ✓"; button.disabled = true;
+    } else if (["edit_profile", "save_story", "add_profile_item", "update_targets", "update_skill", "update_job", "add_question"].includes(a.type)) {
+      await busy(button, "Saving…", () => api("/api/mentor/apply", { method: "POST", body: { action: a } }));
+      button.textContent = "Done ✓";
+      button.disabled = true;
+      loadMemory();
     }
   } catch (err) {
     setMsg(msg, err.message, "err");
@@ -1455,7 +1474,9 @@ async function runAction(a, button) {
 function actionButtons(actions, cls = "bubble-actions") {
   if (!(actions || []).length) return null;
   return h("div", { class: cls }, actions.map((a) => {
-    const b = h("button", { class: "small secondary", type: "button", title: a.type === "edit_profile" ? `Change to: ${a.new}` : "" }, a.label);
+    const tip = a.type === "edit_profile" ? `Change to: ${a.new}` : a.type === "add_profile_item" ? JSON.stringify(a.item)
+      : a.type === "update_targets" ? JSON.stringify(a.targets) : a.type === "update_job" ? `Status: ${a.status || "unchanged"}` : "";
+    const b = h("button", { class: "small secondary" + (/^(edit|save|add|update)/.test(a.type) ? " update" : ""), type: "button", title: tip }, a.label);
     b.addEventListener("click", () => runAction(a, b));
     return b;
   }));
@@ -1522,7 +1543,7 @@ function renderCoachChat(pending) {
   }
   for (const m of coachChat.messages) {
     items.push(h("div", { class: `bubble ${m.role}` }, m.content));
-    if (m.role === "assistant") items.push(actionButtons(m.actions));
+    if (m.role === "assistant") items.push(actionButtons(m.actions), rememberedChips(m.remembered));
   }
   if (pending) items.push(h("div", { class: "bubble user" }, pending), h("div", { class: "bubble assistant typing" }, `${info.name} is thinking…`));
   chat.replaceChildren(...items.filter(Boolean));
@@ -1545,6 +1566,7 @@ async function sendCoach(text) {
   try {
     coachChat = await api(`/api/mentor/chat/${coach}`, { method: "POST", body: { text } });
     renderCoachChat();
+    loadMemory();
     const last = coachChat.messages[coachChat.messages.length - 1];
     if (last) speak(last.content);
     return true;
@@ -1557,9 +1579,32 @@ async function sendCoach(text) {
   }
 }
 
+async function loadMemory() {
+  const m = await api("/api/memory");
+  $("#memory-count").textContent = `(${m.facts.length} facts)`;
+  fill($("#fact-list"), m.facts.length ? m.facts.slice().reverse().map((f) => {
+    const x = h("button", { class: "ghost small danger", type: "button", title: "Forget" }, "✕");
+    x.addEventListener("click", async () => { await api(`/api/memory/facts/${f.id}`, { method: "DELETE" }); loadMemory(); });
+    return h("div", { class: "qrow" }, h("div", {}, f.text, h("div", { class: "muted small" }, `${f.source} · ${f.at.slice(0, 10)}`)), x);
+  }) : h("p", { class: "muted small" }, "Nothing yet. Facts appear here as you talk to your team."));
+  fill($("#event-list"), m.events.length ? m.events.slice().reverse().slice(0, 15).map((e) =>
+    h("div", { class: "small event" }, h("span", { class: "muted" }, e.at.slice(5, 16).replace("T", " ") + "  "), e.text))
+    : h("p", { class: "muted small" }, "No activity yet."));
+}
+
+$("#fact-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const text = $("#fact-input").value.trim();
+  if (!text) return;
+  await api("/api/memory/facts", { method: "POST", body: { text } });
+  $("#fact-input").value = "";
+  loadMemory();
+});
+
 loaders.mentors = async () => {
   renderCoachTabs();
   switchCoach(coach);
+  loadMemory();
   try {
     today = await api("/api/mentor/today");
     renderToday();

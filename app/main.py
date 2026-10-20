@@ -15,7 +15,7 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import assess, llm, mentors, outreach, pdf, prep, prompts, research, resume_text, services, sourcing, store
+from . import assess, llm, memory, mentors, outreach, pdf, prep, profile_merge, prompts, research, resume_text, services, sourcing, store
 from .jobs_fetch import FetchError, fetch_job
 
 STATIC = Path(__file__).resolve().parent.parent / "static"
@@ -181,6 +181,9 @@ def _interview_system(state, search_on):
         text += prompts.INTERVIEW_RESUME_BLOCK.format(resume=state["resume_text"])
     if state["research"]:
         text += prompts.INTERVIEW_RESEARCH_BLOCK.format(research=_research_notes(state["research"]))
+    shared = memory.shared_block(max_facts=40, max_events=10)
+    if shared:
+        text += "\n\nThe candidate's mentors already know the following; don't ask for it again:\n" + shared
     return text
 
 
@@ -200,9 +203,10 @@ def _interview_turn(state, user_message):
     section = out.get("section") or state["section"]
     progress = max(0, min(100, int(out.get("progress") or state["progress"])))
     complete = bool(out.get("complete"))
+    remembered = memory.add_facts(out.get("memory") or [], "intake interview")
     state.update({
         "messages": messages + [{"role": "assistant", "content": reply, "section": section, "progress": progress,
-                                 "complete": complete, "lookups": lookups}],
+                                 "complete": complete, "lookups": lookups, "remembered": remembered}],
         "section": section,
         "progress": progress,
         "complete": complete,
@@ -419,7 +423,9 @@ def get_profile():
 
 @app.put("/api/profile")
 def put_profile(profile: dict):
+    memory.pin(profile_merge.diff_pins(store.load("profile", {}), profile))
     store.save("profile", profile)
+    memory.log("profile", "Edited the profile by hand")
     return profile
 
 
@@ -443,12 +449,26 @@ def build_profile():
     skills = assess.skills_for_profile()
     if skills:
         parts.append("SKILLS CHECK RESULTS:\n" + json.dumps(skills, ensure_ascii=False))
-    profile = llm.chat_json([
-        {"role": "system", "content": prompts.PROFILE_SYSTEM},
-        {"role": "user", "content": "\n\n".join(parts)},
-    ], max_tokens=32000, temperature=0.2, think=False, timeout=240)
+    shared = memory.shared_block(max_facts=150, max_events=0)
+    if shared:
+        parts.append(shared)
+    current = store.load("profile", {})
+    if current:
+        profile, changes = profile_merge.merge(current, "\n\n".join(parts))
+    else:
+        profile = llm.chat_json([
+            {"role": "system", "content": prompts.PROFILE_SYSTEM},
+            {"role": "user", "content": "\n\n".join(parts)},
+        ], max_tokens=32000, temperature=0.2, think=False, timeout=240)
+        changes = ["Built your profile"]
+    # Stories and prepared answers always mirror the Stories tab.
+    if stories:
+        profile["behavioral_stories"] = stories["stories"]
+        profile["prepared_answers"] = stories["prepared_answers"]
     store.save("profile", profile)
-    return profile
+    memory.log("profile", ("Updated the profile: " + "; ".join(changes[:6]) + (f" (+{len(changes) - 6} more)" if len(changes) > 6 else ""))
+               if changes else "Updated the profile: nothing new to add")
+    return {**profile, "_changes": changes}
 
 
 def _require_profile():
@@ -580,6 +600,8 @@ def update_job(job_id: str, body: JobPatch):
         job["contact"] = {**(job.get("contact") or {}), **contact}
         if "email" in contact:
             job["contact"]["email_source"] = "entered by you"
+    if changes.get("status") and changes["status"] != job.get("status"):
+        memory.log("job", f"{job.get('company')}: {job.get('status')} → {changes['status']}", job["id"])
     job.update(changes)
     store.save("jobs", jobs)
     return job
@@ -594,7 +616,9 @@ def delete_job(job_id: str):
 
 
 def _profile_for_ai(profile):
-    return json.dumps({k: v for k, v in profile.items() if k != "evaluation"}, ensure_ascii=False)
+    shared = memory.shared_block(max_facts=30, max_events=0)
+    return json.dumps({k: v for k, v in profile.items() if k != "evaluation"}, ensure_ascii=False) + (
+        "\n\nNEWER FACTS FROM THE CANDIDATE (also true; use them):\n" + shared if shared else "")
 
 
 def _posting(job):
@@ -759,6 +783,8 @@ def find_add(body: AddIn):
         have.add(dom)
         added.append(job)
     store.save("jobs", jobs)
+    if added:
+        memory.log("job", f"Added {len(added)} to Jobs from Find: " + ", ".join(j["company"] for j in added[:5]) + ("…" if len(added) > 5 else ""))
     return {"added": len(added), "jobs": jobs}
 
 
@@ -873,6 +899,31 @@ def put_outreach(details: dict):
     return clean
 
 
+# ---------- Shared memory ----------
+
+class FactIn(BaseModel):
+    text: str
+
+
+@app.get("/api/memory")
+def get_memory():
+    return {"facts": memory.facts(), "events": memory.events(40)}
+
+
+@app.post("/api/memory/facts")
+def add_fact(body: FactIn):
+    if not body.text.strip():
+        raise HTTPException(400, "Write the fact first.")
+    memory.add_facts([body.text.strip()], "you")
+    return get_memory()
+
+
+@app.delete("/api/memory/facts/{fact_id}")
+def forget_fact(fact_id: str):
+    memory.forget(fact_id)
+    return get_memory()
+
+
 # ---------- Mentor team ----------
 
 class TaskIn(BaseModel):
@@ -926,6 +977,21 @@ def mentor_message(coach: str, body: MessageIn):
 @app.delete("/api/mentor/chat/{coach}")
 def mentor_clear(coach: str):
     return mentors.clear_chat(coach)
+
+
+class ApplyIn(BaseModel):
+    action: dict
+
+
+@app.post("/api/mentor/apply")
+def mentor_apply(body: ApplyIn):
+    action = body.action
+    if action.get("type") == "update_job":
+        changes = {k: action[k] for k in ("status", "notes", "contact_email") if action.get(k)}
+        if not changes:
+            raise HTTPException(400, "Nothing to update.")
+        return {"ok": True, "job": update_job(action["job_id"], JobPatch(**changes))}
+    return mentors.apply(action)
 
 
 @app.post("/api/mentor/edit-profile")

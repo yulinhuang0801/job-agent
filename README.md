@@ -19,6 +19,12 @@ Then open http://127.0.0.1:8000, go to **Settings** and paste your DeepSeek API 
    - **Technical coach**: teaches your weakest areas and gives practice problems with hints before answers.
    - **Resume coach**: reviews your resume line by line and proposes rewrites you can apply with one click (never adds facts).
    Coaches suggest actions as buttons; nothing changes until you click.
+
+**Connected memory.** Everything shares one memory (`data/memory.json`):
+- **Facts** the intake interview and every coach save as you talk ("Only wants remote roles", "Interview at Palazzo on Nov 3"). Every agent reads them: mentors, the interview and Stories coaches, the skills check, company prep, fit scoring, resume/cover-letter and email writers, form answers. See and delete them under Mentors → What your team knows.
+- **Update buttons** any coach can offer: rewrite a resume line, add an experience/project/education, change targets, update a skill level, update a job's status or contact, add a question, save a story.
+- **Activity log** (profile updates, finished stories, graded checks, emails sent, status changes) that the lead mentor reads.
+- **Profile updates merge, never overwrite**: "Update my profile" only fills gaps and adds items, bullets and skills; it never deletes, never changes how items are identified, and never touches fields you or a coach edited by hand (those are pinned).
 1. **Interview**: the coach asks about goals, education, experience, projects, the skills you use, and contact info, one question at a time.
    - **Upload CV** (PDF, .docx, .txt): the coach reads it and only asks about what's missing.
    - **🎤 Voice**: talk instead of typing. Uses the browser's voice typing (Chrome, Edge, Safari) by default, or a speech-to-text service from Settings (e.g. SiliconFlow SenseVoice, which works in China). **🔊 Read replies aloud** uses the computer's built-in voices.
@@ -47,6 +53,8 @@ Then open http://127.0.0.1:8000, go to **Settings** and paste your DeepSeek API 
 | `app/assess.py` | Stories (behavioral STAR follow-ups) and the Skills check |
 | `app/question_bank.json` | Behavioral and technical question bank (~25 behavioral types, ~100 technical questions) |
 | `app/prep.py` | Company-specific interview prep |
+| `app/memory.py` | Shared memory: facts, activity log, pinned profile fields |
+| `app/profile_merge.py` | Safe profile updates: AI proposes a patch, code applies it without deleting or overwriting edits |
 | `app/mentors.py` | Lead mentor (daily plan, progress snapshot) and the behavioral, technical and resume coaches |
 | `static/editor.js` | VS Code (Monaco) code editor for the Skills check, with a basic fallback |
 | `app/sourcing.py` | Find tab: category searches, SimplifyJobs lists, Hacker News, your sites, AI screening, list/CSV import |

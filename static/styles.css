@@ -237,3 +237,12 @@ main:has(#view-mentors.active) { max-width: 1180px; }
 .stat b { font-size: 22px; display: block; }
 .stat span { font-size: 12px; color: var(--muted); }
 @media (max-width: 900px) { .mentor-grid { grid-template-columns: 1fr; } }
+
+/* Shared memory */
+.remembered { display: flex; flex-direction: column; gap: 4px; align-self: flex-start; margin: -4px 0 4px; }
+.memo { font-size: 12px; color: var(--muted); background: var(--accent-soft); border-radius: 8px; padding: 2px 4px 2px 8px; }
+.memo.forgotten { text-decoration: line-through; opacity: 0.6; }
+.memo button { padding: 0 6px; border: 0; }
+button.update { border-style: dashed; }
+#fact-form { margin: 8px 0; }
+.event { padding: 3px 0; }

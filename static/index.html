@@ -230,6 +230,17 @@
           </div>
           <div id="today-card" class="card"><p class="muted">Your lead mentor is planning your day…</p></div>
           <div id="progress-card" class="card"></div>
+          <details id="memory-card" class="card">
+            <summary>What your team knows <span id="memory-count" class="muted small"></span></summary>
+            <p class="muted small">Every mentor, the interview coach, the Stories coach, the skills check and the email writer read this. They add facts as you talk; remove anything that's wrong.</p>
+            <form id="fact-form" class="row">
+              <input id="fact-input" placeholder="Tell your team something, e.g. &quot;I can only work 10 hours a week until December&quot;">
+              <button type="submit" class="secondary small">Add</button>
+            </form>
+            <div id="fact-list"></div>
+            <h3 class="group-title">Recent activity</h3>
+            <div id="event-list"></div>
+          </details>
         </div>
         <div>
           <h2 class="team-title">Your team</h2>
