@@ -5,7 +5,7 @@ import re
 import uuid
 from datetime import datetime
 
-from . import assess, llm, memory, prompts, services, store
+from . import assess, llm, memory, prompts, qlibrary, services, store
 
 
 def load_preps():
@@ -24,6 +24,14 @@ def build(company, role):
             if found.get("answer"):
                 material.append(f"Q: {q}\nSummary: {found['answer']}")
             material += [f"- {r['title']} ({r['url']}): {r['content']}" for r in found.get("results", [])]
+    known = qlibrary.company_behavioral(company)
+    if known:
+        material.insert(0, f"Behavioral questions reported at {company} (Tech Interview Handbook; prefer these):\n"
+                        + "\n".join(f"- {q}" for q in known))
+    tagged = qlibrary.company_technical(company)
+    if tagged:
+        material.insert(0, f"Technical questions tagged with {company} (Open Interview; adapt them, and use their answers for rubrics):\n"
+                        + "\n".join(f"- {q['question'][:300]} | answer: {q['answer'][:300]}" for q in tagged))
     profile = store.load("profile", {})
     background = json.dumps({k: profile.get(k) for k in ("targets", "summary", "skills")}, ensure_ascii=False)[:3000] \
         + "\n\n" + memory.shared_block(max_facts=20, max_events=0)
@@ -48,7 +56,7 @@ def build(company, role):
             added_t.append(data["technical"][-1]["id"])
 
     prep = {"id": uuid.uuid4().hex[:8], "company": company, "role": role, "created_at": datetime.now().isoformat(timespec="seconds"),
-            "area": group, "searched": bool(material),
+            "area": group, "searched": bool(material), "known_questions": len(known) + len(tagged),
             **{k: out.get(k) or [] for k in ("process", "values", "tips", "sources_used")},
             "summary": out.get("summary") or "", "behavioral_ids": added_b, "technical_ids": added_t}
     preps = [p for p in load_preps() if not (p["company"].lower() == company.lower() and p["role"].lower() == role.lower())]

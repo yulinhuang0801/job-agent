@@ -31,7 +31,11 @@ Then open http://127.0.0.1:8000, go to **Settings** and paste your DeepSeek API 
    - **Web lookups** (optional Tavily key in Settings): the coach looks up course codes, small companies and labs you mention, and shows "🔎 Looked up: …" in the chat. Without a key it asks you what they are.
 2. **Stories**: behavioral questions from the question bank (teamwork, conflict, failure, ownership, plus optional extras). The coach asks up to 3 follow-ups per story until it has the situation, task, what *you* did, the result, and what you learned, and rates how convincing each story is.
 3. **Skills check**: 4–10 questions from a bank of ~100 across CS (Python, algorithms, SQL, backend, frontend, systems, system design, ML, NLP, data, Java, C/C++, Git) and finance/consulting (accounting, valuation, M&A/LBO, markets, cases, statistics, Excel), picked for your profile or from areas you choose. Coding questions use the VS Code editor (Monaco). Graded 0–4 against a rubric, with feedback and a model answer; tested skills show as verified (✓) in your profile.
-   - **Prepare for a specific company**: researches the company's interview process and values, then adds tailored behavioral questions to Stories and technical questions to the Skills check.
+   - **Outside question sources** (all MIT-licensed, downloaded when first used and cached in `data/qlib/`, never copied into this repo):
+     - **LeetCode problems** through [alfa-leetcode-api](https://github.com/alfaarghya/alfa-leetcode-api) (falls back to LeetCode's public API), picked from the [Tech Interview Handbook](https://www.techinterviewhandbook.org) topic lists (array, string, tree, graph, dynamic programming… 18 topics; essential problems first, ones you've done are skipped). Each comes with the statement, examples and starter code in Python, Java, C++, JavaScript, TypeScript, C or Go, and is graded like a coding interview (approach, correct code, edge cases from the handbook, stated complexity). Paste any LeetCode link under My technical questions to add it.
+     - **[Open Interview](https://github.com/open-interview/open-interview)** concept questions (system design, backend, databases, ML, generative AI, networking, security… 27 channels) with community-written reference answers the grader compares against. Easy and medium only, since its "advanced" ones are senior-level.
+     - The AI picker can add one or two of these on its own for software, data and quant targets.
+   - **Prepare for a specific company**: researches the company's interview process and values, then adds tailored behavioral questions to Stories and technical questions to the Skills check. Uses the behavioral questions the Tech Interview Handbook lists for that company (Airbnb, Amazon, ByteDance, Palantir, Stripe and others) and Open Interview questions tagged with it.
    - **My questions**: add your own behavioral and technical questions (stored in `data/custom_questions.json`).
 4. **Build my profile**: turns the CV, interview, stories, skills check and anything looked up into `data/profile.json`, plus an honest evaluation (strengths, gaps, roles to target). Download a general CV from the Profile tab.
 5. **Find → Database** (default): a local SQLite database (`data/jobs_db.sqlite`) built from public sources, with Handshake-style filters:
@@ -39,6 +43,7 @@ Then open http://127.0.0.1:8000, go to **Settings** and paste your DeepSeek API 
    - **SEC Form D** (quarterly, last 4 quarters by default): ~55,000 new funds and startups that just raised money (VC, PE, hedge, biotech, software, healthcare, energy…), with ~166,000 people named on the filings (executive officers, directors, general partners).
    - **Company job boards** (Greenhouse, Lever, Ashby public APIs; ~250 boards, add more by link) plus the SimplifyJobs internship lists: ~21,000 open postings.
    - Filters: job type (internship, co-op, new grad, full-time, part-time), job function (~24), industry (~30), term, state, country, remote, visa hints ("No sponsorship", "US citizens only"); for firms: industry, category, employees, state, small firms only, has website, has named people.
+   - **Job alert emails**: LinkedIn, Handshake, Indeed, Glassdoor, ZipRecruiter, Wellfound, Simplify, Jobright, Built In, WayUp, RippleMatch and Google send job recommendations by email. Job Agent reads **only those alerts** from your inbox over IMAP (read-only: nothing is marked read, moved or deleted; LinkedIn messages and other mail are skipped from the headers, before any body is downloaded), pulls out each job's title, company, location and link, and adds them to the database (source "LinkedIn alert", "Handshake alert"…). Set it up in Settings → Job alert emails with an app password (Gmail, iCloud, Yahoo) or authorization code (QQ, 163, 126); it checks every 3 hours while the app runs. Without that, paste an alert or upload it as an .eml file in Find → Data sources. This replaces logging into LinkedIn or Handshake, which their terms forbid (and unofficial "LinkedIn MCP" servers do exactly that with your session cookie, risking a ban).
    - Update each source from Find → Data sources. SEC downloads need a contact email (Settings → Firm database).
 6. **Find → Web search / Import**: search by category (search funds, small PE, boutique banks, small VC, boutique consulting, family offices, quant firms, tech startups, company job boards), pull from SimplifyJobs' summer and off-season internship lists or Hacker News "Who is hiring?", or search your own sites and phrases, with optional location, industry and role. Uses Google results (Serper.dev) when that key is saved, otherwise Tavily. The AI screens results with the boutique-internship rules (under ~30 employees, no big-name firms, search funds still searching). Databases that need a login (Axial, SearchFunder) and LinkedIn are browsed by hand and pasted or imported as a CSV.
 7. **Jobs**: one workspace per firm or posting:
@@ -66,6 +71,8 @@ Then open http://127.0.0.1:8000, go to **Settings** and paste your DeepSeek API 
 | `app/db.py` | Local firm and job database (SQLite): schema, search with filters and counts |
 | `app/crawlers.py` | Importers: SEC Form ADV, SEC Form D, company job boards, SimplifyJobs (background, with progress) |
 | `app/taxonomy.py` | Handshake-style categories and the rules that assign them |
+| `app/alerts.py` | Job-alert emails (IMAP read-only, or pasted/uploaded) → postings |
+| `app/qlibrary.py` | Outside questions: Tech Interview Handbook, LeetCode (alfa-leetcode-api), Open Interview |
 | `app/sourcing.py` | Find tab: category searches, SimplifyJobs lists, Hacker News, your sites, AI screening, list/CSV import |
 | `app/research.py` | Reads a firm's website, finds the contact and their email (incl. email patterns, Hunter.io) |
 | `app/outreach.py` | Cold emails, application-form walkthrough, .txt export |
@@ -85,11 +92,13 @@ Then open http://127.0.0.1:8000, go to **Settings** and paste your DeepSeek API 
 | Tavily | Find searches, interview look-ups, company prep | 1,000 searches a month |
 | Serper.dev | Google results for Find | 2,500 searches to start |
 | Hunter.io | Email lookups when a site doesn't list one | About 50 lookups a month |
+| Your email (IMAP app password) | Job alerts from LinkedIn, Handshake, Indeed and others | Free |
 | AssemblyAI or SiliconFlow (or any OpenAI-style transcription) | 🎤 voice when the browser's voice typing doesn't work | See provider |
 
 ## Not built yet
 
-- Creating drafts directly in Gmail or Outlook through their APIs (needs a Google Cloud / Microsoft app registration and OAuth). For now the app opens a pre-filled draft via a compose link.
+- Creating drafts directly in Gmail or Outlook through their APIs (needs a Google Cloud / Microsoft app registration and OAuth). For now the app opens a pre-filled draft via a compose link. The same OAuth would let Outlook.com users connect their inbox for job alerts (Microsoft turned off app passwords for it).
+- Running code against LeetCode's test cases (today the AI traces the examples instead).
 - Chrome extension that fills application forms (the user clicks Submit)
 - Accounts and a real database for hosting many users
 - Crawling JavaScript-heavy sites at scale (Crawl4AI or Firecrawl would replace `app/research.py`'s fetcher; Jina Reader is used as a fallback today)

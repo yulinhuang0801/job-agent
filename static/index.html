@@ -177,6 +177,52 @@
         <input id="sec-contact" type="email" placeholder="you@example.com">
       </div>
 
+      <div class="card" id="alert-settings">
+        <h2>Job alert emails <span class="muted small">(optional)</span></h2>
+        <p class="muted small">LinkedIn, Handshake, Indeed, Glassdoor and others email you job recommendations. Job Agent can read <b>only those alert emails</b> from your inbox (read-only: nothing is marked read, moved or sent) and add the jobs to Find → Database. It never logs into LinkedIn or Handshake.</p>
+        <div class="grid2">
+          <div>
+            <label for="alert-host">Mail service</label>
+            <select id="alert-host">
+              <option value="imap.gmail.com">Gmail</option>
+              <option value="imap.qq.com">QQ Mail</option>
+              <option value="imap.163.com">163 Mail</option>
+              <option value="imap.126.com">126 Mail</option>
+              <option value="imap.mail.me.com">iCloud Mail</option>
+              <option value="imap.mail.yahoo.com">Yahoo Mail</option>
+              <option value="custom">Other (IMAP server)</option>
+            </select>
+            <input id="alert-host-custom" class="hidden" placeholder="imap.example.com">
+          </div>
+          <div><label for="alert-email">Email address</label><input id="alert-email" type="email" placeholder="the address your job alerts go to"></div>
+        </div>
+        <label for="alert-password">App password <span class="muted small">(not your normal password)</span></label>
+        <div class="row">
+          <input id="alert-password" type="password" placeholder="App password or authorization code" autocomplete="off" spellcheck="false">
+          <button class="ghost danger remove-secret" data-field="alert_password" type="button">Remove</button>
+        </div>
+        <details class="small">
+          <summary>How to get an app password</summary>
+          <ul>
+            <li><b>Gmail:</b> turn on 2-Step Verification, then create one at <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">myaccount.google.com/apppasswords</a>. IMAP is on by default.</li>
+            <li><b>QQ / 163 / 126:</b> 设置 → 账户 → 开启 IMAP/SMTP 服务 → 生成授权码, and paste the 授权码 here.</li>
+            <li><b>iCloud:</b> <a href="https://account.apple.com" target="_blank" rel="noopener">account.apple.com</a> → Sign-In and Security → App-Specific Passwords.</li>
+            <li><b>Yahoo:</b> Account security → Generate app password.</li>
+            <li><b>Outlook / Hotmail:</b> Microsoft no longer allows app passwords for this. Forward your job alerts to a Gmail address, or save an alert as a file and upload it in Find → Database → Data sources.</li>
+          </ul>
+          <p>Then turn on alerts: LinkedIn (Jobs → search → <i>Set alert</i>), Handshake (Settings → Notification preferences → job recommendations by email), Indeed (search → <i>Get new jobs for this search by email</i>).</p>
+        </details>
+        <div class="row">
+          <label class="toggle small"><input id="alert-auto" type="checkbox"> Check every 3 hours while Job Agent is running</label>
+          <label class="small">Look back <select id="alert-days" class="inline-select"><option value="7">7 days</option><option value="14">14 days</option><option value="30">30 days</option><option value="60">60 days</option></select></label>
+        </div>
+        <p id="alert-status" class="muted small"></p>
+        <div class="row actions">
+          <button class="secondary test-model" data-which="alerts" type="button">Test inbox</button>
+          <span class="msg test-msg" data-which="alerts"></span>
+        </div>
+      </div>
+
       <div class="card">
         <h2>Email finder <span class="muted small">(optional)</span></h2>
         <p class="muted small">When a firm's website doesn't list the contact's email, Job Agent asks <a href="https://hunter.io/api-keys" target="_blank" rel="noopener">Hunter.io</a> (free plan: about 50 lookups a month). Without it, use Apollo.io by hand (see the Guide tab).</p>
@@ -382,9 +428,16 @@
       </details>
 
       <div id="skills-start" class="card">
-        <p>Questions come from a bank of about 100 questions across CS (Python, algorithms, SQL, backend, frontend, systems, system design, ML, NLP, data, Java, C/C++, Git) and finance and consulting (accounting, valuation, M&amp;A/LBO, markets, cases, statistics, Excel), plus your own. Leave the areas blank to let it choose from your profile.</p>
+        <p>Questions come from a bank of about 100 questions across CS (Python, algorithms, SQL, backend, frontend, systems, system design, ML, NLP, data, Java, C/C++, Git) and finance and consulting (accounting, valuation, M&amp;A/LBO, markets, cases, statistics, Excel), plus your own, and real LeetCode problems and Open Interview questions below. Leave the areas blank to let it choose from your profile.</p>
         <label>Areas <span class="muted small">(optional)</span></label>
         <div id="skills-areas" class="chips pick"></div>
+        <details class="sources-pick">
+          <summary>More questions from outside sources</summary>
+          <label>LeetCode coding problems <span class="muted small">(the topic lists from the <a href="https://www.techinterviewhandbook.org/algorithms/study-cheatsheet/" target="_blank" rel="noopener">Tech Interview Handbook</a>, with starter code; essential problems first, ones you've done are skipped)</span></label>
+          <div id="skills-areas-lc" class="chips pick"></div>
+          <label>Concept questions from <a href="https://open-interview.github.io/" target="_blank" rel="noopener">Open Interview</a> <span class="muted small">(community-written, with reference answers the grader compares against)</span></label>
+          <div id="skills-areas-oi" class="chips pick"></div>
+        </details>
         <label for="skills-count">Number of questions</label>
         <select id="skills-count" class="inline-select">
           <option value="4">4</option><option value="5" selected>5</option><option value="6">6</option><option value="8">8</option><option value="10">10</option>
@@ -403,6 +456,13 @@
       <details class="card" id="my-tech">
         <summary>My technical questions</summary>
         <p class="muted small">Add questions you want to be tested on. They become their own area above.</p>
+        <label for="mt-lc">Add a LeetCode problem <span class="muted small">(paste its link; the statement, examples and starter code come with it; Premium problems can't be loaded)</span></label>
+        <div class="row">
+          <input id="mt-lc" placeholder="https://leetcode.com/problems/two-sum/">
+          <button id="mt-lc-add" class="secondary small" type="button">Add problem</button>
+        </div>
+        <span id="mt-lc-msg" class="msg"></span>
+        <p class="muted small">Or write your own:</p>
         <div class="grid2">
           <div><label for="mt-area">Area</label><input id="mt-area" list="mt-areas" placeholder="e.g. Rust, LBO modeling, Anthropic prep"><datalist id="mt-areas"></datalist></div>
           <div class="row">
@@ -461,6 +521,16 @@
             <button id="db-board-add" class="secondary small" type="button">Add board</button>
           </div>
           <span id="db-msg" class="msg"></span>
+          <details class="alert-paste">
+            <summary>Add jobs from a job-alert email by hand</summary>
+            <p class="muted small">Open a LinkedIn, Handshake or Indeed alert, select all (⌘A / Ctrl+A), copy and paste it here; the job links come along. Or save the email as a file (Gmail: ⋮ → Download message; Outlook: File → Save as) and upload it.</p>
+            <div id="alert-text" class="paste-box" contenteditable="true" data-placeholder="Paste the alert email here (the links come along)"></div>
+            <div class="row actions">
+              <button id="alert-add" class="secondary small" type="button">Add these jobs</button>
+              <label class="button secondary small file-btn">Upload .eml<input id="alert-file" type="file" accept=".eml,.html,.htm,.txt,message/rfc822" hidden></label>
+              <span id="alert-msg" class="msg"></span>
+            </div>
+          </details>
         </details>
         <div class="row mode-tabs">
           <button class="coach-tab small on" data-table="postings" type="button">Job postings</button>

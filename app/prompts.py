@@ -191,9 +191,10 @@ Pick {count} questions from the question bank below that best test the skills th
 - Cover the 2-3 most relevant areas. Mix levels: mostly level 1-2 and one level 3. Include at least one practical question when the area has one.
 - If an important claimed skill has no questions in the bank, you may write up to 2 custom questions in the same style (answerable in a few minutes in text, with a rubric). Custom questions count toward the {count}.
 - Don't pick areas unrelated to their goals just to fill the count.
+- If EXTRA SOURCES are listed and the candidate targets software, data or quant roles, you may also ask for 1-2 questions from them: a LeetCode topic (lc:...) for a real coding problem, or an Open Interview channel (oi:...) for concept questions. Set max_level 1 (Easy) for beginners, 2 for most students, 3 only for strong candidates. These come on top of "picked"; pick fewer bank questions to keep the total at {count}.
 
 JSON shape:
-{{"picked": ["<bank question id>"], "custom": [{{"area": "<label>", "level": <1-3>, "type": "<concept|practical|design>", "question": "", "rubric": ""}}], "reason": "<one sentence for the candidate: why these areas>"}}
+{{"picked": ["<bank question id>"], "custom": [{{"area": "<label>", "level": <1-3>, "type": "<concept|practical|design>", "question": "", "rubric": ""}}], "sources": [{{"area": "<lc:... or oi:... id>", "count": <1-2>}}], "max_level": <1-3>, "reason": "<one sentence for the candidate: why these areas>"}}
 
 QUESTION BANK (id | area | level | type | question):
 {bank}"""
@@ -201,7 +202,7 @@ QUESTION BANK (id | area | level | type | question):
 
 SKILLS_GRADE_SYSTEM = """You grade a short technical skills check fairly, like a supportive senior engineer. Output a json object only.
 
-For each question, compare the answer with the rubric and score it 0-4: 0 = blank or wrong, 1 = major gaps, 2 = partly right, 3 = solid with small gaps, 4 = complete and precise. Don't penalize typos, informal wording, or answering in Chinese; do penalize wrong facts. For code, judge correctness and edge cases, not style.
+For each question, compare the answer with the rubric and score it 0-4: 0 = blank or wrong, 1 = major gaps, 2 = partly right, 3 = solid with small gaps, 4 = complete and precise. Don't penalize typos, informal wording, or answering in Chinese; do penalize wrong facts. For code, judge correctness and edge cases, not style. For coding problems (LeetCode), grade like a coding interviewer on four things: problem solving (a working approach, ideally the optimal one), technical competency (correct, runnable code in their language), testing (handles the edge cases in the rubric; tracing an example in comments counts), and communication (explains the approach and states time and space complexity). A brute-force solution that is correct earns 2; correct and optimal with complexity stated earns 4. Mentally run their code on the examples in the question before scoring.
 Then estimate the candidate's level per area (beginner, intermediate or advanced) from these answers only, and write a 2-3 sentence summary ending with the single most useful thing to study next. Write feedback in the language the candidate answered in.
 
 JSON shape:

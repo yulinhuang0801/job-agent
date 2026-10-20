@@ -18,6 +18,11 @@ DEFAULT_SETTINGS = {
     "hunter_key": "",  # Hunter.io email finder
     "serper_key": "",  # Serper.dev Google results for the Find tab
     "sec_contact": "",  # SEC requires a contact email from automated downloads
+    "alert_host": "imap.gmail.com",  # job-alert emails (LinkedIn, Handshake, Indeed...) read over IMAP, read-only
+    "alert_email": "",
+    "alert_password": "",  # an app password / authorization code, never the normal password
+    "alert_days": "30",
+    "alert_auto": "on",  # check every few hours while the app runs
     "stt_provider": "openai",  # "openai" = any OpenAI-style /audio/transcriptions API; or "assemblyai"
     "stt_base_url": "https://api.siliconflow.cn/v1",
     "stt_key": "",

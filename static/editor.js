@@ -69,7 +69,7 @@ const CodeEditor = (() => {
     });
     t.addEventListener("input", () => onChange && onChange(t.value));
     container.replaceChildren(t);
-    return { getValue: () => t.value, setLanguage: () => {}, dispose: () => {}, kind: "basic" };
+    return { getValue: () => t.value, setValue: (v) => { t.value = v; }, setLanguage: () => {}, dispose: () => {}, kind: "basic" };
   }
 
   // isCurrent() lets the caller cancel an editor whose page section was redrawn while Monaco loaded.
@@ -93,6 +93,7 @@ const CodeEditor = (() => {
       ed.onDidChangeModelContent(() => onChange && onChange(ed.getValue()));
       return {
         getValue: () => ed.getValue(),
+        setValue: (v) => ed.setValue(v),
         setLanguage: (lang) => monaco.editor.setModelLanguage(ed.getModel(), lang),
         dispose: () => { ed.getModel() && ed.getModel().dispose(); ed.dispose(); },
         instance: ed,

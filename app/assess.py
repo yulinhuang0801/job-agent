@@ -4,7 +4,7 @@ import json
 import uuid
 from pathlib import Path
 
-from . import llm, memory, prompts, store
+from . import llm, memory, prompts, qlibrary, store
 
 BANK = json.loads((Path(__file__).resolve().parent / "question_bank.json").read_text(encoding="utf-8"))
 BEHAVIORAL = BANK["behavioral"]
@@ -393,37 +393,90 @@ def _bank_index():
 
 
 def skill_areas():
-    return [{"id": k, "label": v["label"], "count": len(v["questions"]), "mine": k.startswith("my:")} for k, v in tech_areas().items()]
+    built_in = [{"id": k, "label": v["label"], "count": len(v["questions"]), "mine": k.startswith("my:"), "source": "Job Agent"}
+                for k, v in tech_areas().items()]
+    return built_in + qlibrary.areas()
+
+
+def _is_source(area):
+    return area.startswith(("lc:", "oi:"))
+
+
+def _from_sources(wanted, max_level):
+    """[(area id, n)] → questions from LeetCode / Open Interview. Skips a source that's down."""
+    out, errors = [], []
+    for area, n in wanted:
+        if n <= 0:
+            continue
+        try:
+            out += qlibrary.pick(area, n, max_level)
+        except qlibrary.LibraryError as e:
+            errors.append(str(e))
+    return out, errors
 
 
 def start_skills(count=5, areas=None):
     count = max(3, min(10, int(count or 5)))
     areas = [a for a in (areas or []) if a]
-    bank = _bank_lines(areas or None)
-    if not bank:
-        raise llm.LLMError("No questions in those areas yet.")
-    ask = f"\n\nThe candidate chose these areas, so use only them: {', '.join(areas)}." if areas else ""
-    index = _bank_index()
-    out = llm.chat_json([
-        {"role": "system", "content": prompts.SKILLS_PICK_SYSTEM.format(count=count, bank=bank) + ask},
-        {"role": "user", "content": f"CANDIDATE:\n{candidate_background()}"},
-    ], max_tokens=6000, temperature=0.3)
-    questions = [dict(index[i]) for i in out.get("picked") or [] if i in index]
-    if not areas:
-        for n, c in enumerate(out.get("custom") or []):
-            if c.get("question") and c.get("rubric"):
-                questions.append({"id": f"custom{n + 1}", "area": c.get("area") or "Other", "level": int(c.get("level") or 2),
-                                  "type": c.get("type") or "concept", "question": c["question"], "rubric": c["rubric"],
-                                  "custom": True})
+    bank_areas = [a for a in areas if not _is_source(a)]
+    source_areas = [a for a in areas if _is_source(a)]
+    # Share the count across the chosen areas; all built-in areas share one AI pick.
+    share = {a: 0 for a in areas}
+    for i in range(count if areas else 0):
+        share[areas[i % len(areas)]] += 1
+    bank_count = sum(share[a] for a in bank_areas) if areas else count
+    questions, reason, errors = [], "", []
+
+    if bank_count:
+        bank = _bank_lines(bank_areas or None)
+        if not bank:
+            raise llm.LLMError("No questions in those areas yet.")
+        ask = f"\n\nThe candidate chose these areas, so use only them: {', '.join(bank_areas)}." if bank_areas else ""
+        extra = "" if areas else "\n\nEXTRA SOURCES (id | label):\n" + "\n".join(
+            f"{a['id']} | {a['label']}" for a in qlibrary.areas())
+        index = _bank_index()
+        out = llm.chat_json([
+            {"role": "system", "content": prompts.SKILLS_PICK_SYSTEM.format(count=bank_count, bank=bank) + extra + ask},
+            {"role": "user", "content": f"CANDIDATE:\n{candidate_background()}"},
+        ], max_tokens=6000, temperature=0.3)
+        reason = out.get("reason") or ""
+        questions = [dict(index[i]) for i in out.get("picked") or [] if i in index]
+        if not areas:
+            for n, c in enumerate(out.get("custom") or []):
+                if c.get("question") and c.get("rubric"):
+                    questions.append({"id": f"custom{n + 1}", "area": c.get("area") or "Other", "level": int(c.get("level") or 2),
+                                      "type": c.get("type") or "concept", "question": c["question"], "rubric": c["rubric"],
+                                      "custom": True})
+            wanted = [(s.get("area"), min(2, int(s.get("count") or 1))) for s in out.get("sources") or []
+                      if _is_source(str(s.get("area") or ""))][:2]
+            if wanted:
+                picked, errors = _from_sources(wanted, int(out.get("max_level") or 2))
+                # Outside questions replace bank picks so the total stays at the count asked for.
+                questions = questions[:max(0, count - len(picked))] + picked
+        available = len(bank.splitlines())
+        if len(questions) < min(3, bank_count, available):
+            raise llm.LLMError("Couldn't pick questions. Please try again.")
+
+    if source_areas:
+        picked, more = _from_sources([(a, share[a]) for a in source_areas], 3)
+        questions += picked
+        errors += more
+        names = sorted({q["source"] for q in picked})
+        if names:
+            reason = (reason + " " if reason else "") + f"Coding and concept questions from {' and '.join(names)}."
+    if errors and not questions:
+        raise llm.LLMError(errors[0])
+
     seen, unique = set(), []
     for q in questions:
         if q["id"] not in seen:
             seen.add(q["id"])
             unique.append(q)
-    available = len(bank.splitlines())
-    if len(unique) < min(3, count, available):
+    if not unique:
         raise llm.LLMError("Couldn't pick questions. Please try again.")
-    state = {**_empty_skills(), "status": "answering", "reason": out.get("reason") or "", "questions": unique[:count]}
+    if errors:
+        reason += f" (Skipped: {errors[0]})"
+    state = {**_empty_skills(), "status": "answering", "reason": reason.strip(), "questions": unique[:count]}
     store.save("skills", state)
     return public_skills(state)
 

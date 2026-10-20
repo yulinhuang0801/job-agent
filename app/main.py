@@ -16,7 +16,7 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import assess, crawlers, db, llm, memory, mentors, outreach, pdf, prep, profile_merge, prompts, research, resume_text, services, sourcing, store
+from . import alerts, assess, crawlers, db, llm, memory, mentors, outreach, pdf, prep, profile_merge, prompts, qlibrary, research, resume_text, services, sourcing, store
 from .jobs_fetch import FetchError, fetch_job
 
 STATIC = Path(__file__).resolve().parent.parent / "static"
@@ -37,6 +37,12 @@ async def _revalidate_page(request: Request, call_next):
     return response
 
 
+@app.exception_handler(alerts.AlertError)
+@app.exception_handler(qlibrary.LibraryError)
+def _source_error(request: Request, exc: Exception):
+    return JSONResponse(status_code=400, content={"detail": str(exc)})
+
+
 @app.exception_handler(llm.LLMError)
 def _llm_error(request: Request, exc: llm.LLMError):
     return JSONResponse(status_code=400, content={"detail": str(exc)})
@@ -49,7 +55,7 @@ def index():
 
 # ---------- Settings ----------
 
-SECRET_FIELDS = ("api_key", "backup_key", "search_key", "stt_key", "hunter_key", "serper_key")
+SECRET_FIELDS = ("api_key", "backup_key", "search_key", "stt_key", "hunter_key", "serper_key", "alert_password")
 
 
 class SettingsIn(BaseModel):
@@ -67,6 +73,11 @@ class SettingsIn(BaseModel):
     hunter_key: Optional[str] = None
     serper_key: Optional[str] = None
     sec_contact: Optional[str] = None
+    alert_host: Optional[str] = None
+    alert_email: Optional[str] = None
+    alert_password: Optional[str] = None
+    alert_days: Optional[str] = None
+    alert_auto: Optional[str] = None
 
 
 def _hint(key):
@@ -95,6 +106,11 @@ def _public_settings():
         "hunter_hint": _hint(s["hunter_key"]),
         "has_serper": bool(s["serper_key"]),
         "sec_contact": s["sec_contact"],
+        "alert_host": s["alert_host"],
+        "alert_email": s["alert_email"],
+        "has_alert_password": bool(s["alert_password"]),
+        "alert_days": s["alert_days"],
+        "alert_auto": s["alert_auto"],
         "serper_hint": _hint(s["serper_key"]),
     }
 
@@ -110,6 +126,8 @@ def put_settings(body: SettingsIn):
     for field, value in body.model_dump(exclude_none=True).items():
         value = value.strip()
         if not value:  # blank secret box means "keep the saved one"
+            continue
+        if field == "alert_auto" and value not in ("on", "off"):
             continue
         if field in SECRET_FIELDS and value.startswith("http"):
             # A whole example request was pasted (Hunter's dashboard shows these); keep only its key.
@@ -137,6 +155,12 @@ def test_settings(which: str = "main"):
         except services.ServiceError as e:
             raise HTTPException(400, str(e))
         return {"ok": True, "provider": "Hunter.io", "model": f"{left} lookups left this month"}
+    if which == "alerts":
+        try:
+            n, folder = alerts.test_login()
+        except alerts.AlertError as e:
+            raise HTTPException(400, str(e))
+        return {"ok": True, "provider": "Email", "model": f"{n} job-alert emails in the last 30 days in {folder}"}
     if which == "stt":
         try:
             services.transcribe("test.wav", services.silent_wav(), "audio/wav")
@@ -378,6 +402,22 @@ def add_question(body: CustomQuestion):
         item = {k: item[k] for k in ("question", "label", "look_for")}
         item["kind"] = "answer" if body.type == "answer" else "story"
     return assess.add_custom(body.kind, item)
+
+
+class LeetCodeIn(BaseModel):
+    link: str
+    area: str = ""
+
+
+@app.post("/api/questions/leetcode")
+def add_leetcode(body: LeetCodeIn):
+    """Add a LeetCode problem (link or name) to My technical questions, with its starter code."""
+    slug = qlibrary.slug_from_link(body.link)
+    if not slug:
+        raise HTTPException(400, "Paste a LeetCode link like https://leetcode.com/problems/two-sum/")
+    q = qlibrary.leetcode_question(qlibrary.problem(slug))
+    item = {k: q[k] for k in ("question", "rubric", "level", "type", "lang", "starter", "starters", "link", "source")}
+    return assess.add_custom("technical", {**item, "area": body.area.strip() or "LeetCode"})
 
 
 @app.delete("/api/questions/{qid}")
@@ -916,16 +956,74 @@ class BoardIn(BaseModel):
 @app.get("/api/db/status")
 def db_status():
     return {"counts": db.counts(), "sources": db.sources(), "running": crawlers.running(), "vocab": db.vocab(),
-            "sec_contact_set": "@" in store.get_settings().get("sec_contact", "")}
+            "sec_contact_set": "@" in store.get_settings().get("sec_contact", ""), "alerts_configured": alerts.configured()}
+
+
+ALERTS_SOURCE = "Job alert emails"
+
+
+def _check_alerts():
+    return alerts.check_inbox(progress=lambda m: crawlers._progress(ALERTS_SOURCE, m))
+
+
+def _alert_loop():
+    """Check the inbox for new job alerts every 3 hours while the app runs (if set up and on)."""
+    import time
+    time.sleep(60)
+    while True:
+        s = store.get_settings()
+        if alerts.configured() and s.get("alert_auto") == "on" and ALERTS_SOURCE not in crawlers.running():
+            try:
+                crawlers.run_in_background(ALERTS_SOURCE, _check_alerts)
+            except crawlers.CrawlError:
+                pass
+        time.sleep(3 * 3600)
+
+
+@app.on_event("startup")
+def _start_alert_loop():
+    import threading
+    threading.Thread(target=_alert_loop, daemon=True).start()
+
+
+class AlertIn(BaseModel):
+    text: str
+
+
+def _alert_result(rows):
+    db.set_source(ALERTS_SOURCE, "done", f"Added {len(rows)} job{'' if len(rows) == 1 else 's'} from an alert you added", alerts_total())
+    return {"added": len(rows), "jobs": [{"title": r["title"], "company": r["company"], "location": r["location"], "url": r["url"],
+                                          "source": r["source"]} for r in rows]}
+
+
+def alerts_total():
+    return sum(alerts.counts().values())
+
+
+@app.post("/api/alerts/import")
+def import_alert(body: AlertIn):
+    if len(body.text.strip()) < 40:
+        raise HTTPException(400, "Paste the whole alert email, including its links.")
+    return _alert_result(alerts.import_message(body.text))
+
+
+@app.post("/api/alerts/upload")
+async def upload_alert(file: UploadFile = File(...)):
+    raw = await file.read()
+    if len(raw) > 5_000_000:
+        raise HTTPException(400, "That file is too big for one email.")
+    return _alert_result(await run_in_threadpool(alerts.import_message, raw))
 
 
 @app.post("/api/db/refresh")
 def db_refresh(body: RefreshIn):
     jobs = {"adv": ("SEC Form ADV", crawlers.import_adv, ()), "formd": ("SEC Form D", crawlers.import_form_d, (max(1, min(12, body.quarters)),)),
-            "jobs": ("Job boards", crawlers.crawl_jobs, ())}
+            "jobs": ("Job boards", crawlers.crawl_jobs, ()), "alerts": (ALERTS_SOURCE, _check_alerts, ())}
     if body.source not in jobs:
         raise HTTPException(400, "Unknown source.")
     name, fn, args = jobs[body.source]
+    if body.source == "alerts" and not alerts.configured():
+        raise HTTPException(400, "Add your email and app password in Settings → Job alert emails first, or paste an alert below.")
     if body.source in ("adv", "formd") and "@" not in store.get_settings().get("sec_contact", ""):
         raise HTTPException(400, "SEC requires a contact email for downloads. Add it in Settings → SEC contact email.")
     try:

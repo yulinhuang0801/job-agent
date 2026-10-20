@@ -129,13 +129,24 @@ loaders.settings = async () => {
   keyField("#stt-key", settings.has_stt, settings.stt_hint, "sk-...");
   $("#stt-status").textContent = settings.has_stt ? "✓ Using this service for 🎤." : "Off: 🎤 uses your browser's voice typing.";
   $("#sec-contact").value = settings.sec_contact || "";
+  const preset = [...$("#alert-host").options].some((o) => o.value === settings.alert_host);
+  $("#alert-host").value = preset ? settings.alert_host : "custom";
+  $("#alert-host-custom").value = preset ? "" : settings.alert_host;
+  $("#alert-host-custom").classList.toggle("hidden", preset);
+  $("#alert-email").value = settings.alert_email || "";
+  keyField("#alert-password", settings.has_alert_password, "saved", "App password or authorization code");
+  if (settings.has_alert_password) $("#alert-password").placeholder = "Saved. Paste a new one to replace it";
+  $("#alert-auto").checked = settings.alert_auto === "on";
+  $("#alert-days").value = settings.alert_days || "30";
+  $("#alert-status").textContent = settings.has_alert_password && settings.alert_email
+    ? `✓ Reading job alerts sent to ${settings.alert_email}.` : "Off: paste or upload alert emails in Find → Database instead.";
   $("#stt-provider").value = settings.stt_provider;
   $("#stt-base-url").value = settings.stt_base_url;
   $("#stt-model").value = settings.stt_model;
   $("#stt-model-wrap").classList.toggle("hidden", settings.stt_provider === "assemblyai");
 
   const saved = { api_key: settings.has_key, backup_key: settings.has_backup, search_key: settings.has_search, stt_key: settings.has_stt,
-    hunter_key: settings.has_hunter, serper_key: settings.has_serper };
+    hunter_key: settings.has_hunter, serper_key: settings.has_serper, alert_password: settings.has_alert_password };
   document.querySelectorAll(".remove-secret").forEach((b) => b.classList.toggle("hidden", !saved[b.dataset.field]));
 };
 
@@ -144,6 +155,8 @@ $("#stt-provider").addEventListener("change", () => {
   $("#stt-base-url").value = assembly ? "https://api.assemblyai.com" : "https://api.siliconflow.cn/v1";
   $("#stt-model-wrap").classList.toggle("hidden", assembly);
 });
+
+$("#alert-host").addEventListener("change", () => $("#alert-host-custom").classList.toggle("hidden", $("#alert-host").value !== "custom"));
 
 $("#model").addEventListener("change", () => {
   $("#model-custom").classList.toggle("hidden", $("#model").value !== "custom");
@@ -163,6 +176,9 @@ function settingsBody() {
     backup_key: val("#backup-key"), backup_model: val("#backup-model"), backup_base_url: val("#backup-base-url"),
     search_key: val("#search-key"), hunter_key: val("#hunter-key"), serper_key: val("#serper-key"), sec_contact: val("#sec-contact"),
     stt_key: val("#stt-key"), stt_base_url: val("#stt-base-url"), stt_model: val("#stt-model"), stt_provider: $("#stt-provider").value,
+    alert_host: $("#alert-host").value === "custom" ? val("#alert-host-custom") : $("#alert-host").value,
+    alert_email: val("#alert-email"), alert_password: val("#alert-password"),
+    alert_auto: $("#alert-auto").checked ? "on" : "off", alert_days: $("#alert-days").value,
   };
 }
 
@@ -191,6 +207,7 @@ document.querySelectorAll(".test-model").forEach((b) =>
         await saveSettings();
         const r = await api(`/api/settings/test?which=${b.dataset.which}`, { method: "POST" });
         setMsg(msg, `Connected ✓ (${b.dataset.which === "stt" ? r.provider : r.model})`, "ok");
+        if (b.dataset.which === "alerts") loaders.settings();
       } catch (err) {
         setMsg(msg, err.message, "err");
       }
@@ -631,7 +648,7 @@ function codeBox(q, answer) {
   const status = h("span", { class: "muted small" }, "Loading the code editor…");
   const round = editorsRound;
   const current = () => round === editorsRound;
-  CodeEditor.create(box, { value: answer, language: lang.value, isCurrent: current,
+  CodeEditor.create(box, { value: answer || q.starter || "", language: lang.value, isCurrent: current,
                            onChange: () => current() && saveAnswersSoon() }).then((ed) => {
     if (!current()) return ed.dispose();
     editors[q.id] = ed;
@@ -639,7 +656,15 @@ function codeBox(q, answer) {
       ? "VS Code editor: brackets and quotes close themselves, Tab indents."
       : "Basic editor (the VS Code editor couldn't load): brackets close themselves, Tab indents.";
   });
-  lang.addEventListener("change", () => editors[q.id] && editors[q.id].setLanguage(lang.value));
+  lang.addEventListener("change", () => {
+    const ed = editors[q.id];
+    if (!ed) return;
+    ed.setLanguage(lang.value);
+    // LeetCode problems come with starter code per language: swap it in if nothing was written yet.
+    const starters = q.starters || {};
+    const untouched = !ed.getValue().trim() || Object.values(starters).some((c) => c.trim() === ed.getValue().trim());
+    if (untouched && starters[lang.value]) ed.setValue(starters[lang.value]);
+  });
   return [h("div", { class: "row editor-bar" }, lang, status), box];
 }
 
@@ -673,6 +698,9 @@ function renderSkills() {
         h("div", { class: "qmeta" }, `Question ${i + 1} · ${q.area} · ${LEVELS[q.level] || ""}${coding ? " · coding" : ""}`),
         g ? h("span", { class: `score ${g.score >= 3 ? "hi" : g.score >= 2 ? "mid" : "lo"}` }, `${g.score}/4`) : null),
       h("pre", {}, q.question),
+      q.link ? h("div", { class: "muted small qsource" }, `From ${q.source}: `,
+        h("a", { href: q.link, target: "_blank", rel: "noopener" }, q.source === "LeetCode" ? "open on LeetCode ↗" : "open-interview.github.io ↗"),
+        q.guide ? [" · ", h("a", { href: q.guide, target: "_blank", rel: "noopener" }, "topic guide (Tech Interview Handbook) ↗")] : null) : null,
       input,
       g ? [h("p", {}, g.feedback), g.model_answer ? h("details", {}, h("summary", {}, "A strong answer"),
         h("pre", { class: coding ? "code-answer" : "" }, g.model_answer)) : null] : null);
@@ -687,17 +715,28 @@ function renderSkills() {
 }
 
 const pickedAreas = new Set();
+const areaKey = (a) => (a.source && a.source !== "Job Agent" ? a.id : a.label); // outside sources are picked by id
 
-function renderAreas(areas) {
-  $("#skills-areas").replaceChildren(...areas.map((a) => {
-    const chip = h("span", { class: `chip${pickedAreas.has(a.label) ? " on" : ""}${a.mine ? " mine" : ""}`, title: `${a.count} questions` }, a.label);
+function areaChips(list) {
+  return list.map((a) => {
+    const key = areaKey(a);
+    const label = a.source && a.source !== "Job Agent" ? a.label.replace(/^(LeetCode|Open Interview) · /, "") : a.label;
+    const chip = h("span", { class: `chip${pickedAreas.has(key) ? " on" : ""}${a.mine ? " mine" : ""}`,
+                             title: a.count == null ? "Downloads when first used" : `${a.count} questions` }, label);
     chip.addEventListener("click", () => {
-      pickedAreas.has(a.label) ? pickedAreas.delete(a.label) : pickedAreas.add(a.label);
+      pickedAreas.has(key) ? pickedAreas.delete(key) : pickedAreas.add(key);
       chip.classList.toggle("on");
     });
     return chip;
-  }));
-  $("#mt-areas").replaceChildren(...areas.map((a) => h("option", { value: a.label })));
+  });
+}
+
+function renderAreas(areas) {
+  const own = areas.filter((a) => !a.source || a.source === "Job Agent");
+  $("#skills-areas").replaceChildren(...areaChips(own));
+  $("#skills-areas-lc").replaceChildren(...areaChips(areas.filter((a) => a.source === "LeetCode")));
+  $("#skills-areas-oi").replaceChildren(...areaChips(areas.filter((a) => a.source === "Open Interview")));
+  $("#mt-areas").replaceChildren(...own.map((a) => h("option", { value: a.label })));
 }
 
 function questionRow(text, sub, id, after) {
@@ -930,11 +969,12 @@ let dbFilters = { postings: { job_type: "Internship" }, firms: { small: "1" } };
 let dbPage = 1;
 let dbResult = null;
 let dbPoll = null;
-const SOURCE_KEYS = { "SEC Form ADV": "adv", "SEC Form D": "formd", "Job boards": "jobs" };
+const SOURCE_KEYS = { "SEC Form ADV": "adv", "SEC Form D": "formd", "Job boards": "jobs", "Job alert emails": "alerts" };
 const SOURCE_TEXT = {
   "SEC Form ADV": "Investment advisers (PE, VC, hedge, real estate, wealth managers), monthly",
   "SEC Form D": "New funds and startups that just raised money, with people on the filing, quarterly",
   "Job boards": "Company job boards (Greenhouse, Lever, Ashby) and SimplifyJobs internship lists",
+  "Job alert emails": "Jobs LinkedIn, Handshake, Indeed and others emailed you (set up in Settings → Job alert emails)",
 };
 
 function setFindMode(mode) {
@@ -954,8 +994,11 @@ async function loadDbStatus() {
   fill($("#db-source-list"), Object.entries(SOURCE_KEYS).map(([name, key]) => {
     const s = st.sources[name] || {};
     const running = st.running.includes(name);
-    const btn = h("button", { class: "small secondary", type: "button", disabled: running }, running ? "Updating…" : s.updated ? "Update" : "Download");
+    const isAlerts = key === "alerts";
+    const btn = h("button", { class: "small secondary", type: "button", disabled: running },
+      running ? "Updating…" : isAlerts ? (st.alerts_configured ? "Check inbox" : "Set up") : s.updated ? "Update" : "Download");
     btn.addEventListener("click", async () => {
+      if (isAlerts && !st.alerts_configured) { location.hash = "#settings"; setTimeout(() => $("#alert-settings").scrollIntoView({ behavior: "smooth" }), 200); return; }
       try {
         await api("/api/db/refresh", { method: "POST", body: { source: key } });
         loadDbStatus();
@@ -964,7 +1007,8 @@ async function loadDbStatus() {
     return h("div", { class: "qrow" },
       h("div", {}, h("b", {}, name), h("div", { class: "muted small" }, SOURCE_TEXT[name]),
         h("div", { class: "small" + (s.status === "error" ? " sev-high" : "") },
-          running ? `⏳ ${s.message || "Working…"}` : s.status === "error" ? `Failed: ${s.message}` : s.updated ? `✓ ${s.message} · updated ${s.updated.slice(0, 10)}` : "Not downloaded yet")),
+          running ? `⏳ ${s.message || "Working…"}` : s.status === "error" ? `Failed: ${s.message}` : s.updated ? `✓ ${s.message} · updated ${s.updated.slice(0, 10)}`
+            : isAlerts ? (st.alerts_configured ? "Not checked yet" : "Not set up: connect your inbox, or add an alert by hand below") : "Not downloaded yet")),
       btn);
   }));
   clearTimeout(dbPoll);
@@ -1077,6 +1121,49 @@ document.querySelectorAll("#find-db .mode-tabs .coach-tab").forEach((b) => b.add
 }));
 $("#db-go").addEventListener("click", () => dbSearch(true));
 $("#db-q").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); dbSearch(true); } });
+function alertAdded(r) {
+  const names = r.jobs.slice(0, 4).map((j) => `${j.title}${j.company ? " at " + j.company : ""}`).join("; ");
+  setMsg($("#alert-msg"), `Added ${r.added} job${r.added === 1 ? "" : "s"}: ${names}${r.added > 4 ? "…" : ""}`, "ok");
+  loadDbStatus();
+  dbFilters.postings = { source: r.jobs[0] ? r.jobs[0].source : "" };
+  if (dbTable !== "postings") document.querySelector('[data-table="postings"]').click();
+  dbSearch(true);
+}
+
+$("#alert-add").addEventListener("click", (e) => busy(e.target, "Reading the email…", async () => {
+  try {
+    // A rich paste keeps the email's links, which a plain text box would drop.
+    const r = await api("/api/alerts/import", { method: "POST", body: { text: $("#alert-text").innerHTML } });
+    $("#alert-text").replaceChildren();
+    alertAdded(r);
+  } catch (err) { setMsg($("#alert-msg"), err.message, "err"); }
+}));
+
+$("#alert-file").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  e.target.value = "";
+  if (!file) return;
+  setMsg($("#alert-msg"), `Reading ${file.name}…`);
+  const form = new FormData();
+  form.append("file", file);
+  try {
+    const res = await fetch("/api/alerts/upload", { method: "POST", body: form });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(typeof data.detail === "string" ? data.detail : `Upload failed (${res.status})`);
+    alertAdded(data);
+  } catch (err) { setMsg($("#alert-msg"), err.message, "err"); }
+});
+
+$("#mt-lc-add").addEventListener("click", (e) => busy(e.target, "Loading from LeetCode…", async () => {
+  try {
+    const data = await api("/api/questions/leetcode", { method: "POST", body: { link: $("#mt-lc").value, area: $("#mt-area").value.trim() } });
+    const q = data.technical[data.technical.length - 1];
+    $("#mt-lc").value = "";
+    setMsg($("#mt-lc-msg"), `Added "${q.question.split("\n")[0]}" to ${q.area}.`, "ok");
+    refreshSkillsExtras();
+  } catch (err) { setMsg($("#mt-lc-msg"), err.message, "err"); }
+}));
+
 $("#db-board-add").addEventListener("click", (e) => busy(e.target, "Reading the board…", async () => {
   try {
     const r = await api("/api/db/boards", { method: "POST", body: { url: $("#db-board-url").value } });
