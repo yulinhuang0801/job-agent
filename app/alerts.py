@@ -331,11 +331,13 @@ def _connect():
         raise AlertError("Add your email address and app password in Settings → Job alert emails.")
     host = s["alert_host"].strip()
     try:
-        m = imaplib.IMAP4_SSL(host, 993, timeout=30)
+        m = imaplib.IMAP4_SSL(host, 993, timeout=60)
     except OSError as e:
         raise AlertError(f"Couldn't reach {host} ({e.__class__.__name__}). Check the server name.")
     try:
         m.login(s["alert_email"].strip(), s["alert_password"].replace(" ", "") if "gmail" in host else s["alert_password"])
+    except OSError as e:
+        raise AlertError(f"{host} didn't answer in time ({e.__class__.__name__}). Try again in a minute.")
     except imaplib.IMAP4.error as e:
         raise AlertError("The mail server refused the login. Use an app password (Gmail, iCloud, Yahoo) or an authorization "
                          f"code (QQ, 163), not your normal password, and make sure IMAP is turned on. Server said: {e}")

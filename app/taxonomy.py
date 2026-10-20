@@ -27,27 +27,27 @@ SIZES = [("1-10", 1, 10), ("11-30", 11, 30), ("31-100", 31, 100), ("101-500", 10
 
 # Ordered: the first matching rule wins. Matched against "title | department".
 _FUNCTION_RULES = [
-    ("Quantitative Finance", r"\bquant|trading|trader|algorithmic"),
-    ("Machine Learning & AI", r"machine learning|\bml\b|\bai\b|deep learning|llm|computer vision|\bnlp\b|research scientist"),
-    ("Data Science & Analytics", r"data scien|data analy|analytics|business intelligence|\bbi\b|data engineer|statistic"),
-    ("Product Management", r"product manag|\bpm\b|product owner|program manag"),
-    ("Design (UX/UI)", r"design|\bux\b|\bui\b|user research"),
+    ("Quantitative Finance", r"\bquant|trading|trader|algorithmic|量化|交易员"),
+    ("Machine Learning & AI", r"machine learning|\bml\b|\bai\b|deep learning|llm|computer vision|\bnlp\b|research scientist|算法|机器学习|人工智能|大模型"),
+    ("Data Science & Analytics", r"data scien|data analy|analytics|business intelligence|\bbi\b|data engineer|statistic|数据"),
+    ("Product Management", r"product manag|\bpm\b|product owner|program manag|产品经理"),
+    ("Design (UX/UI)", r"(?<!visual )design|\bux\b|\bui\b|user research|设计"),
     ("IT & Security", r"security|\bit\b|information technology|devops|site reliability|\bsre\b|network|infrastructure|helpdesk|help desk|systems admin"),
-    ("Software Engineering", r"software|engineer.*(backend|frontend|full.?stack|platform|mobile|web|ios|android)|developer|swe\b|programmer|full.?stack|front.?end|back.?end"),
+    ("Software Engineering", r"software|engineer.*(backend|frontend|full.?stack|platform|mobile|web|ios|android)|developer|swe\b|programmer|full.?stack|front.?end|back.?end|软件|开发|研发|程序员|前端|后端"),
     ("Hardware Engineering", r"hardware|fpga|asic|silicon|chip|embedded|firmware|rf\b|semiconductor"),
     ("Electrical Engineering", r"electrical|power systems|controls engineer"),
     ("Mechanical & Aerospace Engineering", r"mechanical|aerospace|propulsion|structures|manufacturing engineer|robotics"),
     ("Civil & Construction", r"civil|construction|structural|architect(?!ure)"),
     ("Science & Research", r"biolog|chemist|scien|lab |laboratory|research associate|clinical research|bioinformatic|physic"),
     ("Healthcare & Clinical", r"nurse|clinic|medical|physician|pharmac|therap|patient"),
-    ("Investment Banking & Finance", r"investment bank|analyst.*(finance|investment|m&a)|finance|financial|treasury|private equity|venture|credit|underwrit|fp&a|investment"),
-    ("Accounting", r"account|audit|tax\b|controller|bookkeep"),
-    ("Consulting & Strategy", r"consult|strategy|strategic"),
-    ("Marketing", r"marketing|growth|brand|seo|social media|content market"),
-    ("Sales & Business Development", r"sales|business develop|account exec|partnership|\bbd\b|\bsdr\b|\bbdr\b"),
-    ("Operations & Supply Chain", r"operation|supply chain|logistic|procurement|technician|assembly|production|facilities"),
-    ("People & Recruiting", r"recruit|talent|people|\bhr\b|human resources"),
-    ("Legal & Policy", r"legal|counsel|policy|compliance|regulatory|paralegal"),
+    ("Investment Banking & Finance", r"investment bank|analyst.*(finance|investment|m&a)|finance|financial|treasury|private equity|venture|credit|underwrit|fp&a|investment|投资|金融|投行|财务"),
+    ("Accounting", r"account|audit|tax\b|controller|bookkeep|会计|审计|税务"),
+    ("Consulting & Strategy", r"consult|strategy|strategic|咨询|战略"),
+    ("Marketing", r"marketing|growth|brand|seo|social media|content market|visual merch|市场|营销|品牌|陈列"),
+    ("Sales & Business Development", r"sales|business develop|account exec|partnership|\bbd\b|\bsdr\b|\bbdr\b|\bstore\b|retail|\bshop\b|boutique advisor|key holder|销售|门店|零售|店长|商务"),
+    ("Operations & Supply Chain", r"operation|supply chain|logistic|procurement|technician|assembly|production|facilities|运营|营运|供应链|物流|采购"),
+    ("People & Recruiting", r"recruit|talent|people|\bhr\b|human resources|人力|招聘|人事"),
+    ("Legal & Policy", r"legal|counsel|policy|compliance|regulatory|paralegal|法务|律师|合规"),
     ("Customer Success & Support", r"customer|support|success|client service"),
     ("Communications & Content", r"communicat|writer|editor|content|public relations|\bpr\b"),
     ("Software Engineering", r"engineer"),  # generic engineers at tech companies
@@ -64,6 +64,10 @@ def classify_function(title, department=""):
 
 def classify_job_type(title, commitment=""):
     t = f"{title} {commitment}".lower()
+    if re.search(r"实习", t):
+        return "Internship"
+    if re.search(r"校招|校园招聘|应届|管培|管理培训生|graduate trainee|management trainee", t):
+        return "New grad / Entry level"
     if re.search(r"co-?op\b", t):
         return "Co-op"
     if re.search(r"\bintern(ship)?\b|\bsummer (analyst|associate)\b|working student|apprentice", t):
@@ -106,6 +110,12 @@ _CITY_STATE = {"nyc": "NY", "new york": "NY", "sf": "CA", "san francisco": "CA",
                "san jose": "CA", "san diego": "CA", "philadelphia": "PA", "pittsburgh": "PA", "minneapolis": "MN"}
 
 
+_ASIA = [(r"hong kong|香港", "Hong Kong"), (r"taipei|taiwan|台北|台湾", "Taiwan"), (r"macau|macao|澳门", "Macau"),
+         (r"beijing|shanghai|shenzhen|guangzhou|hangzhou|chengdu|nanjing|wuhan|suzhou|tianjin|xi'?an|chongqing|xiamen|qingdao|dalian|"
+          r"北京|上海|深圳|广州|杭州|成都|南京|武汉|苏州|天津|西安|重庆|厦门|青岛|大连|中国", "China"),
+         (r"\bseoul\b|korea", "South Korea"), (r"tokyo|osaka", "Japan"), (r"\bdubai\b|abu dhabi", "United Arab Emirates")]
+
+
 def parse_location(location):
     """Return (state code or '', country, remote flag) from a free-text location."""
     loc = (location or "").strip()
@@ -120,6 +130,9 @@ def parse_location(location):
     for city, code in _CITY_STATE.items():
         if re.search(rf"\b{re.escape(city)}\b", low):
             return code, "United States", remote
+    for pattern, country in _ASIA:
+        if re.search(pattern, low):
+            return "", country, remote
     if re.search(r"united states|\busa?\b|u\.s\.", low):
         return "", "United States", remote
     for country in ("Canada", "United Kingdom", "UK", "Germany", "France", "India", "Singapore", "China", "Japan", "Australia",
