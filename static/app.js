@@ -18,6 +18,13 @@ function h(tag, attrs, ...children) {
   return el;
 }
 
+// Replace an element's content. Accepts nested lists and skips null/false, which the browser's own
+// replaceChildren would otherwise print as "[object HTMLDivElement]" or "null".
+function fill(el, ...children) {
+  el.replaceChildren(...children.flat(Infinity).filter((c) => c != null && c !== false && c !== ""));
+  return el;
+}
+
 const list = (items) => h("ul", { class: "tight" }, (items || []).map((i) => h("li", {}, i)));
 const chips = (items) => h("div", { class: "chips" }, (items || []).filter(Boolean).map((i) => h("span", { class: "chip" }, i)));
 
@@ -821,7 +828,7 @@ function dates(x) {
 }
 
 function renderEvaluation(ev) {
-  $("#evaluation").replaceChildren(
+  fill($("#evaluation"), 
     h("h2", {}, "How you stack up"),
     ev.readiness ? h("p", {}, ev.readiness) : null,
     h("div", { class: "cols" },
@@ -836,7 +843,7 @@ function renderProfileSummary(p) {
   const t = p.targets || {};
   const sk = p.skills || {};
   const contact = [p.email, p.phone, p.location].filter(Boolean).join(" · ");
-  $("#profile-summary").replaceChildren(
+  fill($("#profile-summary"), 
     h("h2", {}, p.name || "Name not given yet"),
     contact ? h("p", { class: "muted small" }, contact) : null,
     p.summary ? h("p", {}, p.summary) : null,
@@ -906,7 +913,7 @@ function linkedinSearch() {
 }
 
 function renderDirectoryLinks() {
-  $("#directory-links").replaceChildren(
+  fill($("#directory-links"), 
     ...DIRECTORIES.map(([name, url]) => h("a", { class: "button secondary small", href: url, target: "_blank", rel: "noopener" }, name)),
     h("a", { class: "button secondary small", href: linkedinSearch(), target: "_blank", rel: "noopener", id: "linkedin-link" }, "LinkedIn company search (1–50 people)"));
 }
@@ -944,7 +951,7 @@ function renderCandidates() {
       setMsg(msg, err.message, "err");
     }
   }));
-  box.replaceChildren(h("h2", { class: "section-title" }, `${candidates.length} results`),
+  fill(box, h("h2", { class: "section-title" }, `${candidates.length} results`),
     h("p", { class: "muted small" }, "Ticked: fit score 50 or more. Check the red flags before adding."),
     ...rows, h("div", { class: "row actions" }, add, msg));
 }
@@ -1237,7 +1244,7 @@ function formSection(job) {
       go(1);
     });
     const finished = qs.filter((x) => x.done).length;
-    panel.replaceChildren(
+    fill(panel, 
       h("div", { class: "qmeta" }, `Question ${i + 1} of ${qs.length} · ${q.category}${q.required ? " · required" : ""} · ${finished} done`),
       h("p", {}, h("b", {}, q.question)),
       (q.options || []).length ? h("p", { class: "small muted" }, "Options: " + q.options.join(" | ")) : null,
@@ -1459,7 +1466,7 @@ function renderToday() {
   const p = t.plan || {};
   $("#today-date").textContent = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
   const done = new Set(t.done);
-  $("#today-card").replaceChildren(
+  fill($("#today-card"), 
     p.stage ? h("span", { class: "stage" }, p.stage) : null,
     h("p", { class: "headline" }, p.headline || ""),
     p.status ? h("p", {}, p.status) : null,
@@ -1482,7 +1489,7 @@ function renderToday() {
   const firstOpen = t.milestones.findIndex((m) => !m.done);
   const goal = h("input", { type: "number", min: 1, max: 50, value: t.goal_per_day, class: "inline-select", style: "width:70px" });
   goal.addEventListener("change", () => api("/api/mentor/goal", { method: "PUT", body: { goal: +goal.value } }));
-  $("#progress-card").replaceChildren(
+  fill($("#progress-card"), 
     h("h2", {}, "Progress"),
     h("div", { class: "stat-row" },
       h("div", { class: "stat" }, h("b", {}, `${c.contacted_today}/${t.goal_per_day}`), h("span", {}, "firms contacted today")),
