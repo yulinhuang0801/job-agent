@@ -264,7 +264,7 @@
     }
   },
   "technical": {
-    "_note": "Questions for the Skills check. type: concept (explain), practical (write or read code/queries), design (short design reasoning). level: 1 easy, 2 medium, 3 harder. The rubric is what a strong answer includes.",
+    "_note": "Questions for the Skills check. type: concept (explain), practical (write or work something out), design. level: 1 easy, 2 medium, 3 harder. lang: editor language for practical questions (default by area). The rubric is what a strong answer includes. Your own questions live in data/custom_questions.json.",
     "areas": {
       "python": {
         "label": "Python",
@@ -303,6 +303,34 @@
             "type": "practical",
             "question": "Write a function that returns the second largest distinct number in a list of integers, or None if there isn't one.",
             "rubric": "Handles duplicates (distinct values), lists shorter than 2 distinct values return None; O(n) single pass or set+sort acceptable; correct on negatives."
+          },
+          {
+            "id": "py6",
+            "level": 1,
+            "type": "practical",
+            "question": "Write a function is_palindrome(s) that returns True if s reads the same backwards, ignoring case, spaces and punctuation.",
+            "rubric": "Normalizes to lowercase letters/digits only (str.isalnum), compares with its reverse (s[::-1]) or two pointers; handles empty string."
+          },
+          {
+            "id": "py7",
+            "level": 2,
+            "type": "concept",
+            "question": "What is a decorator in Python? Give a short example of when you'd write one.",
+            "rubric": "Function that takes a function and returns a wrapped function (@syntax); example: timing, logging, caching (functools.lru_cache), auth checks; mentions functools.wraps."
+          },
+          {
+            "id": "py8",
+            "level": 2,
+            "type": "practical",
+            "question": "Given a list of dicts like {'name': 'Ana', 'score': 91}, return the names of the 3 highest scores, highest first.",
+            "rubric": "sorted(..., key=lambda d: d['score'], reverse=True)[:3] or heapq.nlargest; returns names only; handles fewer than 3 items."
+          },
+          {
+            "id": "py9",
+            "level": 3,
+            "type": "concept",
+            "question": "What is the GIL, and when would you use threads vs. processes vs. asyncio in Python?",
+            "rubric": "GIL lets one thread run Python bytecode at a time; threads/asyncio fit I/O-bound work (asyncio for many concurrent I/O tasks), multiprocessing for CPU-bound work; trade-offs in memory and complexity."
           }
         ]
       },
@@ -343,6 +371,27 @@
             "type": "practical",
             "question": "How would you check whether a string of brackets like \"({[]})\" is balanced? Describe the algorithm and its complexity.",
             "rubric": "Stack: push openers, pop and match on closers, fail on mismatch or empty stack, balanced if stack empty at end; O(n) time, O(n) space."
+          },
+          {
+            "id": "dsa6",
+            "level": 1,
+            "type": "concept",
+            "question": "What is the difference between a stack and a queue? Give a real use for each.",
+            "rubric": "Stack LIFO (undo, call stack, bracket matching); queue FIFO (task scheduling, BFS); push/pop vs enqueue/dequeue O(1)."
+          },
+          {
+            "id": "dsa7",
+            "level": 2,
+            "type": "practical",
+            "question": "Merge two sorted lists of integers into one sorted list in O(n + m) time. Write the code or the steps.",
+            "rubric": "Two pointers, append the smaller element, then append leftovers from whichever list remains; O(n+m) time; doesn't just concatenate and sort."
+          },
+          {
+            "id": "dsa8",
+            "level": 3,
+            "type": "concept",
+            "question": "How would you find the k-th largest number in an unsorted array? Compare two approaches.",
+            "rubric": "Min-heap of size k: O(n log k); quickselect: average O(n), worst O(n^2); sorting O(n log n) as a baseline."
           }
         ]
       },
@@ -383,6 +432,27 @@
             "type": "concept",
             "question": "What is a transaction, and what does ACID stand for?",
             "rubric": "Group of operations that succeed or fail together; Atomicity, Consistency, Isolation, Durability, each briefly explained."
+          },
+          {
+            "id": "sql6",
+            "level": 1,
+            "type": "concept",
+            "question": "What is the difference between WHERE and HAVING?",
+            "rubric": "WHERE filters rows before grouping; HAVING filters groups after GROUP BY / aggregates (e.g. HAVING COUNT(*) > 5)."
+          },
+          {
+            "id": "sql7",
+            "level": 2,
+            "type": "practical",
+            "question": "Table employees(id, name, salary). Write a query for the second highest distinct salary.",
+            "rubric": "Uses MAX with subquery (MAX(salary) WHERE salary < (SELECT MAX(salary))) or DISTINCT ... ORDER BY ... LIMIT 1 OFFSET 1 or DENSE_RANK; handles duplicates."
+          },
+          {
+            "id": "sql8",
+            "level": 3,
+            "type": "practical",
+            "question": "Using orders(id, customer_id, amount, created_at), list each order with its rank among that customer's orders by amount (1 = biggest).",
+            "rubric": "Window function: ROW_NUMBER() or RANK() OVER (PARTITION BY customer_id ORDER BY amount DESC); explains the difference between ROW_NUMBER and RANK on ties."
           }
         ]
       },
@@ -423,6 +493,20 @@
             "type": "concept",
             "question": "What is the difference between authentication and authorization?",
             "rubric": "Authentication = who you are (login, tokens); authorization = what you're allowed to do (permissions, roles); example."
+          },
+          {
+            "id": "be6",
+            "level": 1,
+            "type": "concept",
+            "question": "What do HTTP status codes 401, 403 and 404 mean?",
+            "rubric": "401 Unauthorized = not authenticated / missing or bad credentials; 403 Forbidden = authenticated but not allowed; 404 Not Found = resource doesn't exist (or hidden)."
+          },
+          {
+            "id": "be7",
+            "level": 2,
+            "type": "concept",
+            "question": "What is caching, and what makes cache invalidation hard? Name one strategy.",
+            "rubric": "Storing results closer/faster to avoid recomputation; stale data when source changes; strategies: TTL expiry, write-through, write-behind, explicit invalidation on update, cache-aside."
           }
         ]
       },
@@ -529,6 +613,27 @@
             "type": "concept",
             "question": "Explain at a high level how a transformer language model generates text.",
             "rubric": "Tokenization; embeddings; self-attention layers relate tokens; predicts next-token probabilities; sampling/decoding one token at a time, autoregressively."
+          },
+          {
+            "id": "ml5",
+            "level": 1,
+            "type": "concept",
+            "question": "What is the difference between supervised and unsupervised learning? Give an example of each.",
+            "rubric": "Supervised uses labeled data (classification/regression, e.g. spam detection); unsupervised finds structure without labels (clustering, dimensionality reduction, e.g. customer segments)."
+          },
+          {
+            "id": "ml6",
+            "level": 2,
+            "type": "concept",
+            "question": "Explain the precision-recall trade-off with a real example of when you'd favor each.",
+            "rubric": "Precision = TP/(TP+FP), recall = TP/(TP+FN); raising the threshold usually increases precision, lowers recall; favor recall for cancer screening/fraud catching, precision for spam filters or alerts that cost attention."
+          },
+          {
+            "id": "ml7",
+            "level": 2,
+            "type": "concept",
+            "question": "How does gradient descent train a model?",
+            "rubric": "Compute loss, gradient of loss w.r.t. parameters, step opposite the gradient scaled by learning rate, repeat; mentions learning rate trade-offs, mini-batches/SGD, local minima or convergence."
           }
         ]
       },
@@ -562,6 +667,13 @@
             "type": "concept",
             "question": "How would you handle missing values in a dataset?",
             "rubric": "First understand why they're missing; drop rows/columns, impute (mean/median/mode/model), add missing indicator; effect on analysis."
+          },
+          {
+            "id": "da5",
+            "level": 2,
+            "type": "practical",
+            "question": "In pandas, you have orders (order_id, customer_id, amount) and customers (customer_id, country). Get total amount per country.",
+            "rubric": "orders.merge(customers, on='customer_id').groupby('country')['amount'].sum(); mentions join type / missing customers."
           }
         ]
       },
@@ -633,6 +745,304 @@
             "type": "concept",
             "question": "Walk through how you would contribute a change to a team repository using branches and pull requests.",
             "rubric": "Create branch, commit, push, open PR, code review, address feedback, CI checks, merge; keep branch up to date."
+          }
+        ]
+      },
+      "accounting": {
+        "label": "Accounting (finance technicals)",
+        "questions": [
+          {
+            "id": "acc1",
+            "level": 1,
+            "type": "concept",
+            "question": "Walk me through the three financial statements and how they connect.",
+            "rubric": "Income statement: revenue down to net income over a period; balance sheet: assets = liabilities + equity at a point in time; cash flow statement: operating, investing, financing; net income starts the CFS and flows into retained earnings; ending cash goes to the balance sheet."
+          },
+          {
+            "id": "acc2",
+            "level": 2,
+            "type": "practical",
+            "question": "Depreciation goes up by $10. Walk through the effect on all three statements (25% tax rate).",
+            "rubric": "IS: pre-tax income -10, net income -7.5; CFS: net income -7.5, add back depreciation +10, cash +2.5; BS: cash +2.5, PP&E -10 so assets -7.5; retained earnings -7.5; balances.",
+            "lang": "plaintext"
+          },
+          {
+            "id": "acc3",
+            "level": 1,
+            "type": "concept",
+            "question": "What is working capital, and why does an increase in it reduce cash flow?",
+            "rubric": "Current assets minus current liabilities (operating: receivables + inventory - payables); more cash tied up in receivables/inventory = cash not yet collected, so it's subtracted in cash from operations."
+          },
+          {
+            "id": "acc4",
+            "level": 2,
+            "type": "concept",
+            "question": "How do you get from net income to cash flow from operations?",
+            "rubric": "Start with net income, add back non-cash expenses (D&A, stock-based compensation, deferred taxes, impairments), subtract non-cash gains, adjust for changes in working capital."
+          },
+          {
+            "id": "acc5",
+            "level": 3,
+            "type": "practical",
+            "question": "A company buys $100 of inventory with cash, then later sells it for $150. Walk through the statements at each step (25% tax).",
+            "rubric": "Step 1: inventory +100, cash -100, no income statement effect. Step 2: revenue 150, COGS 100, pre-tax 50, net income 37.5; CFS: net income 37.5 + inventory decrease 100 = cash +137.5; BS: cash +137.5, inventory -100, assets +37.5, retained earnings +37.5.",
+            "lang": "plaintext"
+          }
+        ]
+      },
+      "valuation": {
+        "label": "Valuation (finance technicals)",
+        "questions": [
+          {
+            "id": "val1",
+            "level": 1,
+            "type": "concept",
+            "question": "What are the main ways to value a company, and which usually gives the highest value?",
+            "rubric": "Comparable companies (trading comps), precedent transactions, DCF (plus LBO, sum-of-the-parts); precedent transactions usually highest because they include a control premium."
+          },
+          {
+            "id": "val2",
+            "level": 2,
+            "type": "concept",
+            "question": "Walk me through a DCF.",
+            "rubric": "Project unlevered free cash flow 5-10 years (EBIT x (1 - tax) + D&A - capex - change in working capital), terminal value (perpetuity growth or exit multiple), discount at WACC, sum = enterprise value, subtract net debt for equity value and per-share value."
+          },
+          {
+            "id": "val3",
+            "level": 2,
+            "type": "concept",
+            "question": "What's the difference between enterprise value and equity value? Why do we use EV/EBITDA but P/E?",
+            "rubric": "EV = equity value + debt + preferred + minority interest - cash: value to all capital providers; equity value belongs to shareholders. EBITDA is before interest (all capital providers) so it pairs with EV; net income is after interest so it pairs with equity value (P/E)."
+          },
+          {
+            "id": "val4",
+            "level": 3,
+            "type": "concept",
+            "question": "What is WACC, and what happens to it as a company takes on more debt?",
+            "rubric": "WACC = E/V x cost of equity + D/V x cost of debt x (1 - tax); debt is cheaper (tax-deductible interest), so WACC falls at first, but more debt raises the cost of equity and debt (distress risk), so WACC eventually rises (U-shape)."
+          },
+          {
+            "id": "val5",
+            "level": 2,
+            "type": "concept",
+            "question": "Two similar companies trade at 10x and 7x EBITDA. What could explain the difference?",
+            "rubric": "Higher growth, better margins, lower risk, stronger market position, lower capital intensity, larger size/liquidity, better management or recurring revenue justify the higher multiple; or one is mispriced."
+          }
+        ]
+      },
+      "ma_lbo": {
+        "label": "M&A and LBOs (finance technicals)",
+        "questions": [
+          {
+            "id": "ma1",
+            "level": 1,
+            "type": "concept",
+            "question": "Why would one company acquire another?",
+            "rubric": "Growth, cost or revenue synergies, market share, new products/technology/talent, geographic expansion, diversification, buying undervalued assets."
+          },
+          {
+            "id": "ma2",
+            "level": 2,
+            "type": "concept",
+            "question": "Walk me through a basic LBO.",
+            "rubric": "Buy a company with mostly debt plus some equity; company's cash flow pays interest and pays down debt; exit after 3-7 years at a multiple; returns from EBITDA growth, multiple expansion and debt paydown; measured by IRR and money multiple."
+          },
+          {
+            "id": "ma3",
+            "level": 2,
+            "type": "concept",
+            "question": "What makes a company a good LBO candidate?",
+            "rubric": "Stable, predictable cash flows; low capex needs; strong market position; room for operational improvement; reasonable purchase price; assets to borrow against; clear exit options."
+          },
+          {
+            "id": "ma4",
+            "level": 3,
+            "type": "concept",
+            "question": "Company A (P/E 20) buys Company B (P/E 10) in an all-stock deal. Accretive or dilutive, and why?",
+            "rubric": "Accretive (ignoring premium and synergies): A's cost of using stock = earnings yield 1/20 = 5%; it buys B's earnings at a yield of 1/10 = 10%, so EPS rises. Higher-P/E acquirer buying lower-P/E target with stock is accretive."
+          },
+          {
+            "id": "ma5",
+            "level": 3,
+            "type": "practical",
+            "question": "You buy a company at 8x EBITDA of $100M with 60% debt. After 5 years EBITDA is $130M, you exit at 8x, and $200M of debt has been repaid. Roughly what is the money multiple and IRR?",
+            "rubric": "Entry EV 800, debt 480, equity 320. Exit EV 1,040, remaining debt 280, equity 760. Money multiple about 2.4x (760/320); IRR roughly 19% over 5 years.",
+            "lang": "plaintext"
+          }
+        ]
+      },
+      "markets": {
+        "label": "Markets & investing",
+        "questions": [
+          {
+            "id": "mk1",
+            "level": 1,
+            "type": "concept",
+            "question": "What's the difference between a search fund, a private equity firm and a venture capital firm?",
+            "rubric": "Search fund: an individual raises capital to find, buy and run one small business; PE: buys mature companies (often control, with leverage) across a portfolio; VC: minority stakes in early high-growth startups, expecting a few big winners."
+          },
+          {
+            "id": "mk2",
+            "level": 1,
+            "type": "concept",
+            "question": "What happens to bond prices when interest rates rise, and why?",
+            "rubric": "Prices fall: existing fixed coupons are less attractive than new higher-rate bonds; longer duration = more sensitive."
+          },
+          {
+            "id": "mk3",
+            "level": 2,
+            "type": "concept",
+            "question": "How do central bank rate hikes tend to affect the stock market?",
+            "rubric": "Higher discount rates lower present values (hits long-duration growth stocks most), higher borrowing costs slow growth and earnings, stronger currency; sector differences (banks may benefit from wider margins)."
+          },
+          {
+            "id": "mk4",
+            "level": 2,
+            "type": "concept",
+            "question": "Pitch me a company you'd invest in (stock, private company or a small business you know).",
+            "rubric": "Clear thesis in 2-3 points, rough key numbers or valuation view, catalysts, main risks and what would change their mind; specific, not generic."
+          }
+        ]
+      },
+      "consulting": {
+        "label": "Consulting cases & market sizing",
+        "questions": [
+          {
+            "id": "cs1",
+            "level": 1,
+            "type": "practical",
+            "question": "Revenue is $50M and costs are $40M. Next year revenue grows 5% and costs grow 10%. What is the new profit, and by what % did it change?",
+            "rubric": "Revenue 52.5, costs 44, profit 8.5M, down from 10M = -15%.",
+            "lang": "plaintext"
+          },
+          {
+            "id": "cs2",
+            "level": 2,
+            "type": "practical",
+            "question": "Estimate how many coffee shops there are in Chicago. Show your structure and assumptions.",
+            "rubric": "Clear structure (population about 2.7M, share who buy coffee out, cups per day, cups a shop serves per day, or supply-side), reasonable assumptions, math done right, sanity check; answer in a reasonable range (roughly 1,000-3,000).",
+            "lang": "plaintext"
+          },
+          {
+            "id": "cs3",
+            "level": 2,
+            "type": "concept",
+            "question": "A client's profits fell 20% this year. How would you structure the problem?",
+            "rubric": "Profit = revenue - costs; revenue = price x volume by product/segment/channel; costs fixed vs variable; internal vs external causes (market, competitors, customers); form hypotheses and say what data to check first."
+          }
+        ]
+      },
+      "stats": {
+        "label": "Statistics & probability (quant)",
+        "questions": [
+          {
+            "id": "st1",
+            "level": 1,
+            "type": "practical",
+            "question": "You roll two fair dice. What is the probability the sum is 7? Show how.",
+            "rubric": "6 favorable outcomes (1-6, 2-5, 3-4, 4-3, 5-2, 6-1) of 36 = 1/6.",
+            "lang": "plaintext"
+          },
+          {
+            "id": "st2",
+            "level": 2,
+            "type": "concept",
+            "question": "What is the expected number of fair coin flips until the first heads? Explain.",
+            "rubric": "2: geometric distribution with p = 1/2, expectation 1/p; or E = 1 + 0.5E so E = 2."
+          },
+          {
+            "id": "st3",
+            "level": 2,
+            "type": "concept",
+            "question": "What does a p-value of 0.03 mean? What does it NOT mean?",
+            "rubric": "If the null hypothesis were true, there's a 3% chance of results at least this extreme; it is not the probability the null is true, nor the size or importance of the effect; usually called significant below 0.05."
+          },
+          {
+            "id": "st4",
+            "level": 3,
+            "type": "practical",
+            "question": "There are three cards: red/red, red/white, white/white. You draw one at random and see a red side. What is the probability the other side is red?",
+            "rubric": "2/3: there are 3 equally likely red faces you could be seeing, 2 of them are on the red/red card (Bayes); 1/2 is the common wrong answer.",
+            "lang": "plaintext"
+          }
+        ]
+      },
+      "excel": {
+        "label": "Excel",
+        "questions": [
+          {
+            "id": "xl1",
+            "level": 1,
+            "type": "concept",
+            "question": "What is the difference between VLOOKUP and INDEX/MATCH (or XLOOKUP)?",
+            "rubric": "VLOOKUP only looks to the right and uses a column number that breaks when columns are inserted; INDEX/MATCH looks in any direction and is sturdier; XLOOKUP is the modern replacement with defaults for exact match."
+          },
+          {
+            "id": "xl2",
+            "level": 2,
+            "type": "practical",
+            "question": "Column A has region, column B month, column C sales. Write a formula for total sales where region is \"West\" and month is \"Jan\".",
+            "rubric": "=SUMIFS(C:C, A:A, \"West\", B:B, \"Jan\") (sum range first, then range/criteria pairs).",
+            "lang": "plaintext"
+          },
+          {
+            "id": "xl3",
+            "level": 1,
+            "type": "concept",
+            "question": "What is a pivot table and when would you use one?",
+            "rubric": "Summarizes large data by grouping and aggregating (sum, count, average) with filters; quick analysis like sales by region and month without formulas."
+          }
+        ]
+      },
+      "system_design": {
+        "label": "System design",
+        "questions": [
+          {
+            "id": "sd1",
+            "level": 1,
+            "type": "concept",
+            "question": "When would you choose a SQL database vs. a NoSQL database?",
+            "rubric": "SQL: structured relational data, joins, transactions/ACID, consistent schema; NoSQL: flexible schema, huge scale/high write throughput, key-value or document access patterns; trade-offs in consistency and querying."
+          },
+          {
+            "id": "sd2",
+            "level": 2,
+            "type": "design",
+            "question": "Design a URL shortener at a high level.",
+            "rubric": "APIs (create short link, redirect), ID generation (base62 counter or hash with collision handling), key-value storage, cache for hot links, 301/302 redirects, read-heavy scaling, optional expiry/analytics."
+          },
+          {
+            "id": "sd3",
+            "level": 3,
+            "type": "design",
+            "question": "How would you design a news feed for 10 million users?",
+            "rubric": "Fan-out on write vs. on read (hybrid for celebrities), feed cache per user, ranking, pagination, storage for posts and follows, async workers/queues, trade-offs in latency and freshness."
+          }
+        ]
+      },
+      "nlp": {
+        "label": "NLP & language tech",
+        "questions": [
+          {
+            "id": "nlp1",
+            "level": 1,
+            "type": "concept",
+            "question": "What is tokenization, and why does it matter for language models?",
+            "rubric": "Splitting text into units (words, subwords like BPE/WordPiece, characters); determines vocabulary, sequence length/cost, handling of rare words and other languages."
+          },
+          {
+            "id": "nlp2",
+            "level": 2,
+            "type": "concept",
+            "question": "What is a word or sentence embedding, and what can you do with one?",
+            "rubric": "A dense vector representing meaning so similar texts are close; used for search/similarity, clustering, classification features, retrieval for LLMs."
+          },
+          {
+            "id": "nlp3",
+            "level": 2,
+            "type": "concept",
+            "question": "How would you evaluate an OCR model or a text classifier?",
+            "rubric": "OCR: character/word error rate (CER/WER) on a held-out labeled set, per-script or per-font breakdowns; classifier: precision, recall, F1, confusion matrix; check data leakage and error analysis."
           }
         ]
       }

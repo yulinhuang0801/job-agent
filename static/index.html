@@ -296,6 +296,17 @@
         <button id="story-add" class="secondary small" type="button">Add this question</button>
       </div>
       <p id="story-msg" class="msg"></p>
+      <details class="card" id="my-beh">
+        <summary>My behavioral questions</summary>
+        <p class="muted small">Add questions you expect (or got asked before). They show up under "Add this question" above. Company-specific questions from Skills check → Prepare for a specific company appear here too.</p>
+        <label for="mb-question">Question</label><input id="mb-question" placeholder="Tell me about a time you used data to change someone's mind.">
+        <label for="mb-look">What a strong answer shows <span class="muted small">(optional)</span></label><input id="mb-look" placeholder="A specific decision, the data used, and the outcome">
+        <label for="mb-kind">Kind</label>
+        <select id="mb-kind" class="inline-select"><option value="story">Story (situation, task, action, result)</option><option value="answer">Short answer</option></select>
+        <div class="row actions"><button id="mb-add" class="secondary" type="button">Add question</button><span id="mb-msg" class="msg"></span></div>
+        <div id="mb-list"></div>
+      </details>
+
       <h2 class="section-title">Your answers</h2>
       <div id="story-cards"></div>
     </section>
@@ -304,10 +315,26 @@
     <section id="view-skills" class="view">
       <h1>Skills check</h1>
       <p class="muted">About 5 short questions picked for your target roles and the skills you listed. Answer in your own words (English or 中文) without looking things up. It's for calibrating your profile honestly; employers never see it. Takes about 15 minutes.</p>
+      <details class="card" id="prep-card">
+        <summary>Prepare for a specific company</summary>
+        <p class="muted small">Tell it where you're applying (e.g. Anthropic, a search fund, Goldman's summer analyst program). It looks up that company's interview process and values, then adds tailored behavioral questions to Stories and technical questions to this check.</p>
+        <div class="grid2">
+          <div><label for="prep-company">Company</label><input id="prep-company" placeholder="Anthropic"></div>
+          <div><label for="prep-role">Role</label><input id="prep-role" placeholder="Software engineering intern"></div>
+        </div>
+        <div class="row actions"><button id="prep-go" type="button">Build my prep</button><span id="prep-msg" class="msg"></span></div>
+        <div id="prep-list"></div>
+      </details>
+
       <div id="skills-start" class="card">
-        <p>The questions come from a question bank covering Python, algorithms, SQL, backend, frontend, systems, ML, data analysis, Java, C/C++ and Git. They are chosen from what you told the coach, so do the Interview first.</p>
-        <button id="skills-start-btn">Start skills check</button>
-        <span id="skills-start-msg" class="msg"></span>
+        <p>Questions come from a bank of about 100 questions across CS (Python, algorithms, SQL, backend, frontend, systems, system design, ML, NLP, data, Java, C/C++, Git) and finance and consulting (accounting, valuation, M&amp;A/LBO, markets, cases, statistics, Excel), plus your own. Leave the areas blank to let it choose from your profile.</p>
+        <label>Areas <span class="muted small">(optional)</span></label>
+        <div id="skills-areas" class="chips pick"></div>
+        <label for="skills-count">Number of questions</label>
+        <select id="skills-count" class="inline-select">
+          <option value="4">4</option><option value="5" selected>5</option><option value="6">6</option><option value="8">8</option><option value="10">10</option>
+        </select>
+        <div class="row actions"><button id="skills-start-btn">Start skills check</button><span id="skills-start-msg" class="msg"></span></div>
       </div>
       <p id="skills-reason" class="muted"></p>
       <div id="skills-questions"></div>
@@ -317,6 +344,22 @@
       </div>
       <div id="skills-results"></div>
       <button id="skills-retake" class="ghost">Start a new skills check</button>
+
+      <details class="card" id="my-tech">
+        <summary>My technical questions</summary>
+        <p class="muted small">Add questions you want to be tested on. They become their own area above.</p>
+        <div class="grid2">
+          <div><label for="mt-area">Area</label><input id="mt-area" list="mt-areas" placeholder="e.g. Rust, LBO modeling, Anthropic prep"><datalist id="mt-areas"></datalist></div>
+          <div class="row">
+            <div><label for="mt-type">Type</label><select id="mt-type"><option value="concept">Explain</option><option value="practical">Coding / work it out</option><option value="design">Design</option></select></div>
+            <div><label for="mt-level">Level</label><select id="mt-level"><option value="1">Easy</option><option value="2" selected>Medium</option><option value="3">Harder</option></select></div>
+          </div>
+        </div>
+        <label for="mt-question">Question</label><textarea id="mt-question" rows="2"></textarea>
+        <label for="mt-rubric">What a strong answer includes <span class="muted small">(used for grading)</span></label><textarea id="mt-rubric" rows="2"></textarea>
+        <div class="row actions"><button id="mt-add" class="secondary" type="button">Add question</button><span id="mt-msg" class="msg"></span></div>
+        <div id="mt-list"></div>
+      </details>
     </section>
 
     <!-- Profile -->

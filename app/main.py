@@ -15,7 +15,7 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import assess, llm, outreach, pdf, prompts, research, resume_text, services, sourcing, store
+from . import assess, llm, outreach, pdf, prep, prompts, research, resume_text, services, sourcing, store
 from .jobs_fetch import FetchError, fetch_job
 
 STATIC = Path(__file__).resolve().parent.parent / "static"
@@ -322,9 +322,77 @@ def get_skills():
     return assess.public_skills(assess.load_skills())
 
 
+class SkillsStart(BaseModel):
+    count: int = 5
+    areas: list = []
+
+
+@app.get("/api/skills/areas")
+def skill_areas():
+    return {"areas": assess.skill_areas()}
+
+
 @app.post("/api/skills/start")
-def start_skills():
-    return assess.start_skills()
+def start_skills(body: Optional[SkillsStart] = None):
+    body = body or SkillsStart()
+    return assess.start_skills(body.count, [str(a) for a in body.areas])
+
+
+# ---------- Your own questions + company prep ----------
+
+class CustomQuestion(BaseModel):
+    kind: str  # "behavioral" or "technical"
+    question: str
+    label: str = ""
+    look_for: str = ""
+    area: str = ""
+    level: int = 2
+    type: str = "concept"
+    rubric: str = ""
+    lang: str = ""
+
+
+class PrepIn(BaseModel):
+    company: str
+    role: str = ""
+
+
+@app.get("/api/questions")
+def custom_questions():
+    return assess.load_custom()
+
+
+@app.post("/api/questions")
+def add_question(body: CustomQuestion):
+    if body.kind not in ("behavioral", "technical"):
+        raise HTTPException(400, "kind must be behavioral or technical")
+    item = body.model_dump(exclude={"kind"})
+    if body.kind == "behavioral":
+        item = {k: item[k] for k in ("question", "label", "look_for")}
+        item["kind"] = "answer" if body.type == "answer" else "story"
+    return assess.add_custom(body.kind, item)
+
+
+@app.delete("/api/questions/{qid}")
+def delete_question(qid: str):
+    return assess.delete_custom(qid)
+
+
+@app.get("/api/prep")
+def list_preps():
+    return {"preps": prep.load_preps(), "search_enabled": services.search_enabled()}
+
+
+@app.post("/api/prep")
+def build_prep(body: PrepIn):
+    prep.build(body.company, body.role)
+    return list_preps()
+
+
+@app.delete("/api/prep/{prep_id}")
+def delete_prep(prep_id: str):
+    prep.delete(prep_id)
+    return list_preps()
 
 
 @app.put("/api/skills/answers")

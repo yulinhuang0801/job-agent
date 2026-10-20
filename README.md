@@ -19,9 +19,11 @@ Then open http://127.0.0.1:8000, go to **Settings** and paste your DeepSeek API 
    - **🎤 Voice**: talk instead of typing. Uses the browser's voice typing (Chrome, Edge, Safari) by default, or a speech-to-text service from Settings (e.g. SiliconFlow SenseVoice, which works in China). **🔊 Read replies aloud** uses the computer's built-in voices.
    - **Web lookups** (optional Tavily key in Settings): the coach looks up course codes, small companies and labs you mention, and shows "🔎 Looked up: …" in the chat. Without a key it asks you what they are.
 2. **Stories**: behavioral questions from the question bank (teamwork, conflict, failure, ownership, plus optional extras). The coach asks up to 3 follow-ups per story until it has the situation, task, what *you* did, the result, and what you learned, and rates how convincing each story is.
-3. **Skills check**: about 5 technical questions picked from the question bank for your target roles and listed skills, graded 0–4 against a rubric, with feedback and a model answer. Tested skills show as verified (✓) in your profile.
+3. **Skills check**: 4–10 questions from a bank of ~100 across CS (Python, algorithms, SQL, backend, frontend, systems, system design, ML, NLP, data, Java, C/C++, Git) and finance/consulting (accounting, valuation, M&A/LBO, markets, cases, statistics, Excel), picked for your profile or from areas you choose. Coding questions use the VS Code editor (Monaco). Graded 0–4 against a rubric, with feedback and a model answer; tested skills show as verified (✓) in your profile.
+   - **Prepare for a specific company**: researches the company's interview process and values, then adds tailored behavioral questions to Stories and technical questions to the Skills check.
+   - **My questions**: add your own behavioral and technical questions (stored in `data/custom_questions.json`).
 4. **Build my profile**: turns the CV, interview, stories, skills check and anything looked up into `data/profile.json`, plus an honest evaluation (strengths, gaps, roles to target). Download a general CV from the Profile tab.
-5. **Find**: search the web by category (search funds, small PE, boutique banks, small VC, boutique consulting, family offices, or job postings on Greenhouse/Lever/Ashby), with optional location and industry. The AI screens results with the boutique-internship rules (under ~30 employees, no big-name firms, search funds still searching). Databases that need a login (Axial, SearchFunder) and LinkedIn are browsed by hand and pasted or imported as a CSV.
+5. **Find**: search by category (search funds, small PE, boutique banks, small VC, boutique consulting, family offices, quant firms, tech startups, company job boards), pull from SimplifyJobs' summer and off-season internship lists or Hacker News "Who is hiring?", or search your own sites and phrases, with optional location, industry and role. Uses Google results (Serper.dev) when that key is saved, otherwise Tavily. The AI screens results with the boutique-internship rules (under ~30 employees, no big-name firms, search funds still searching). Databases that need a login (Axial, SearchFunder) and LinkedIn are browsed by hand and pasted or imported as a CSV.
 6. **Jobs**: one workspace per firm or posting:
    1. **Research & contact**: reads the firm's home, team, about, contact and careers pages; writes a summary and specific hooks; picks the senior person to contact; finds their email (published on the site, Hunter.io if you add a key, or a guess from the firm's email pattern, clearly marked). If there's no email, it points you to Apollo.io.
    2. **Cold email** (with LinkedIn note and 7-day follow-up) in the voice of your example emails, opened as a draft in Gmail, Outlook or your mail app; or **Application form**: paste the form or its link, and walk through every question with drafted answers; download all answers as a .txt.
@@ -38,8 +40,10 @@ Then open http://127.0.0.1:8000, go to **Settings** and paste your DeepSeek API 
 | `app/services.py` | Optional outside services: Tavily web search, speech-to-text |
 | `app/resume_text.py` | Reads text out of uploaded CVs |
 | `app/assess.py` | Stories (behavioral STAR follow-ups) and the Skills check |
-| `app/question_bank.json` | Behavioral and technical question bank; edit it to add questions |
-| `app/sourcing.py` | Find tab: category searches, AI screening, list/CSV import |
+| `app/question_bank.json` | Behavioral and technical question bank (~25 behavioral types, ~100 technical questions) |
+| `app/prep.py` | Company-specific interview prep |
+| `static/editor.js` | VS Code (Monaco) code editor for the Skills check, with a basic fallback |
+| `app/sourcing.py` | Find tab: category searches, SimplifyJobs lists, Hacker News, your sites, AI screening, list/CSV import |
 | `app/research.py` | Reads a firm's website, finds the contact and their email (incl. email patterns, Hunter.io) |
 | `app/outreach.py` | Cold emails, application-form walkthrough, .txt export |
 | `.claude/skills/boutique-outreach/` | Claude Code skill with the outreach playbook |
@@ -55,7 +59,8 @@ Then open http://127.0.0.1:8000, go to **Settings** and paste your DeepSeek API 
 |---|---|---|
 | DeepSeek | All AI steps | Pay as you go |
 | Google Gemini (Flash-Lite by default) | Automatic backup when DeepSeek is busy | Free key from Google AI Studio |
-| Tavily | Find tab searches, interview look-ups | 1,000 searches a month |
+| Tavily | Find searches, interview look-ups, company prep | 1,000 searches a month |
+| Serper.dev | Google results for Find | 2,500 searches to start |
 | Hunter.io | Email lookups when a site doesn't list one | About 50 lookups a month |
 | AssemblyAI or SiliconFlow (or any OpenAI-style transcription) | 🎤 voice when the browser's voice typing doesn't work | See provider |
 

@@ -496,6 +496,7 @@ loaders.stories = async () => {
   stories = await api("/api/stories");
   if (!stories.messages.length) stories = await api("/api/stories/start", { method: "POST" });
   renderStories();
+  loadMyQuestions();
 };
 
 async function sendStory(text) {
@@ -576,6 +577,7 @@ const editors = {}; // question id -> editor for coding questions
 let editorsRound = 0; // bumped on every redraw, so editors from an older draw never save
 
 function defaultLang(q) {
+  if (q.lang) return q.lang;
   const a = (q.area || "").toLowerCase();
   return a.includes("sql") ? "sql" : a.includes("javascript") || a.includes("frontend") ? "javascript"
     : a === "java" ? "java" : a.includes("c++") || a.includes("c /") ? "cpp" : a.includes("excel") || a.includes("accounting") ? "plaintext" : "python";
@@ -656,15 +658,97 @@ function renderSkills() {
     h("p", { class: "muted small" }, "These levels go into your profile when you click Build my profile."))] : []));
 }
 
+const pickedAreas = new Set();
+
+function renderAreas(areas) {
+  $("#skills-areas").replaceChildren(...areas.map((a) => {
+    const chip = h("span", { class: `chip${pickedAreas.has(a.label) ? " on" : ""}${a.mine ? " mine" : ""}`, title: `${a.count} questions` }, a.label);
+    chip.addEventListener("click", () => {
+      pickedAreas.has(a.label) ? pickedAreas.delete(a.label) : pickedAreas.add(a.label);
+      chip.classList.toggle("on");
+    });
+    return chip;
+  }));
+  $("#mt-areas").replaceChildren(...areas.map((a) => h("option", { value: a.label })));
+}
+
+function questionRow(text, sub, id, after) {
+  const del = h("button", { class: "ghost small danger", type: "button" }, "✕");
+  del.addEventListener("click", async () => {
+    if (!confirm("Delete this question?")) return;
+    await api(`/api/questions/${id}`, { method: "DELETE" });
+    after();
+  });
+  return h("div", { class: "qrow" }, h("div", {}, text, sub ? h("div", { class: "muted small" }, sub) : null), del);
+}
+
+async function loadMyQuestions() {
+  const q = await api("/api/questions");
+  $("#mt-list").replaceChildren(...q.technical.map((t) => questionRow(t.question, `${t.area} · ${LEVELS[t.level] || ""} · ${t.type}`, t.id, refreshSkillsExtras)));
+  $("#mb-list").replaceChildren(...q.behavioral.map((b) => questionRow(b.question, [b.group, b.kind === "answer" ? "short answer" : "story"].filter(Boolean).join(" · "), b.id, refreshStoriesExtras)));
+}
+
+async function refreshSkillsExtras() {
+  renderAreas((await api("/api/skills/areas")).areas);
+  await loadMyQuestions();
+}
+
+async function refreshStoriesExtras() {
+  await loadMyQuestions();
+  if (stories) {
+    stories = await api("/api/stories");
+    renderStories();
+  }
+}
+
+function prepCard(p) {
+  const practice = h("button", { class: "small", type: "button" }, "Practice these in Stories");
+  practice.addEventListener("click", () => busy(practice, "Adding…", async () => {
+    for (const id of p.behavioral_ids) {
+      try { await api("/api/stories/add", { method: "POST", body: { competency: id } }); } catch (e) { /* already added */ }
+    }
+    location.hash = "#stories";
+  }));
+  const check = h("button", { class: "small secondary", type: "button" }, "Skills check on these");
+  check.addEventListener("click", () => busy(check, "Picking questions…", async () => {
+    if (skills && skills.status === "answering" && !confirm("Replace your current skills check?")) return;
+    skills = await api("/api/skills/start", { method: "POST", body: { count: Math.min(5, p.technical_ids.length || 5), areas: [p.area] } });
+    renderSkills();
+    $("#skills-questions").scrollIntoView({ behavior: "smooth" });
+  }));
+  const del = h("button", { class: "ghost small danger", type: "button" }, "Delete");
+  del.addEventListener("click", async () => {
+    if (!confirm(`Delete the ${p.company} prep and its questions?`)) return;
+    renderPreps((await api(`/api/prep/${p.id}`, { method: "DELETE" })).preps);
+    refreshSkillsExtras();
+  });
+  return h("details", { class: "card", open: true },
+    h("summary", {}, `${p.company}${p.role ? " · " + p.role : ""}`),
+    p.summary ? h("p", {}, p.summary) : null,
+    !p.searched ? h("p", { class: "small missing-note" }, "Built without web search (no Tavily key), from general knowledge. Double-check details.") : null,
+    (p.process || []).length ? [h("b", {}, "Likely interview stages"), h("ol", { class: "tight" }, p.process.map((x) => h("li", {}, x)))] : null,
+    (p.values || []).length ? [h("b", {}, "What they look for"), list(p.values.map((v) => `${v.value}: ${v.how_to_show}`))] : null,
+    (p.tips || []).length ? [h("b", {}, "Tips"), list(p.tips)] : null,
+    h("p", { class: "muted small" }, `Added ${p.behavioral_ids.length} behavioral and ${p.technical_ids.length} technical questions to your question bank.`),
+    h("div", { class: "row actions" }, practice, check, del));
+}
+
+function renderPreps(preps) {
+  $("#prep-list").replaceChildren(...preps.map(prepCard));
+}
+
 loaders.skills = async () => {
   skills = await api("/api/skills");
   renderSkills();
+  refreshSkillsExtras();
+  const r = await api("/api/prep");
+  renderPreps(r.preps);
 };
 
 $("#skills-start-btn").addEventListener("click", (e) =>
   busy(e.target, "Picking questions…", async () => {
     try {
-      skills = await api("/api/skills/start", { method: "POST" });
+      skills = await api("/api/skills/start", { method: "POST", body: { count: +$("#skills-count").value, areas: [...pickedAreas] } });
       setMsg($("#skills-start-msg"), "");
       renderSkills();
     } catch (err) {
@@ -672,6 +756,41 @@ $("#skills-start-btn").addEventListener("click", (e) =>
     }
   })
 );
+
+$("#prep-go").addEventListener("click", (e) => busy(e.target, "Researching the company… (up to a minute)", async () => {
+  try {
+    const r = await api("/api/prep", { method: "POST", body: { company: $("#prep-company").value, role: $("#prep-role").value } });
+    renderPreps(r.preps);
+    refreshSkillsExtras();
+    setMsg($("#prep-msg"), "Done. Your new questions are in Stories and in this check's areas.", "ok");
+  } catch (err) {
+    setMsg($("#prep-msg"), err.message, "err");
+  }
+}));
+
+$("#mt-add").addEventListener("click", (e) => busy(e.target, "Adding…", async () => {
+  try {
+    await api("/api/questions", { method: "POST", body: { kind: "technical", area: $("#mt-area").value.trim(), type: $("#mt-type").value,
+      level: +$("#mt-level").value, question: $("#mt-question").value.trim(), rubric: $("#mt-rubric").value.trim() } });
+    $("#mt-question").value = ""; $("#mt-rubric").value = "";
+    setMsg($("#mt-msg"), "Added.", "ok");
+    refreshSkillsExtras();
+  } catch (err) {
+    setMsg($("#mt-msg"), err.message, "err");
+  }
+}));
+
+$("#mb-add").addEventListener("click", (e) => busy(e.target, "Adding…", async () => {
+  try {
+    await api("/api/questions", { method: "POST", body: { kind: "behavioral", question: $("#mb-question").value.trim(),
+      look_for: $("#mb-look").value.trim(), type: $("#mb-kind").value } });
+    $("#mb-question").value = ""; $("#mb-look").value = "";
+    setMsg($("#mb-msg"), "Added. Pick it under \"Add this question\" above.", "ok");
+    refreshStoriesExtras();
+  } catch (err) {
+    setMsg($("#mb-msg"), err.message, "err");
+  }
+}));
 
 $("#skills-submit").addEventListener("click", (e) => {
   const answers = collectAnswers();

@@ -317,3 +317,22 @@ Rules:
 
 JSON shape:
 {"answers": [{"index": 0, "answer": "", "note": ""}]}"""
+
+
+COMPANY_PREP_SYSTEM = """You build an interview prep plan for one candidate applying to one specific company and role. You get search results about the company's interview process, values and products (they may be thin or empty; then use what you reliably know and say so). Output a json object only.
+
+Produce:
+- summary: what the company does and what it cares about, in 2-3 sentences
+- process: the likely interview stages for this role, in order (e.g. recruiter screen, online assessment, technical rounds, values/behavioral, final). Say "typical for similar companies" if not confirmed.
+- values: the company's stated values or principles that interviewers probe, each with one line on how to show it
+- behavioral: 5-7 behavioral questions this company is likely to ask, phrased the way they would ask them, each with look_for (what a strong answer shows FOR THIS COMPANY) and kind ("story" for STAR stories, "answer" for short answers like "Why this company?"). Always include "Why do you want to work at <company>?".
+- technical: 5-7 technical questions matching this ROLE at this company (coding, system design, ML, finance, case, etc. as fits), each with area (use "<company> prep"), level 1-3, type (concept|practical|design), question, rubric (what a strong answer includes), and lang for practical questions (python, sql, javascript, java, cpp or plaintext).
+- tips: 3-5 specific, practical tips for this company's interviews
+- sources_used: which search results you relied on
+Be specific to this company. Never invent facts about the process you can't support; flag uncertainty.
+
+JSON shape:
+{"summary": "", "process": [""], "values": [{"value": "", "how_to_show": ""}],
+ "behavioral": [{"label": "", "question": "", "look_for": "", "kind": "story"}],
+ "technical": [{"area": "", "level": 2, "type": "", "question": "", "rubric": "", "lang": ""}],
+ "tips": [""], "sources_used": [""]}"""

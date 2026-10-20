@@ -1,6 +1,7 @@
 """The Stories step (behavioral questions with STAR follow-ups) and the Skills check
 (a short technical quiz picked from the question bank and graded against rubrics)."""
 import json
+import uuid
 from pathlib import Path
 
 from . import llm, prompts, store
@@ -23,6 +24,56 @@ def candidate_background(max_chars=5000):
     return text[-max_chars:]
 
 
+# ---------- Your own questions (data/custom_questions.json) ----------
+# Users (and Company prep) can add questions next to the built-in bank. Behavioral ones become extra
+# question types on the Stories tab; technical ones become their own area in the Skills check.
+
+def load_custom():
+    return {"technical": [], "behavioral": [], **store.load("custom_questions", {})}
+
+
+def comps():
+    merged = dict(BEHAVIORAL["competencies"])
+    for q in load_custom()["behavioral"]:
+        merged[q["id"]] = {"label": q["label"], "group": q.get("group") or "My questions", "kind": q.get("kind") or "story",
+                           "questions": [q["question"]], "look_for": q.get("look_for") or "A specific, real example with what you did and the result."}
+    return merged
+
+
+def tech_areas():
+    areas = {k: {"label": v["label"], "questions": list(v["questions"])} for k, v in TECHNICAL.items()}
+    for q in load_custom()["technical"]:
+        areas.setdefault("my:" + q["area"], {"label": q["area"], "questions": []})["questions"].append(q)
+    return areas
+
+
+def add_custom(kind, item):
+    data = load_custom()
+    item = {k: v for k, v in item.items() if v not in (None, "")}
+    item["id"] = "my_" + uuid.uuid4().hex[:8]
+    if kind == "behavioral":
+        if not item.get("question"):
+            raise llm.LLMError("Write the question first.")
+        item.setdefault("label", item["question"][:60])
+    else:
+        if not (item.get("question") and item.get("area")):
+            raise llm.LLMError("A technical question needs an area and the question.")
+        item["level"] = int(item.get("level") or 2)
+        item.setdefault("type", "concept")
+        item.setdefault("rubric", "Judge correctness, completeness and clarity of the explanation.")
+    data[kind].append(item)
+    store.save("custom_questions", data)
+    return data
+
+
+def delete_custom(qid):
+    data = load_custom()
+    for kind in ("technical", "behavioral"):
+        data[kind] = [q for q in data[kind] if q["id"] != qid]
+    store.save("custom_questions", data)
+    return data
+
+
 # ---------- Stories ----------
 # Each question type in the bank is either a STAR "story" or a short "answer". The candidate can
 # chat through them one by one, or paste/upload a prep document that gets filed into all of them
@@ -34,15 +85,14 @@ ANSWER_FIELDS = ("answer",)
 ALL_FIELDS = STAR_FIELDS + ANSWER_FIELDS
 IMPORT_MIN_CHARS = 2500   # a message this long is treated as a pasted document
 MATERIAL_MAX_CHARS = 60000
-COMPS = BEHAVIORAL["competencies"]
 
 
 def _fields(comp):
-    return STAR_FIELDS if COMPS[comp]["kind"] == "story" else ANSWER_FIELDS
+    return STAR_FIELDS if comps()[comp]["kind"] == "story" else ANSWER_FIELDS
 
 
 def _new_entry(comp):
-    return {"competency": comp, "question": COMPS[comp]["questions"][0], "followups": 0, "status": "pending",
+    return {"competency": comp, "question": comps()[comp]["questions"][0], "followups": 0, "status": "pending",
             **{f: "" for f in ALL_FIELDS}, "missing": [], "quality": 0, "notes": ""}
 
 
@@ -52,7 +102,7 @@ def _empty_stories():
 
 def load_stories():
     state = {**_empty_stories(), **store.load("stories", {})}
-    state["plan"] = [c for c in state["plan"] if c in COMPS]
+    state["plan"] = [c for c in state["plan"] if c in comps()]
     for comp in state["plan"]:
         entry = {**_new_entry(comp), **state["stories"].get(comp, {})}
         if entry["status"] == "active" and not any(m.get("competency") == comp for m in state["messages"]):
@@ -85,10 +135,10 @@ def public_stories(state):
                      if m.get("kind") == "import" else m for m in state["messages"]],
         "stories": state["stories"],
         "sources": [{"name": s["name"], "chars": len(s["text"])} for s in state["sources"]],
-        "labels": {c: COMPS[c]["label"] for c in COMPS},
-        "kinds": {c: COMPS[c]["kind"] for c in COMPS},
-        "groups": {c: COMPS[c]["group"] for c in COMPS},
-        "extra_left": [c for c in BEHAVIORAL["extra"] if c not in state["plan"]],
+        "labels": {c: comps()[c]["label"] for c in comps()},
+        "kinds": {c: comps()[c]["kind"] for c in comps()},
+        "groups": {c: comps()[c]["group"] for c in comps()},
+        "extra_left": [c for c in BEHAVIORAL["extra"] + [q["id"] for q in load_custom()["behavioral"]] if c not in state["plan"]],
     }
 
 
@@ -99,7 +149,7 @@ def _has_content(entry):
 def _ask_for(comp, entry):
     """What to ask when this question comes up: a gap-filling question if part of it is
     already captured, otherwise the bank question."""
-    label = COMPS[comp]["label"]
+    label = comps()[comp]["label"]
     if _has_content(entry) and entry["missing"]:
         about = f' ("{entry["title"]}")' if entry.get("title") else ""
         return f"{label}{about}: I have most of this already. What's still missing or vague: {', '.join(entry['missing'])}. Can you fill that in?"
@@ -146,7 +196,7 @@ def _others_summary(state, skip):
         if comp == skip or not _has_content(e):
             continue
         gist = e.get("title") or (e.get("answer") or e.get("action") or "")[:120]
-        lines.append(f"- {COMPS[comp]['label']}: {gist} [{e['status']}]")
+        lines.append(f"- {comps()[comp]['label']}: {gist} [{e['status']}]")
     return "\n".join(lines) or "(none yet)"
 
 
@@ -155,7 +205,7 @@ def import_material(text, name="Pasted document", record_message=True):
     state = load_stories()
     if not any(s["text"] == text for s in state["sources"]):
         state["sources"].append({"name": name, "text": text})
-    types = "\n".join(f"{cid} | {c['kind']} | {c['label']} | {c['look_for']}" for cid, c in COMPS.items())
+    types = "\n".join(f"{cid} | {c['kind']} | {c['label']} | {c['look_for']}" for cid, c in comps().items())
     out = llm.chat_json([
         {"role": "system", "content": prompts.STORY_IMPORT_SYSTEM.format(types=types)},
         {"role": "user", "content": text[:MATERIAL_MAX_CHARS]},
@@ -164,7 +214,7 @@ def import_material(text, name="Pasted document", record_message=True):
     filed, thin = [], []
     for item in out.get("items") or []:
         comp = item.get("type")
-        if comp not in COMPS:
+        if comp not in comps():
             continue
         if comp not in state["plan"]:
             state["plan"].append(comp)
@@ -179,7 +229,7 @@ def import_material(text, name="Pasted document", record_message=True):
         entry["notes"] = str(item.get("notes") or "")
         complete = _has_content(entry) and not entry["missing"] and entry["quality"] >= 4
         entry["status"] = "done" if complete else "pending"
-        (filed if complete else thin).append(COMPS[comp]["label"])
+        (filed if complete else thin).append(comps()[comp]["label"])
 
     # Finished answers first, then partly filled ones (asked next), then ones not covered at all.
     def order(c):
@@ -189,7 +239,7 @@ def import_material(text, name="Pasted document", record_message=True):
     for e in state["stories"].values():
         if e["status"] == "active":
             e["status"] = "pending"
-    empty = [COMPS[c]["label"] for c in state["plan"] if not _has_content(state["stories"][c])]
+    empty = [comps()[c]["label"] for c in state["plan"] if not _has_content(state["stories"][c])]
     nxt = _activate_next(state)
 
     parts = [f"I read your document and filed {len(filed) + len(thin)} answers."]
@@ -228,7 +278,7 @@ def story_turn(text):
     comp = _current(state)
     if not comp:
         raise llm.LLMError("All questions are done. Add another one below, or start over.")
-    info, entry = COMPS[comp], state["stories"][comp]
+    info, entry = comps()[comp], state["stories"][comp]
     entry["status"] = "active"
     fields = _fields(comp)
 
@@ -276,7 +326,7 @@ def story_turn(text):
 
 def add_story(comp):
     state = load_stories()
-    if comp not in COMPS or comp in state["plan"]:
+    if comp not in comps() or comp in state["plan"]:
         raise llm.LLMError("Pick a question you haven't added yet.")
     was_done = _current(state) is None
     state["plan"].append(comp)
@@ -300,10 +350,10 @@ def stories_for_profile():
         e = state["stories"][comp]
         if e["status"] == "skipped" or not _has_content(e):
             continue
-        if COMPS[comp]["kind"] == "story":
-            stories.append({"theme": COMPS[comp]["label"], **{f: e[f] for f in STAR_FIELDS}, "quality": e["quality"]})
+        if comps()[comp]["kind"] == "story":
+            stories.append({"theme": comps()[comp]["label"], **{f: e[f] for f in STAR_FIELDS}, "quality": e["quality"]})
         else:
-            answers.append({"topic": COMPS[comp]["label"], "answer": e["answer"]})
+            answers.append({"topic": comps()[comp]["label"], "answer": e["answer"]})
     return {"stories": stories, "prepared_answers": answers} if stories or answers else None
 
 
@@ -324,9 +374,11 @@ def public_skills(state):
     return {**state, "questions": qs}
 
 
-def _bank_lines():
+def _bank_lines(only=None):
     lines = []
-    for area_id, area in TECHNICAL.items():
+    for area_id, area in tech_areas().items():
+        if only and area["label"] not in only and area_id not in only:
+            continue
         for q in area["questions"]:
             short = q["question"].replace("\n", " ")[:150]
             lines.append(f"{q['id']} | {area['label']} | {q['level']} | {q['type']} | {short}")
@@ -334,29 +386,41 @@ def _bank_lines():
 
 
 def _bank_index():
-    return {q["id"]: {**q, "area": area["label"]} for area in TECHNICAL.values() for q in area["questions"]}
+    return {q["id"]: {**q, "area": area["label"]} for area in tech_areas().values() for q in area["questions"]}
 
 
-def start_skills(count=5):
+def skill_areas():
+    return [{"id": k, "label": v["label"], "count": len(v["questions"]), "mine": k.startswith("my:")} for k, v in tech_areas().items()]
+
+
+def start_skills(count=5, areas=None):
+    count = max(3, min(10, int(count or 5)))
+    areas = [a for a in (areas or []) if a]
+    bank = _bank_lines(areas or None)
+    if not bank:
+        raise llm.LLMError("No questions in those areas yet.")
+    ask = f"\n\nThe candidate chose these areas, so use only them: {', '.join(areas)}." if areas else ""
     index = _bank_index()
     out = llm.chat_json([
-        {"role": "system", "content": prompts.SKILLS_PICK_SYSTEM.format(count=count, bank=_bank_lines())},
+        {"role": "system", "content": prompts.SKILLS_PICK_SYSTEM.format(count=count, bank=bank) + ask},
         {"role": "user", "content": f"CANDIDATE:\n{candidate_background()}"},
     ], max_tokens=6000, temperature=0.3)
     questions = [dict(index[i]) for i in out.get("picked") or [] if i in index]
-    for n, c in enumerate(out.get("custom") or []):
-        if c.get("question") and c.get("rubric"):
-            questions.append({"id": f"custom{n + 1}", "area": c.get("area") or "Other", "level": int(c.get("level") or 2),
-                              "type": c.get("type") or "concept", "question": c["question"], "rubric": c["rubric"],
-                              "custom": True})
+    if not areas:
+        for n, c in enumerate(out.get("custom") or []):
+            if c.get("question") and c.get("rubric"):
+                questions.append({"id": f"custom{n + 1}", "area": c.get("area") or "Other", "level": int(c.get("level") or 2),
+                                  "type": c.get("type") or "concept", "question": c["question"], "rubric": c["rubric"],
+                                  "custom": True})
     seen, unique = set(), []
     for q in questions:
         if q["id"] not in seen:
             seen.add(q["id"])
             unique.append(q)
-    if len(unique) < 3:
+    available = len(bank.splitlines())
+    if len(unique) < min(3, count, available):
         raise llm.LLMError("Couldn't pick questions. Please try again.")
-    state = {**_empty_skills(), "status": "answering", "reason": out.get("reason") or "", "questions": unique[:count + 1]}
+    state = {**_empty_skills(), "status": "answering", "reason": out.get("reason") or "", "questions": unique[:count]}
     store.save("skills", state)
     return public_skills(state)
 

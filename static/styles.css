@@ -207,3 +207,7 @@ details.job[open] > summary { margin-bottom: 6px; }
 textarea.code, pre.code-answer { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; tab-size: 4; }
 pre.code-answer { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px; overflow-x: auto; white-space: pre; }
 .editor-bar { margin-bottom: 6px; }
+.chips.pick .chip { cursor: pointer; border: 1px solid transparent; background: var(--bg); color: var(--text); }
+.chips.pick .chip.on { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+.chips.pick .chip.mine { font-style: italic; }
+.qrow { display: flex; gap: 10px; align-items: flex-start; justify-content: space-between; padding: 8px 0; border-top: 1px solid var(--border); font-size: 14px; }
