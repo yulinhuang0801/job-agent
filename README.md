@@ -34,13 +34,19 @@ Then open http://127.0.0.1:8000, go to **Settings** and paste your DeepSeek API 
    - **Prepare for a specific company**: researches the company's interview process and values, then adds tailored behavioral questions to Stories and technical questions to the Skills check.
    - **My questions**: add your own behavioral and technical questions (stored in `data/custom_questions.json`).
 4. **Build my profile**: turns the CV, interview, stories, skills check and anything looked up into `data/profile.json`, plus an honest evaluation (strengths, gaps, roles to target). Download a general CV from the Profile tab.
-5. **Find**: search by category (search funds, small PE, boutique banks, small VC, boutique consulting, family offices, quant firms, tech startups, company job boards), pull from SimplifyJobs' summer and off-season internship lists or Hacker News "Who is hiring?", or search your own sites and phrases, with optional location, industry and role. Uses Google results (Serper.dev) when that key is saved, otherwise Tavily. The AI screens results with the boutique-internship rules (under ~30 employees, no big-name firms, search funds still searching). Databases that need a login (Axial, SearchFunder) and LinkedIn are browsed by hand and pasted or imported as a CSV.
-6. **Jobs**: one workspace per firm or posting:
+5. **Find → Database** (default): a local SQLite database (`data/jobs_db.sqlite`) built from public sources, with Handshake-style filters:
+   - **SEC Form ADV** (monthly): ~24,000 investment advisers (PE, VC, hedge funds, real estate, wealth managers) with employee counts, private-fund types, fund assets and websites. Exempt reporting advisers are mostly small private fund managers.
+   - **SEC Form D** (quarterly, last 4 quarters by default): ~55,000 new funds and startups that just raised money (VC, PE, hedge, biotech, software, healthcare, energy…), with ~166,000 people named on the filings (executive officers, directors, general partners).
+   - **Company job boards** (Greenhouse, Lever, Ashby public APIs; ~250 boards, add more by link) plus the SimplifyJobs internship lists: ~21,000 open postings.
+   - Filters: job type (internship, co-op, new grad, full-time, part-time), job function (~24), industry (~30), term, state, country, remote, visa hints ("No sponsorship", "US citizens only"); for firms: industry, category, employees, state, small firms only, has website, has named people.
+   - Update each source from Find → Data sources. SEC downloads need a contact email (Settings → Firm database).
+6. **Find → Web search / Import**: search by category (search funds, small PE, boutique banks, small VC, boutique consulting, family offices, quant firms, tech startups, company job boards), pull from SimplifyJobs' summer and off-season internship lists or Hacker News "Who is hiring?", or search your own sites and phrases, with optional location, industry and role. Uses Google results (Serper.dev) when that key is saved, otherwise Tavily. The AI screens results with the boutique-internship rules (under ~30 employees, no big-name firms, search funds still searching). Databases that need a login (Axial, SearchFunder) and LinkedIn are browsed by hand and pasted or imported as a CSV.
+7. **Jobs**: one workspace per firm or posting:
    1. **Research & contact**: reads the firm's home, team, about, contact and careers pages; writes a summary and specific hooks; picks the senior person to contact; finds their email (published on the site, Hunter.io if you add a key, or a guess from the firm's email pattern, clearly marked). If there's no email, it points you to Apollo.io.
    2. **Cold email** (with LinkedIn note and 7-day follow-up) in the voice of your example emails, opened as a draft in Gmail, Outlook or your mail app; or **Application form**: paste the form or its link, and walk through every question with drafted answers; download all answers as a .txt.
    3. **Fit score, tailored resume and cover letter** (addressed to the contact).
-7. **Tracker**: status, contact, applied/contacted date, follow-up due date and notes; export to CSV for Excel or Google Sheets.
-8. **Guide**: the outreach playbook, including how to find emails with Apollo.io.
+8. **Tracker**: status, contact, applied/contacted date, follow-up due date and notes; export to CSV for Excel or Google Sheets.
+9. **Guide**: the outreach playbook, including how to find emails with Apollo.io.
 
 ## Layout
 
@@ -57,6 +63,9 @@ Then open http://127.0.0.1:8000, go to **Settings** and paste your DeepSeek API 
 | `app/profile_merge.py` | Safe profile updates: AI proposes a patch, code applies it without deleting or overwriting edits |
 | `app/mentors.py` | Lead mentor (daily plan, progress snapshot) and the behavioral, technical and resume coaches |
 | `static/editor.js` | VS Code (Monaco) code editor for the Skills check, with a basic fallback |
+| `app/db.py` | Local firm and job database (SQLite): schema, search with filters and counts |
+| `app/crawlers.py` | Importers: SEC Form ADV, SEC Form D, company job boards, SimplifyJobs (background, with progress) |
+| `app/taxonomy.py` | Handshake-style categories and the rules that assign them |
 | `app/sourcing.py` | Find tab: category searches, SimplifyJobs lists, Hacker News, your sites, AI screening, list/CSV import |
 | `app/research.py` | Reads a firm's website, finds the contact and their email (incl. email patterns, Hunter.io) |
 | `app/outreach.py` | Cold emails, application-form walkthrough, .txt export |
@@ -84,3 +93,4 @@ Then open http://127.0.0.1:8000, go to **Settings** and paste your DeepSeek API 
 - Chrome extension that fills application forms (the user clicks Submit)
 - Accounts and a real database for hosting many users
 - Crawling JavaScript-heavy sites at scale (Crawl4AI or Firecrawl would replace `app/research.py`'s fetcher; Jina Reader is used as a fallback today)
+- FINRA BrokerCheck for boutique investment banks, and discovering more company job boards automatically

@@ -128,6 +128,7 @@ loaders.settings = async () => {
 
   keyField("#stt-key", settings.has_stt, settings.stt_hint, "sk-...");
   $("#stt-status").textContent = settings.has_stt ? "✓ Using this service for 🎤." : "Off: 🎤 uses your browser's voice typing.";
+  $("#sec-contact").value = settings.sec_contact || "";
   $("#stt-provider").value = settings.stt_provider;
   $("#stt-base-url").value = settings.stt_base_url;
   $("#stt-model").value = settings.stt_model;
@@ -160,7 +161,7 @@ function settingsBody() {
   return {
     api_key: val("#api-key"), model: model || null, base_url: val("#base-url"),
     backup_key: val("#backup-key"), backup_model: val("#backup-model"), backup_base_url: val("#backup-base-url"),
-    search_key: val("#search-key"), hunter_key: val("#hunter-key"), serper_key: val("#serper-key"),
+    search_key: val("#search-key"), hunter_key: val("#hunter-key"), serper_key: val("#serper-key"), sec_contact: val("#sec-contact"),
     stt_key: val("#stt-key"), stt_base_url: val("#stt-base-url"), stt_model: val("#stt-model"), stt_provider: $("#stt-provider").value,
   };
 }
@@ -913,6 +914,178 @@ $("#save-profile").addEventListener("click", async () => {
   }
 });
 
+// ---------- Find: database ----------
+
+const DB_FILTERS = {
+  postings: [["job_type", "Type"], ["function", "Job function"], ["industry", "Industry"], ["term", "Term"], ["state", "State"],
+             ["country", "Country"], ["sponsorship", "Visa"], ["source", "Source"]],
+  firms: [["industry", "Industry"], ["category", "Category"], ["size", "Employees"], ["state", "State"], ["source", "Source"]],
+};
+const DB_TOGGLES = {
+  postings: [["remote", "Remote only"]],
+  firms: [["small", "Small firms (≤30 people)"], ["has_website", "Has a website"], ["has_people", "Has named people"]],
+};
+let dbTable = "postings";
+let dbFilters = { postings: { job_type: "Internship" }, firms: { small: "1" } };
+let dbPage = 1;
+let dbResult = null;
+let dbPoll = null;
+const SOURCE_KEYS = { "SEC Form ADV": "adv", "SEC Form D": "formd", "Job boards": "jobs" };
+const SOURCE_TEXT = {
+  "SEC Form ADV": "Investment advisers (PE, VC, hedge, real estate, wealth managers), monthly",
+  "SEC Form D": "New funds and startups that just raised money, with people on the filing, quarterly",
+  "Job boards": "Company job boards (Greenhouse, Lever, Ashby) and SimplifyJobs internship lists",
+};
+
+function setFindMode(mode) {
+  document.querySelectorAll("#find-modes .coach-tab").forEach((b) => b.classList.toggle("on", b.dataset.mode === mode));
+  $("#find-db").classList.toggle("hidden", mode !== "db");
+  $("#find-web").classList.toggle("hidden", mode !== "web");
+  $("#find-import").classList.toggle("hidden", mode !== "import");
+  $("#find-results").classList.toggle("hidden", mode === "db");
+  try { localStorage.setItem("findMode", mode); } catch (e) { /* storage blocked */ }
+}
+document.querySelectorAll("#find-modes .coach-tab").forEach((b) => b.addEventListener("click", () => setFindMode(b.dataset.mode)));
+
+async function loadDbStatus() {
+  const st = await api("/api/db/status");
+  $("#db-counts").textContent = `(${st.counts.firms.toLocaleString()} firms & funds · ${st.counts.people.toLocaleString()} people · ${st.counts.postings.toLocaleString()} postings)`;
+  $("#db-sec-note").classList.toggle("hidden", st.sec_contact_set);
+  fill($("#db-source-list"), Object.entries(SOURCE_KEYS).map(([name, key]) => {
+    const s = st.sources[name] || {};
+    const running = st.running.includes(name);
+    const btn = h("button", { class: "small secondary", type: "button", disabled: running }, running ? "Updating…" : s.updated ? "Update" : "Download");
+    btn.addEventListener("click", async () => {
+      try {
+        await api("/api/db/refresh", { method: "POST", body: { source: key } });
+        loadDbStatus();
+      } catch (err) { setMsg($("#db-msg"), err.message, "err"); }
+    });
+    return h("div", { class: "qrow" },
+      h("div", {}, h("b", {}, name), h("div", { class: "muted small" }, SOURCE_TEXT[name]),
+        h("div", { class: "small" + (s.status === "error" ? " sev-high" : "") },
+          running ? `⏳ ${s.message || "Working…"}` : s.status === "error" ? `Failed: ${s.message}` : s.updated ? `✓ ${s.message} · updated ${s.updated.slice(0, 10)}` : "Not downloaded yet")),
+      btn);
+  }));
+  clearTimeout(dbPoll);
+  if (st.running.length) dbPoll = setTimeout(() => { loadDbStatus(); if (!$("#find-db").classList.contains("hidden")) dbSearch(); }, 4000);
+}
+
+function dbParams() {
+  const params = new URLSearchParams({ page: dbPage });
+  const q = $("#db-q").value.trim();
+  if (q) params.set("q", q);
+  for (const [k, v] of Object.entries(dbFilters[dbTable])) if (v) params.set(k, v);
+  return params;
+}
+
+async function dbSearch(resetPage) {
+  if (resetPage) dbPage = 1;
+  try {
+    dbResult = await api(`/api/db/${dbTable}?${dbParams()}`);
+    renderDbFilters();
+    renderDbResults();
+  } catch (err) {
+    fill($("#db-results"), h("p", { class: "msg err" }, err.message));
+  }
+}
+
+function renderDbFilters() {
+  const f = dbFilters[dbTable];
+  const selects = DB_FILTERS[dbTable].map(([key, label]) => {
+    const options = (dbResult.facets[key] || []).map((o) => h("option", { value: o.value, selected: f[key] === o.value }, `${o.value} (${o.count.toLocaleString()})`));
+    if (f[key] && !options.some((o) => o.value === f[key])) options.unshift(h("option", { value: f[key], selected: true }, f[key]));
+    const sel = h("select", {}, h("option", { value: "" }, `Any ${label.toLowerCase()}`), options);
+    sel.addEventListener("change", () => { f[key] = sel.value; dbSearch(true); });
+    return h("label", { class: "filter" }, h("span", { class: "muted small" }, label), sel);
+  });
+  const toggles = DB_TOGGLES[dbTable].map(([key, label]) => {
+    const cb = h("input", { type: "checkbox", checked: f[key] === "1" });
+    cb.addEventListener("change", () => { f[key] = cb.checked ? "1" : ""; dbSearch(true); });
+    return h("label", { class: "toggle small" }, cb, " ", label);
+  });
+  const clear = h("button", { class: "ghost small", type: "button" }, "Clear filters");
+  clear.addEventListener("click", () => { dbFilters[dbTable] = {}; $("#db-q").value = ""; dbSearch(true); });
+  fill($("#db-filter-row"), selects, h("div", { class: "row filter-toggles" }, toggles, clear));
+}
+
+function money(n) {
+  if (!n) return "";
+  return n >= 1e9 ? `$${(n / 1e9).toFixed(1)}B` : n >= 1e6 ? `$${(n / 1e6).toFixed(1)}M` : `$${Math.round(n / 1e3)}K`;
+}
+
+function dbRow(r, i) {
+  const cb = h("input", { type: "checkbox", "data-i": i });
+  if (dbTable === "postings") {
+    return h("label", { class: "card candidate" }, cb, h("div", { class: "grow" },
+      h("div", { class: "job-top" }, h("b", {}, `${r.company} · ${r.title}`), h("span", { class: "chip" }, r.job_type)),
+      h("div", { class: "muted small" }, [r.location, r.remote ? "Remote" : "", r.term, r.function, r.industry].filter(Boolean).join(" · ")),
+      h("div", { class: "small" }, h("a", { href: r.url, target: "_blank", rel: "noopener" }, "Posting ↗"),
+        r.posted ? h("span", { class: "muted" }, ` · posted ${r.posted}`) : null,
+        r.sponsorship ? h("span", { class: "sev-medium" }, ` · ${r.sponsorship}`) : null)));
+  }
+  const people = (r.people || []).filter((p) => !/^n\/a|llc|l\.p\.|lp$|gp,/i.test(p.name)).slice(0, 3);
+  return h("label", { class: "card candidate" }, cb, h("div", { class: "grow" },
+    h("div", { class: "job-top" }, h("b", {}, r.name), h("span", { class: "chip" }, r.category)),
+    h("div", { class: "muted small" }, [[r.city, r.state].filter(Boolean).join(", "), r.employees != null ? `${r.employees} employees` : "",
+      r.fund_types && r.kind === "adviser" ? r.fund_types : "", r.raised ? `raised ${money(r.raised)}` : "", r.assets ? `fund assets ${money(r.assets)}` : "",
+      r.filed ? `${r.source === "SEC Form D" ? "filed" : "ADV updated"} ${r.filed}` : ""].filter(Boolean).join(" · ")),
+    people.length ? h("div", { class: "small" }, "People: ", people.map((p) => `${p.name} (${p.title.split(",")[0]})`).join("; ")) : null,
+    h("div", { class: "small" }, r.website ? h("a", { href: r.website, target: "_blank", rel: "noopener" }, `${r.domain || "website"} ↗`) : h("span", { class: "muted" }, "No website on file (Research will look it up)"),
+      r.extra && r.extra.filing_url ? [" · ", h("a", { href: r.extra.filing_url, target: "_blank", rel: "noopener" }, "SEC filings ↗")] : null)));
+}
+
+function renderDbResults() {
+  const r = dbResult;
+  if (!r.total) {
+    fill($("#db-results"), h("p", { class: "muted" }, "No matches. Loosen the filters, or download the data sources above."));
+    return;
+  }
+  const add = h("button", { type: "button" }, "Add selected to Jobs");
+  const msg = h("span", { class: "msg" });
+  add.addEventListener("click", () => busy(add, "Adding…", async () => {
+    const picked = [...$("#db-results").querySelectorAll("input[type=checkbox]:checked")].map((cb) => r.rows[+cb.dataset.i]);
+    if (!picked.length) return setMsg(msg, "Tick at least one.", "err");
+    const candidates = picked.map((x) => dbTable === "postings"
+      ? { name: x.company, title: x.title, kind: "posting", posting_url: x.url, website: "", location: x.location, category: x.industry, reasons: `${x.job_type} · ${x.function}` }
+      : { name: x.name, website: x.website, kind: "firm", location: [x.city, x.state].filter(Boolean).join(", "), category: x.category,
+          reasons: [x.category, x.employees != null ? `${x.employees} employees` : ""].filter(Boolean).join(" · "),
+          contact_name: ((x.people || []).find((p) => !/llc|l\.p\.|lp$|gp,|^n\/a/i.test(p.name)) || {}).name || "",
+          contact_title: ((x.people || []).find((p) => !/llc|l\.p\.|lp$|gp,|^n\/a/i.test(p.name)) || {}).title || "" });
+    try {
+      const res = await api("/api/find/add", { method: "POST", body: { candidates } });
+      jobs = res.jobs;
+      setMsg(msg, `Added ${res.added}. Open the Jobs tab to research them.`, "ok");
+    } catch (err) { setMsg(msg, err.message, "err"); }
+  }));
+  const pages = Math.ceil(r.total / r.per_page);
+  const prev = h("button", { class: "ghost small", type: "button", disabled: r.page <= 1 }, "← Previous");
+  const next = h("button", { class: "ghost small", type: "button", disabled: r.page >= pages }, "Next →");
+  prev.addEventListener("click", () => { dbPage -= 1; dbSearch(); });
+  next.addEventListener("click", () => { dbPage += 1; dbSearch(); });
+  fill($("#db-results"),
+    h("div", { class: "row actions" }, h("b", {}, `${r.total.toLocaleString()} ${dbTable === "postings" ? "postings" : "firms & funds"}`),
+      h("span", { class: "muted small" }, `page ${r.page} of ${pages}`), h("span", { class: "spacer" }), add, msg),
+    r.rows.map(dbRow),
+    h("div", { class: "row actions" }, prev, next));
+}
+
+document.querySelectorAll("#find-db .mode-tabs .coach-tab").forEach((b) => b.addEventListener("click", () => {
+  dbTable = b.dataset.table;
+  document.querySelectorAll("#find-db .mode-tabs .coach-tab").forEach((x) => x.classList.toggle("on", x === b));
+  dbSearch(true);
+}));
+$("#db-go").addEventListener("click", () => dbSearch(true));
+$("#db-q").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); dbSearch(true); } });
+$("#db-board-add").addEventListener("click", (e) => busy(e.target, "Reading the board…", async () => {
+  try {
+    const r = await api("/api/db/boards", { method: "POST", body: { url: $("#db-board-url").value } });
+    setMsg($("#db-msg"), `Added ${r.company}: ${r.postings} postings.`, "ok");
+    $("#db-board-url").value = "";
+    loadDbStatus(); dbSearch(true);
+  } catch (err) { setMsg($("#db-msg"), err.message, "err"); }
+}));
+
 // ---------- Find ----------
 
 let findCategories = [];
@@ -1000,6 +1173,11 @@ loaders.find = async () => {
   updateFindForm();
   renderDirectoryLinks();
   renderCandidates();
+  let mode = "db";
+  try { mode = localStorage.getItem("findMode") || "db"; } catch (e) { /* storage blocked */ }
+  setFindMode(mode);
+  loadDbStatus();
+  if (!dbResult) dbSearch(true);
 };
 
 $("#src-save").addEventListener("click", (e) => busy(e.target, "Saving…", async () => {

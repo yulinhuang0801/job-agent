@@ -171,6 +171,13 @@
       </div>
 
       <div class="card">
+        <h2>Firm database</h2>
+        <p class="muted small">Find → Database downloads public SEC filings. The SEC asks automated downloads to include a contact email; it's sent only to sec.gov.</p>
+        <label for="sec-contact">SEC contact email</label>
+        <input id="sec-contact" type="email" placeholder="you@example.com">
+      </div>
+
+      <div class="card">
         <h2>Email finder <span class="muted small">(optional)</span></h2>
         <p class="muted small">When a firm's website doesn't list the contact's email, Job Agent asks <a href="https://hunter.io/api-keys" target="_blank" rel="noopener">Hunter.io</a> (free plan: about 50 lookups a month). Without it, use Apollo.io by hand (see the Guide tab).</p>
         <label for="hunter-key">Hunter.io API key</label>
@@ -437,6 +444,36 @@
     <!-- Find -->
     <section id="view-find" class="view">
       <h1>Find firms &amp; jobs</h1>
+      <div class="row mode-tabs" id="find-modes">
+        <button class="coach-tab small on" data-mode="db" type="button">Database</button>
+        <button class="coach-tab small" data-mode="web" type="button">Web search</button>
+        <button class="coach-tab small" data-mode="import" type="button">Import a list</button>
+      </div>
+
+      <div id="find-db">
+        <p class="muted">Search a local database built from public sources: SEC filings of investment firms (PE, VC, hedge funds, real estate, wealth managers, with size and websites), new funds and startups that just raised money (with the people named on the filing), and open roles from company job boards and internship lists.</p>
+        <details class="card" id="db-sources">
+          <summary>Data sources <span id="db-counts" class="muted small"></span></summary>
+          <div id="db-source-list"></div>
+          <p id="db-sec-note" class="small missing-note hidden">SEC asks automated downloads to include a contact email. Add one in Settings → SEC contact email.</p>
+          <div class="row actions">
+            <input id="db-board-url" placeholder="Add a company's job board: https://jobs.lever.co/company or a Greenhouse / Ashby link">
+            <button id="db-board-add" class="secondary small" type="button">Add board</button>
+          </div>
+          <span id="db-msg" class="msg"></span>
+        </details>
+        <div class="row mode-tabs">
+          <button class="coach-tab small on" data-table="postings" type="button">Job postings</button>
+          <button class="coach-tab small" data-table="firms" type="button">Firms &amp; funds</button>
+        </div>
+        <div class="card db-filters">
+          <div class="row"><input id="db-q" placeholder="Search names, titles, cities…"><button id="db-go" type="button">Search</button></div>
+          <div id="db-filter-row" class="filter-grid"></div>
+        </div>
+        <div id="db-results"></div>
+      </div>
+
+      <div id="find-web" class="hidden">
       <p class="muted">Search by category, the way the boutique internship guide describes ("boutique investment bank Chicago", "search fund healthcare"…), or pull from internship lists (SimplifyJobs) and Hacker News' monthly "Who is hiring?". The AI screens web results with the guide's rules (small firms, no big banks, search funds that are still searching), and you pick which to add to Jobs.</p>
       <p id="find-no-search" class="msg err hidden">Web search needs a Tavily key: Settings → Web lookups → paste the key → Save settings. You can still import a list below.</p>
       <form id="find-form" class="card">
@@ -453,6 +490,9 @@
         <p id="find-engine" class="muted small"></p>
       </form>
 
+      </div>
+
+      <div id="find-import" class="hidden">
       <details class="card" id="my-sources">
         <summary>My sources: your own sites and search phrases</summary>
         <p class="muted small">Add sites you know are good for your field (a niche job board, a firm directory, a community site) and your own search phrases. Use them with the <b>My sites &amp; searches</b> category. Phrases can include {loc}, {industry} and {role}.</p>
@@ -474,6 +514,8 @@
           <span id="import-msg" class="msg"></span>
         </div>
       </details>
+
+      </div>
 
       <div id="find-results"></div>
     </section>

@@ -17,6 +17,7 @@ DEFAULT_SETTINGS = {
     "search_key": "",  # Tavily
     "hunter_key": "",  # Hunter.io email finder
     "serper_key": "",  # Serper.dev Google results for the Find tab
+    "sec_contact": "",  # SEC requires a contact email from automated downloads
     "stt_provider": "openai",  # "openai" = any OpenAI-style /audio/transcriptions API; or "assemblyai"
     "stt_base_url": "https://api.siliconflow.cn/v1",
     "stt_key": "",

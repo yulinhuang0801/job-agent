@@ -246,3 +246,12 @@ main:has(#view-mentors.active) { max-width: 1180px; }
 button.update { border-style: dashed; }
 #fact-form { margin: 8px 0; }
 .event { padding: 3px 0; }
+
+/* Find: database */
+.mode-tabs { margin: 8px 0 12px; gap: 6px; }
+.db-filters { padding: 12px 14px; }
+.filter-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px 10px; margin-top: 10px; }
+.filter { display: flex; flex-direction: column; gap: 2px; margin: 0; font-weight: 400; }
+.filter select { padding: 5px 6px; font-size: 13px; }
+.filter-toggles { grid-column: 1 / -1; gap: 14px; }
+#db-sources .qrow button { align-self: center; }

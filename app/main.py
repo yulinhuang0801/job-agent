@@ -9,13 +9,14 @@ from pathlib import Path
 from typing import Optional
 from urllib.parse import parse_qs, urlparse
 
+import httpx
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import assess, llm, memory, mentors, outreach, pdf, prep, profile_merge, prompts, research, resume_text, services, sourcing, store
+from . import assess, crawlers, db, llm, memory, mentors, outreach, pdf, prep, profile_merge, prompts, research, resume_text, services, sourcing, store
 from .jobs_fetch import FetchError, fetch_job
 
 STATIC = Path(__file__).resolve().parent.parent / "static"
@@ -65,6 +66,7 @@ class SettingsIn(BaseModel):
     backup_model: Optional[str] = None
     hunter_key: Optional[str] = None
     serper_key: Optional[str] = None
+    sec_contact: Optional[str] = None
 
 
 def _hint(key):
@@ -92,6 +94,7 @@ def _public_settings():
         "has_hunter": bool(s["hunter_key"]),
         "hunter_hint": _hint(s["hunter_key"]),
         "has_serper": bool(s["serper_key"]),
+        "sec_contact": s["sec_contact"],
         "serper_hint": _hint(s["serper_key"]),
     }
 
@@ -897,6 +900,65 @@ def put_outreach(details: dict):
     clean = {k: str(details.get(k, "")) for k in outreach.DEFAULT_OUTREACH}
     store.save("outreach", clean)
     return clean
+
+
+# ---------- Firm and job database ----------
+
+class RefreshIn(BaseModel):
+    source: str
+    quarters: int = 4
+
+
+class BoardIn(BaseModel):
+    url: str
+
+
+@app.get("/api/db/status")
+def db_status():
+    return {"counts": db.counts(), "sources": db.sources(), "running": crawlers.running(), "vocab": db.vocab(),
+            "sec_contact_set": "@" in store.get_settings().get("sec_contact", "")}
+
+
+@app.post("/api/db/refresh")
+def db_refresh(body: RefreshIn):
+    jobs = {"adv": ("SEC Form ADV", crawlers.import_adv, ()), "formd": ("SEC Form D", crawlers.import_form_d, (max(1, min(12, body.quarters)),)),
+            "jobs": ("Job boards", crawlers.crawl_jobs, ())}
+    if body.source not in jobs:
+        raise HTTPException(400, "Unknown source.")
+    name, fn, args = jobs[body.source]
+    if body.source in ("adv", "formd") and "@" not in store.get_settings().get("sec_contact", ""):
+        raise HTTPException(400, "SEC requires a contact email for downloads. Add it in Settings → SEC contact email.")
+    try:
+        crawlers.run_in_background(name, fn, *args)
+    except crawlers.CrawlError as e:
+        raise HTTPException(400, str(e))
+    return db_status()
+
+
+def _db_filters(request: Request, allowed):
+    q = request.query_params
+    return {k: (q.getlist(k) if len(q.getlist(k)) > 1 else q.get(k)) for k in allowed if q.get(k)}
+
+
+@app.get("/api/db/firms")
+def db_firms(request: Request, page: int = 1):
+    f = _db_filters(request, ["q", "industry", "category", "state", "size", "source", "kind", "small", "has_website", "has_people",
+                              "min_employees", "max_employees", "since"])
+    return db.search("firms", f, page)
+
+
+@app.get("/api/db/postings")
+def db_postings(request: Request, page: int = 1):
+    f = _db_filters(request, ["q", "job_type", "function", "industry", "term", "state", "country", "remote", "sponsorship", "source", "company"])
+    return db.search("postings", f, page)
+
+
+@app.post("/api/db/boards")
+def db_add_board(body: BoardIn):
+    try:
+        return crawlers.add_board(body.url.strip())
+    except (crawlers.CrawlError, httpx.HTTPError) as e:
+        raise HTTPException(400, str(e) if isinstance(e, crawlers.CrawlError) else "Couldn't read that job board.")
 
 
 # ---------- Shared memory ----------
