@@ -162,3 +162,36 @@ def reader_text(url):
         return r.text
     except httpx.HTTPError:
         return ""
+
+
+def serper_enabled():
+    return bool(store.get_settings()["serper_key"])
+
+
+def serper_search(args):
+    """Google results through Serper.dev. Same return shape as web_search."""
+    query = str(args.get("query") or "").strip()
+    n = int(args.get("max_results") or 10)
+    try:
+        r = httpx.post("https://google.serper.dev/search", timeout=20,
+                       headers={"X-API-KEY": store.get_settings()["serper_key"], "Content-Type": "application/json"},
+                       json={"q": query, "num": n})
+        r.raise_for_status()
+        data = r.json()
+    except (httpx.HTTPError, ValueError) as e:
+        return {"error": f"Google search failed ({e.__class__.__name__})."}
+    return {"answer": "", "results": [{"title": o.get("title", ""), "url": o.get("link", ""), "content": (o.get("snippet") or "")[:500]}
+                                      for o in data.get("organic", [])[:n]]}
+
+
+def find_search(args):
+    """Search for firms and postings: Google (Serper) when its key is saved, otherwise Tavily."""
+    if serper_enabled():
+        found = serper_search(args)
+        if "error" not in found or not search_enabled():
+            return found
+    return web_search(args)
+
+
+def engine_name():
+    return "Google (Serper)" if serper_enabled() else "Tavily" if search_enabled() else ""

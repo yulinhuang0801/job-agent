@@ -159,6 +159,17 @@
       </div>
 
       <div class="card">
+        <h2>Google results for Find <span class="muted small">(optional)</span></h2>
+        <p class="muted small">Google's own search API is closed to new users, so Job Agent uses <a href="https://serper.dev" target="_blank" rel="noopener">Serper.dev</a> for Google results (2,500 free searches to start). When this key is saved, the Find tab uses Google instead of Tavily; Tavily still powers the interview look-ups.</p>
+        <label for="serper-key">Serper API key</label>
+        <div class="row">
+          <input id="serper-key" type="password" placeholder="Serper API key" autocomplete="off" spellcheck="false">
+          <button class="ghost danger remove-secret" data-field="serper_key" type="button">Remove</button>
+        </div>
+        <p id="serper-status" class="muted small"></p>
+      </div>
+
+      <div class="card">
         <h2>Email finder <span class="muted small">(optional)</span></h2>
         <p class="muted small">When a firm's website doesn't list the contact's email, Job Agent asks <a href="https://hunter.io/api-keys" target="_blank" rel="noopener">Hunter.io</a> (free plan: about 50 lookups a month). Without it, use Apollo.io by hand (see the Guide tab).</p>
         <label for="hunter-key">Hunter.io API key</label>
@@ -335,21 +346,31 @@
     <!-- Find -->
     <section id="view-find" class="view">
       <h1>Find firms &amp; jobs</h1>
-      <p class="muted">Search the web by category, the way the boutique internship guide describes ("boutique investment bank Chicago", "search fund healthcare"…). The AI screens results with the guide's rules (small firms, no big banks, search funds that are still searching) and you pick which to add to Jobs.</p>
+      <p class="muted">Search by category, the way the boutique internship guide describes ("boutique investment bank Chicago", "search fund healthcare"…), or pull from internship lists (SimplifyJobs) and Hacker News' monthly "Who is hiring?". The AI screens web results with the guide's rules (small firms, no big banks, search funds that are still searching), and you pick which to add to Jobs.</p>
       <p id="find-no-search" class="msg err hidden">Web search needs a Tavily key: Settings → Web lookups → paste the key → Save settings. You can still import a list below.</p>
       <form id="find-form" class="card">
         <div class="grid2">
           <div><label for="find-category">Category</label><select id="find-category"></select></div>
           <div><label for="find-location">Location <span class="muted small">(optional)</span></label><input id="find-location" placeholder="NYC, Chicago, Texas…"></div>
           <div><label for="find-industry">Industry focus <span class="muted small">(optional)</span></label><input id="find-industry" placeholder="healthcare, oil and gas, software…"></div>
-          <div id="find-role-wrap"><label for="find-role">Role <span class="muted small">(for job postings)</span></label><input id="find-role" placeholder="software engineering, data…"></div>
+          <div id="find-role-wrap"><label for="find-role">Role keywords <span class="muted small">(e.g. software, data, quant, NLP)</span></label><input id="find-role" placeholder="software engineering, data…"></div>
         </div>
         <div class="row actions">
           <button id="find-go" type="submit">Search</button>
           <span id="find-msg" class="msg"></span>
         </div>
-        <p class="muted small">Each search uses about 4 of your 1,000 free Tavily searches this month.</p>
+        <p id="find-engine" class="muted small"></p>
       </form>
+
+      <details class="card" id="my-sources">
+        <summary>My sources: your own sites and search phrases</summary>
+        <p class="muted small">Add sites you know are good for your field (a niche job board, a firm directory, a community site) and your own search phrases. Use them with the <b>My sites &amp; searches</b> category. Phrases can include {loc}, {industry} and {role}.</p>
+        <label for="src-sites">Sites (one per line)</label>
+        <textarea id="src-sites" rows="4" placeholder="searchfunder.com&#10;builtin.com&#10;yourschool.joinhandshake.com"></textarea>
+        <label for="src-queries">Search phrases (one per line)</label>
+        <textarea id="src-queries" rows="3" placeholder="{industry} search fund looking for intern&#10;linguistics NLP startup hiring {role} intern"></textarea>
+        <div class="row actions"><button id="src-save" class="secondary" type="button">Save my sources</button><span id="src-msg" class="msg"></span></div>
+      </details>
 
       <details class="card">
         <summary>Directories, LinkedIn and importing a list</summary>
@@ -420,6 +441,7 @@
     </section>
   </main>
 
+  <script src="/static/editor.js"></script>
   <script src="/static/app.js"></script>
 </body>
 </html>

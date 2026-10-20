@@ -219,9 +219,17 @@ OUTREACH_RULES = """Boutique internship outreach rules (from the candidate's sea
 - The email asks directly for a short call about a part-time, remote or unpaid internship, attaches the resume, stays concise, and is followed up after 7 days if there's no reply."""
 
 
-SCREEN_SYSTEM = """You screen web search results to find {category} the candidate could reach out to for an internship. Output a json object only.
+POSTING_RULES = """Job posting rules:
+- Good: internships or student roles that match the candidate's target roles, level and locations (remote or part-time if that's what they want). Startups and big companies are both fine.
+- Penalize: senior or full-time-only roles, roles needing experience a student can't have, locations they can't work in, and roles unrelated to their targets.
+- A firm or startup with no specific posting can still be worth a cold email if it clearly fits their interests; say so in reasons."""
 
-""" + OUTREACH_RULES + """
+
+SCREEN_SYSTEM = """You screen search results to find {category} the candidate could apply to or reach out to for an internship. Output a json object only.
+
+{rules}
+
+Candidate's targets: {targets}
 
 For each result, decide whether it points to an actual firm (or a specific job posting when looking for postings), not an article, ranking list, directory home page or news site. List articles and directory pages may name specific firms: include those firms too, even if the website is unknown.
 Expected result type: {kind}.

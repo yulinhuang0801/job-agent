@@ -48,7 +48,7 @@ def index():
 
 # ---------- Settings ----------
 
-SECRET_FIELDS = ("api_key", "backup_key", "search_key", "stt_key", "hunter_key")
+SECRET_FIELDS = ("api_key", "backup_key", "search_key", "stt_key", "hunter_key", "serper_key")
 
 
 class SettingsIn(BaseModel):
@@ -64,6 +64,7 @@ class SettingsIn(BaseModel):
     backup_base_url: Optional[str] = None
     backup_model: Optional[str] = None
     hunter_key: Optional[str] = None
+    serper_key: Optional[str] = None
 
 
 def _hint(key):
@@ -90,6 +91,8 @@ def _public_settings():
         "backup_hint": _hint(s["backup_key"]),
         "has_hunter": bool(s["hunter_key"]),
         "hunter_hint": _hint(s["hunter_key"]),
+        "has_serper": bool(s["serper_key"]),
+        "serper_hint": _hint(s["serper_key"]),
     }
 
 
@@ -628,9 +631,20 @@ class AddIn(BaseModel):
     candidates: list
 
 
+class SourcesIn(BaseModel):
+    sites: list = []
+    queries: list = []
+
+
 @app.get("/api/find/categories")
 def find_categories():
-    return {"categories": sourcing.categories(), "search_enabled": services.search_enabled()}
+    return {"categories": sourcing.categories(), "search_enabled": bool(services.engine_name()),
+            "engine": services.engine_name(), "sources": sourcing.load_sources()}
+
+
+@app.put("/api/find/sources")
+def find_sources(body: SourcesIn):
+    return sourcing.save_sources([str(x) for x in body.sites], [str(x) for x in body.queries])
 
 
 @app.post("/api/find/search")

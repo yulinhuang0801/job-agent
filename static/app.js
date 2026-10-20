@@ -99,6 +99,8 @@ loaders.settings = async () => {
   keyField("#search-key", settings.has_search, settings.search_hint, "tvly-...");
   $("#search-status").textContent = settings.has_search ? "✓ Web lookups are on." : "Off: the coach will ask you instead of looking things up.";
 
+  keyField("#serper-key", settings.has_serper, settings.serper_hint, "Serper API key");
+  $("#serper-status").textContent = settings.has_serper ? "✓ Find uses Google results." : "Off: Find uses Tavily.";
   keyField("#hunter-key", settings.has_hunter, settings.hunter_hint, "Hunter API key");
   $("#hunter-status").textContent = settings.has_hunter ? "✓ Hunter.io lookups are on." : "Off: use Apollo.io by hand when no email is found.";
 
@@ -110,7 +112,7 @@ loaders.settings = async () => {
   $("#stt-model-wrap").classList.toggle("hidden", settings.stt_provider === "assemblyai");
 
   const saved = { api_key: settings.has_key, backup_key: settings.has_backup, search_key: settings.has_search, stt_key: settings.has_stt,
-    hunter_key: settings.has_hunter };
+    hunter_key: settings.has_hunter, serper_key: settings.has_serper };
   document.querySelectorAll(".remove-secret").forEach((b) => b.classList.toggle("hidden", !saved[b.dataset.field]));
 };
 
@@ -136,7 +138,7 @@ function settingsBody() {
   return {
     api_key: val("#api-key"), model: model || null, base_url: val("#base-url"),
     backup_key: val("#backup-key"), backup_model: val("#backup-model"), backup_base_url: val("#backup-base-url"),
-    search_key: val("#search-key"), hunter_key: val("#hunter-key"),
+    search_key: val("#search-key"), hunter_key: val("#hunter-key"), serper_key: val("#serper-key"),
     stt_key: val("#stt-key"), stt_base_url: val("#stt-base-url"), stt_model: val("#stt-model"), stt_provider: $("#stt-provider").value,
   };
 }
@@ -569,11 +571,46 @@ $("#reset-stories").addEventListener("click", async () => {
 
 let skills = null;
 const LEVELS = { 1: "easy", 2: "medium", 3: "harder" };
+const CODE_LANGS = [["python", "Python"], ["sql", "SQL"], ["javascript", "JavaScript"], ["java", "Java"], ["cpp", "C++"], ["plaintext", "Plain text"]];
+const editors = {}; // question id -> editor for coding questions
+let editorsRound = 0; // bumped on every redraw, so editors from an older draw never save
+
+function defaultLang(q) {
+  const a = (q.area || "").toLowerCase();
+  return a.includes("sql") ? "sql" : a.includes("javascript") || a.includes("frontend") ? "javascript"
+    : a === "java" ? "java" : a.includes("c++") || a.includes("c /") ? "cpp" : a.includes("excel") || a.includes("accounting") ? "plaintext" : "python";
+}
 
 function collectAnswers() {
   const answers = {};
-  document.querySelectorAll("#skills-questions textarea").forEach((t) => (answers[t.dataset.id] = t.value));
+  document.querySelectorAll("#skills-questions textarea[data-id]").forEach((t) => (answers[t.dataset.id] = t.value));
+  for (const [id, ed] of Object.entries(editors)) answers[id] = ed.getValue();
   return answers;
+}
+
+let saveTimer = null;
+function saveAnswersSoon() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => api("/api/skills/answers", { method: "PUT", body: { answers: collectAnswers() } }).catch(() => {}), 800);
+}
+
+function codeBox(q, answer) {
+  const box = h("div");
+  const lang = h("select", { class: "inline-select", title: "Language" },
+    CODE_LANGS.map(([v, t]) => h("option", { value: v, selected: v === defaultLang(q) }, t)));
+  const status = h("span", { class: "muted small" }, "Loading the code editor…");
+  const round = editorsRound;
+  const current = () => round === editorsRound;
+  CodeEditor.create(box, { value: answer, language: lang.value, isCurrent: current,
+                           onChange: () => current() && saveAnswersSoon() }).then((ed) => {
+    if (!current()) return ed.dispose();
+    editors[q.id] = ed;
+    status.textContent = ed.kind === "monaco"
+      ? "VS Code editor: brackets and quotes close themselves, Tab indents."
+      : "Basic editor (the VS Code editor couldn't load): brackets close themselves, Tab indents.";
+  });
+  lang.addEventListener("change", () => editors[q.id] && editors[q.id].setLanguage(lang.value));
+  return [h("div", { class: "row editor-bar" }, lang, status), box];
 }
 
 function renderSkills() {
@@ -584,23 +621,32 @@ function renderSkills() {
   $("#skills-retake").classList.toggle("hidden", skills.status === "none");
   $("#skills-reason").textContent = skills.status === "none" ? "" : skills.reason;
   const grades = graded ? Object.fromEntries(skills.results.grades.map((g) => [g.id, g])) : {};
+  editorsRound += 1;
+  for (const id of Object.keys(editors)) {
+    editors[id].dispose();
+    delete editors[id];
+  }
 
   $("#skills-questions").replaceChildren(...skills.questions.map((q, i) => {
     const g = grades[q.id];
     const answer = (skills.answers || {})[q.id] || "";
+    const coding = q.type === "practical";
+    let input;
+    if (!answering) input = h("pre", { class: "muted" + (coding ? " code-answer" : "") }, answer || "(no answer)");
+    else if (coding) input = codeBox(q, answer);
+    else {
+      input = h("textarea", { "data-id": q.id, rows: 5, placeholder: "Your answer…" }, answer);
+      input.addEventListener("input", saveAnswersSoon);
+    }
     return h("div", { class: "card question" },
       h("div", { class: "job-top" },
-        h("div", { class: "qmeta" }, `Question ${i + 1} · ${q.area} · ${LEVELS[q.level] || ""}`),
+        h("div", { class: "qmeta" }, `Question ${i + 1} · ${q.area} · ${LEVELS[q.level] || ""}${coding ? " · coding" : ""}`),
         g ? h("span", { class: `score ${g.score >= 3 ? "hi" : g.score >= 2 ? "mid" : "lo"}` }, `${g.score}/4`) : null),
       h("pre", {}, q.question),
-      answering
-        ? h("textarea", { "data-id": q.id, rows: q.type === "practical" ? 8 : 4, class: q.type === "practical" ? "code" : "",
-            placeholder: q.type === "practical" ? "Write code or steps here…" : "Your answer…", spellcheck: "false" }, answer)
-        : h("pre", { class: "muted" }, answer || "(no answer)"),
-      g ? [h("p", {}, g.feedback), g.model_answer ? h("details", {}, h("summary", {}, "A strong answer"), h("p", {}, g.model_answer)) : null] : null);
+      input,
+      g ? [h("p", {}, g.feedback), g.model_answer ? h("details", {}, h("summary", {}, "A strong answer"),
+        h("pre", { class: coding ? "code-answer" : "" }, g.model_answer)) : null] : null);
   }));
-  document.querySelectorAll("#skills-questions textarea").forEach((t) =>
-    t.addEventListener("change", () => api("/api/skills/answers", { method: "PUT", body: { answers: collectAnswers() } }).catch(() => {})));
 
   const r = skills.results;
   $("#skills-results").replaceChildren(...(graded ? [h("div", { class: "card" },
@@ -759,7 +805,8 @@ function renderCandidates() {
         h("b", {}, c.name + (c.title ? ` · ${c.title}` : "")),
         c.fit_score ? h("span", { class: `score ${scoreClass(c.fit_score)}` }, c.fit_score) : null),
       h("div", { class: "muted small" },
-        [c.website ? h("a", { href: c.website, target: "_blank", rel: "noopener" }, c.domain || c.website) : "website unknown",
+        [c.website ? h("a", { href: c.website, target: "_blank", rel: "noopener" }, c.domain || c.website)
+          : c.posting_url ? h("a", { href: c.posting_url, target: "_blank", rel: "noopener" }, "posting ↗") : "website unknown",
          c.location, c.size_hint, c.already_added ? "already in Jobs" : ""].filter(Boolean).flatMap((x, k) => (k ? [" · ", x] : [x]))),
       c.reasons ? h("div", { class: "small" }, c.reasons) : null,
       c.red_flags ? h("div", { class: "small sev-high" }, "⚠ " + c.red_flags) : null)));
@@ -783,30 +830,53 @@ function renderCandidates() {
     ...rows, h("div", { class: "row actions" }, add, msg));
 }
 
+function updateFindForm() {
+  const cat = findCategories.find((c) => c.id === $("#find-category").value) || {};
+  $("#find-role-wrap").classList.toggle("hidden", !(cat.kind === "posting" || cat.source !== "web"));
+  $("#find-industry").parentElement.classList.toggle("hidden", cat.source === "simplify" || cat.source === "hn");
+  $("#find-engine").textContent = cat.source === "simplify" ? "Reads the SimplifyJobs internship list on GitHub (free, updated hourly). Closed roles are skipped."
+    : cat.source === "hn" ? "Searches this month's Hacker News \"Who is hiring?\" thread (free)."
+    : findEngine ? `Searches with ${findEngine}; each search uses about 4–8 searches of its monthly allowance.` : "";
+}
+
+let findEngine = "";
+
 loaders.find = async () => {
+  const r = await api("/api/find/categories");
+  findEngine = r.engine;
   if (!findCategories.length) {
-    const r = await api("/api/find/categories");
     findCategories = r.categories;
     $("#find-category").replaceChildren(...findCategories.map((c) => h("option", { value: c.id }, c.label)));
-    $("#find-no-search").classList.toggle("hidden", r.search_enabled);
-  } else {
-    const r = await api("/api/find/categories");
-    $("#find-no-search").classList.toggle("hidden", r.search_enabled);
   }
-  $("#find-role-wrap").classList.toggle("hidden", $("#find-category").value !== "postings");
+  $("#find-no-search").classList.toggle("hidden", r.search_enabled);
+  $("#src-sites").value = r.sources.sites.join("\n");
+  $("#src-queries").value = r.sources.queries.join("\n");
+  updateFindForm();
   renderDirectoryLinks();
   renderCandidates();
 };
 
+$("#src-save").addEventListener("click", (e) => busy(e.target, "Saving…", async () => {
+  try {
+    const r = await api("/api/find/sources", { method: "PUT", body: {
+      sites: $("#src-sites").value.split("\n"), queries: $("#src-queries").value.split("\n") } });
+    $("#src-sites").value = r.sites.join("\n");
+    setMsg($("#src-msg"), `Saved ${r.sites.length} sites and ${r.queries.length} phrases.`, "ok");
+  } catch (err) {
+    setMsg($("#src-msg"), err.message, "err");
+  }
+}));
+
 $("#find-category").addEventListener("change", () => {
-  $("#find-role-wrap").classList.toggle("hidden", $("#find-category").value !== "postings");
+  updateFindForm();
   renderDirectoryLinks();
 });
 ["#find-industry", "#find-location"].forEach((s) => $(s).addEventListener("input", renderDirectoryLinks));
 
 $("#find-form").addEventListener("submit", (e) => {
   e.preventDefault();
-  busy($("#find-go"), "Searching… (about a minute)", async () => {
+  const src = (findCategories.find((c) => c.id === $("#find-category").value) || {}).source;
+  busy($("#find-go"), src === "simplify" ? "Reading the list…" : "Searching… (about a minute)", async () => {
     setMsg($("#find-msg"), "");
     try {
       const r = await api("/api/find/search", { method: "POST", body: {

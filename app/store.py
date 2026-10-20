@@ -16,6 +16,7 @@ DEFAULT_SETTINGS = {
     "backup_model": "gemini-3.5-flash-lite",
     "search_key": "",  # Tavily
     "hunter_key": "",  # Hunter.io email finder
+    "serper_key": "",  # Serper.dev Google results for the Find tab
     "stt_provider": "openai",  # "openai" = any OpenAI-style /audio/transcriptions API; or "assemblyai"
     "stt_base_url": "https://api.siliconflow.cn/v1",
     "stt_key": "",
