@@ -12,6 +12,10 @@ The AI runs on DeepSeek (OpenAI-compatible API), so it works from both the US an
 
 Then open http://127.0.0.1:8000, go to **Settings** and paste your DeepSeek API key. The key is saved only in `data/settings.json` on this computer.
 
+Tests:
+- `bash tests/run_smoke.sh` runs every smoke test with a fake model, so it needs no key.
+- `.venv/bin/python tests/calibration/run_calibration.py` checks the grader against expected scores. It uses your key.
+
 ## How it flows
 
 The app has three areas, plus Guide and Settings in the top corner:
@@ -30,6 +34,13 @@ Old links like `#tracker` or `#mentors` still work.
 **Connected memory.** Everything shares one memory (`data/memory.json`):
 - **Facts** the intake interview and every coach save as you talk ("Only wants remote roles", "Interview at Palazzo on Nov 3"). Every agent reads them: mentors, the interview and Stories coaches, the skills check, company prep, fit scoring, resume/cover-letter and email writers, form answers. See and delete them under Mentors → What your team knows.
 - **Update buttons** any coach can offer: rewrite a resume line, add an experience/project/education, change targets, update a skill level, update a job's status or contact, add a question, save a story.
+  - **Put a date on the Calendar:** an online assessment, interview, coffee chat or deadline you mention goes onto that job. If the firm isn't tracked yet, it starts tracking it.
+  - **Add a person to Network.**
+- **What each coach sees:**
+  - The **behavioral coach** sees each answer's rubric grade and biggest fix, plus your interviews and assessments in the next three weeks.
+  - The **technical coach** sees the skills check and those same upcoming assessments.
+  - The **lead mentor** also sees recruiting windows that are open now for your fields, your weakest graded answers, and new postings from job-alert emails.
+- **Skills check → profile:** graded levels go straight into your profile as verified skills. Skills you edited by hand are left alone.
 - **Activity log** (profile updates, finished stories, graded checks, emails sent, status changes) that the lead mentor reads.
 - **Profile updates merge, never overwrite**: "Update my profile" only fills gaps and adds items, bullets and skills; it never deletes, never changes how items are identified, and never touches fields you or a coach edited by hand (those are pinned).
 1. **About you** (the intake chat): the coach asks about goals, education, experience, projects, the skills you use, and contact info, one question at a time.

@@ -630,7 +630,30 @@ def grade_skills(answers):
     memory.log("skills", f"Skills check graded: {results['total']}/{results['max']} ("
                + ", ".join(f"{s.get('area')}: {s.get('level')}" for s in results["skills"]) + ")")
     store.save("skills", state)
+    _sync_skills_to_profile(results["skills"])
     return public_skills(state)
+
+
+def _sync_skills_to_profile(levels):
+    """Put graded levels straight into the profile as verified skills, so the resume coach, fit
+    scores and resumes see them without waiting for Build my profile. Hand-edited skills stay put."""
+    from . import profile_merge
+    profile = store.load("profile", {})
+    if not profile or not levels:
+        return
+    existing = [x.get("name", "") for x in (profile.get("skills") or {}).get("technical") or [] if isinstance(x, dict)]
+    patch = []
+    for lv in levels:
+        area, level = str(lv.get("area") or "").strip(), str(lv.get("level") or "").strip()
+        if not area or level not in ("beginner", "intermediate", "advanced"):
+            continue
+        # "Python" matches the skill "Python"; "SQL & databases" matches "SQL".
+        name = next((n for n in existing if n and (n.lower() == area.lower() or area.lower().startswith(n.lower() + " "))), area)
+        patch.append({"name": name, "level": level, "verified": True, "evidence": f"Skills check: {lv.get('evidence', '')}".strip()[:200]})
+    profile, changes = profile_merge.apply_patch(profile, {"skill_levels": patch}, memory.pins())
+    if changes:
+        store.save("profile", profile)
+        memory.log("profile", "Skills check updated your profile: " + "; ".join(changes)[:300])
 
 
 def reset_skills():

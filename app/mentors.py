@@ -4,7 +4,7 @@ changes until the user clicks one."""
 import json
 from datetime import date, datetime, timedelta
 
-from . import assess, llm, memory, pipeline, prep, profile_merge, prompts, store
+from . import assess, db, llm, memory, pipeline, prep, profile_merge, prompts, store, timelines
 
 COACHES = {
     "lead": {"name": "Lead mentor", "system": "LEAD_SYSTEM"},
@@ -82,7 +82,40 @@ def snapshot():
         "recent_activity": [f"{e['at'][:16].replace('T', ' ')}: {e['text']}" for e in memory.events(15)],
         # Dated items from every job and the networking list: deadlines, assessments, interviews, thank-yous, offers.
         "pipeline": pipeline.summary_for_mentors(),
+        "jobs_index": [{"job_id": j["id"], "company": j.get("company"), "title": j.get("title", ""), "status": j["status"]} for j in jobs[:60]],
+        "weak_graded_answers": [{"type": stories["labels"][c], "stars": stories["stories"][c]["grade"]["stars"],
+                                 "fix": stories["stories"][c]["grade"].get("top_fix", "")}
+                                for c in stories["plan"] if (stories["stories"][c].get("grade") or {}).get("stars", 5) <= 3][:8],
+        "recruiting_windows": _windows(profile),
+        "alert_postings_this_week": _alert_postings(week_ago),
     }
+
+
+def _windows(profile):
+    """Recruiting windows for the candidate's fields that are open now or open within 2 months."""
+    try:
+        t = timelines.for_profile(profile)
+    except Exception:
+        return []
+    out = []
+    for f in t["fields"]:
+        if f["yours"]:
+            for w in f["windows"]:
+                if w["open_now"] or w["starts_in_months"] <= 2:
+                    out.append(f"{f['label']}: {w['what']} ({w['from']} – {w['to']}, summer {w['summer']}{', ' + w['summer_kind'] if w['summer_kind'] else ''})")
+    return out[:6]
+
+
+def _alert_postings(since):
+    try:
+        with db.connect() as con:
+            return con.execute("SELECT COUNT(*) FROM postings WHERE board = 'email' AND seen >= ?", (since,)).fetchone()[0]
+    except Exception:
+        return 0
+
+
+def _upcoming(kinds=("Online assessment", "Interview", "Coffee chat", "Info session", "Career fair")):
+    return [i for i in pipeline.calendar(21) if i["kind"] in kinds][:8]
 
 
 def milestones(s):
@@ -141,6 +174,10 @@ def _clean_actions(actions):
         elif t == "update_job" and a.get("job_id"):
             out.append({"type": t, "job_id": str(a["job_id"]), "label": a["label"],
                         **{k: str(a[k]) for k in ("status", "notes", "contact_email") if a.get(k)}})
+        elif t == "add_event" and (a.get("job_id") or a.get("company")) and a.get("date"):
+            out.append({"type": t, "label": a["label"], **{k: str(a.get(k) or "") for k in ("job_id", "company", "event_type", "date", "time", "title", "platform")}})
+        elif t == "add_contact" and a.get("name"):
+            out.append({"type": t, "label": a["label"], **{k: str(a.get(k) or "") for k in ("name", "company", "title", "how", "job_id", "notes")}})
         elif t == "add_question" and a.get("kind") in ("behavioral", "technical") and a.get("question"):
             out.append({"type": t, "label": a["label"], **{k: str(a.get(k) or "") for k in ("kind", "question", "area", "rubric", "look_for")}})
     return out[:4]
@@ -198,17 +235,26 @@ def _context(coach, s):
     if coach == "behavioral":
         st = assess.load_stories()
         comps = assess.comps()
-        answers = {comps[c]["label"]: {k: v for k, v in st["stories"][c].items()
-                                       if k in ("title", "situation", "task", "action", "result", "reflection", "answer", "quality", "missing", "status")}
-                   for c in st["plan"] if c in st["stories"]}
-        return {"targets": s["targets"], "answers": answers, "company_preps": s["company_preps"],
+        answers = {}
+        for c in st["plan"]:
+            if c not in st["stories"]:
+                continue
+            e = st["stories"][c]
+            a = {k: v for k, v in e.items() if k in ("title", "situation", "task", "action", "result", "reflection", "answer", "quality", "missing", "status")}
+            g = e.get("grade")
+            if g:  # the rubric grade, so coaching starts from the weakest dimension
+                a["rubric"] = {"stars": g["stars"], "scores": {d["label"]: d["score"] for d in g["dims"]}, "biggest_fix": g.get("top_fix", "")}
+            answers[comps[c]["label"]] = a
+        return {"targets": s["targets"], "answers": answers, "company_preps": s["company_preps"], "upcoming": _upcoming(),
+                "jobs_index": s["jobs_index"],
                 "experience": [(e.get("company"), e.get("title")) for e in profile.get("experience", [])]}
     if coach == "technical":
         sk = assess.load_skills()
         return {"targets": s["targets"], "skills_profile": (profile.get("skills") or {}), "skills_check": {
                     "status": sk["status"], "results": sk["results"],
                     "questions": [{k: q.get(k) for k in ("id", "area", "level", "type", "question")} for q in sk["questions"]]},
-                "areas_in_bank": [a["label"] for a in assess.skill_areas()], "company_preps": s["company_preps"]}
+                "areas_in_bank": [a["label"] for a in assess.skill_areas() if a.get("source") == "Job Agent"],
+                "company_preps": s["company_preps"], "upcoming": _upcoming(), "jobs_index": s["jobs_index"]}
     if coach == "resume":
         keep = {k: profile.get(k) for k in ("name", "targets", "summary", "education", "experience", "projects", "skills")}
         return {"profile": keep, "evaluation": s["evaluation"], "jobs_applying_to": [
@@ -360,6 +406,30 @@ def apply(action):
             item.update(look_for=action.get("look_for", ""), label=action["question"][:60], group="From my coaches")
         assess.add_custom(action["kind"], item)
         memory.log("question", f"Added a {action['kind']} question: {action['question'][:80]}")
+    elif t == "add_event":
+        job_id = action.get("job_id") or _job_for_company(action.get("company", ""))
+        pipeline.add_event(job_id, {"type": action.get("event_type") or "other", "date": action.get("date"), "time": action.get("time", ""),
+                                    "title": action.get("title", ""), "platform": action.get("platform", "")})
+    elif t == "add_contact":
+        pipeline.add_person({k: action.get(k) for k in ("name", "company", "title", "how", "job_id", "notes") if action.get(k)})
     else:
         raise llm.LLMError("This button can't change anything.")
     return {"ok": True}
+
+
+def _job_for_company(company):
+    """The tracked job for this company, or a new one so the date has somewhere to live."""
+    company = (company or "").strip()
+    if not company:
+        raise llm.LLMError("Which company is this for?")
+    jobs = store.load("jobs", [])
+    match = next((j for j in jobs if (j.get("company") or "").strip().lower() == company.lower()), None)
+    if match:
+        return match["id"]
+    import uuid
+    job = {"id": uuid.uuid4().hex[:10], "created_at": datetime.now().isoformat(timespec="seconds"), "url": "", "title": "", "company": company,
+           "location": "", "description": "", "status": "Applied", "applied_date": "", "notes": "Added by a mentor from your chat.", "fit": None, "documents": None}
+    jobs.insert(0, job)
+    store.save("jobs", jobs)
+    memory.log("job", f"Started tracking {company} (added by a mentor)", job["id"])
+    return job["id"]

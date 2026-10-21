@@ -382,9 +382,11 @@ Buttons you can offer (the candidate clicks; nothing happens unless they do). On
 - {"type": "update_targets", "targets": {<only the keys that change: roles, industries, locations, work_authorization, start_date, ...>}, "label": ""}
 - {"type": "update_skill", "name": "", "level": "<beginner|intermediate|advanced>", "evidence": "", "label": ""}
 - {"type": "save_story", "competency": "<question type id>", "fields": {"title": "", "situation": "", "task": "", "action": "", "result": "", "reflection": "", "answer": ""}, "label": ""}  (only the candidate's own facts)
-- {"type": "update_job", "job_id": "<id from the context>", "status": "<Saved|Ready|Contacted|Followed up|Applied|Interviewing|Offer|Rejected|Withdrawn>", "notes": "", "contact_email": "", "label": ""}  (only the keys that change)
+- {"type": "update_job", "job_id": "<id from the context>", "status": "<Saved|Ready|Contacted|Followed up|Applied|Online assessment|Interviewing|Offer|Accepted|Rejected|Withdrawn>", "notes": "", "contact_email": "", "label": ""}  (only the keys that change)
 - {"type": "add_question", "kind": "<behavioral|technical>", "question": "", "area": "<technical only>", "rubric": "<technical: what a strong answer includes>", "look_for": "<behavioral: what a strong answer shows>", "label": ""}
-When the candidate tells you something that changes their profile, stories, skills, targets or a job, offer the matching update button instead of only acknowledging it.
+- {"type": "add_event", "job_id": "<id from jobs_index, or \"\" if the firm isn't tracked yet>", "company": "<company name>", "event_type": "<oa|interview|coffee_chat|info_session|career_fair|deadline|other>", "date": "<YYYY-MM-DD>", "time": "<HH:MM or \"\">", "title": "<e.g. Superday, HireVue>", "platform": "<for oa: hirevue|codesignal|hackerrank|codility|games|reasoning|modeling|case|other>", "label": ""}  (puts it on the job and the Calendar; only with a real date the candidate gave)
+- {"type": "add_contact", "name": "", "company": "", "title": "", "how": "<Alumni|Recruiter|Referral|Met at an event|Professor or advisor|Friend or family|Cold>", "job_id": "<optional>", "notes": "", "label": ""}  (adds a person to their Network list)
+When the candidate tells you something that changes their profile, stories, skills, targets, a job, a date (assessment, interview, deadline) or a person they met, offer the matching update button instead of only acknowledging it.
 
 Rules for every coach:
 - Reply in the candidate's language (if they write Chinese, reply in Chinese). Be warm, direct and specific. Keep replies short (under ~180 words) unless they ask for detail.

@@ -955,7 +955,7 @@ function renderSkills() {
     h("div", { class: "big-score" }, `${r.total} / ${r.max}`),
     h("p", {}, r.summary),
     chips((r.skills || []).map((s) => `${s.area}: ${s.level}`)),
-    h("p", { class: "muted small" }, "These levels go into your profile when you click Build my profile."))] : []));
+    h("p", { class: "muted small" }, "These levels were added to your profile's skills as verified (✓). Skills you edited by hand are left alone."))] : []));
 }
 
 const pickedAreas = new Set();
@@ -2017,7 +2017,7 @@ async function runAction(a, button) {
       if (current.status === "answering" && !confirm("Replace your current skills check with this one?")) return;
       await busy(button, "Picking questions…", () => api("/api/skills/start", { method: "POST", body: { areas: a.areas, count: a.count } }));
       location.hash = "#skills";
-    } else if (["edit_profile", "save_story", "add_profile_item", "update_targets", "update_skill", "update_job", "add_question"].includes(a.type)) {
+    } else if (["edit_profile", "save_story", "add_profile_item", "update_targets", "update_skill", "update_job", "add_question", "add_event", "add_contact"].includes(a.type)) {
       await busy(button, "Saving…", () => api("/api/mentor/apply", { method: "POST", body: { action: a } }));
       button.textContent = "Done ✓";
       button.disabled = true;
@@ -2032,8 +2032,11 @@ function actionButtons(actions, cls = "bubble-actions") {
   if (!(actions || []).length) return null;
   return h("div", { class: cls }, actions.map((a) => {
     const tip = a.type === "edit_profile" ? `Change to: ${a.new}` : a.type === "add_profile_item" ? JSON.stringify(a.item)
-      : a.type === "update_targets" ? JSON.stringify(a.targets) : a.type === "update_job" ? `Status: ${a.status || "unchanged"}` : "";
+      : a.type === "update_targets" ? JSON.stringify(a.targets) : a.type === "update_job" ? `Status: ${a.status || "unchanged"}`
+      : a.type === "add_event" ? `${a.event_type || "event"} on ${a.date}${a.time ? " " + a.time : ""} for ${a.company || "this job"}`
+      : a.type === "add_contact" ? `${a.name}${a.company ? ", " + a.company : ""}` : "";
     const b = h("button", { class: "small secondary" + (/^(edit|save|add|update)/.test(a.type) ? " update" : ""), type: "button", title: tip }, a.label);
+    if (tip && /^(add_event|add_contact)$/.test(a.type)) b.append(h("span", { class: "muted small" }, ` · ${tip}`));
     b.addEventListener("click", () => runAction(a, b));
     return b;
   }));
