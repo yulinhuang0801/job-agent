@@ -298,6 +298,7 @@ button.update { border-style: dashed; }
 .filter select { padding: 5px 6px; font-size: 13px; }
 .filter-toggles { grid-column: 1 / -1; gap: 14px; }
 #db-sources .qrow button { align-self: center; }
+#db-sources .dice-opts { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; max-width: 560px; }
 .qsource { margin: -4px 0 8px; }
 details.sources-pick { margin: 8px 0 4px; }
 details.sources-pick summary { cursor: pointer; color: var(--accent); }

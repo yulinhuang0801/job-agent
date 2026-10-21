@@ -18,6 +18,8 @@ DEFAULT_SETTINGS = {
     "hunter_key": "",  # Hunter.io email finder
     "serper_key": "",  # Serper.dev Google results for the Find tab
     "sec_contact": "",  # SEC requires a contact email from automated downloads
+    "dice_keywords": "",  # Find → Data sources → Dice: roles to search (blank = from your target roles)
+    "dice_sponsor": "off",  # only Dice employers willing to sponsor work authorization
     "alert_host": "imap.gmail.com",  # job-alert emails (LinkedIn, Handshake, Indeed...) read over IMAP, read-only
     "alert_email": "",
     "alert_password": "",  # an app password / authorization code, never the normal password

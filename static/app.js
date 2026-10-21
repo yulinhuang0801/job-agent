@@ -1269,11 +1269,12 @@ let dbFilters = { postings: { job_type: "Internship" }, firms: { small: "1" } };
 let dbPage = 1;
 let dbResult = null;
 let dbPoll = null;
-const SOURCE_KEYS = { "SEC Form ADV": "adv", "SEC Form D": "formd", "Job boards": "jobs", "Job alert emails": "alerts", "O*NET occupations": "onet" };
+const SOURCE_KEYS = { "SEC Form ADV": "adv", "SEC Form D": "formd", "Job boards": "jobs", "Dice": "dice", "Job alert emails": "alerts", "O*NET occupations": "onet" };
 const SOURCE_TEXT = {
   "SEC Form ADV": "Investment advisers (PE, VC, hedge, real estate, wealth managers), monthly",
   "SEC Form D": "New funds and startups that just raised money, with people on the filing, quarterly",
   "Job boards": "Company job boards (Greenhouse, Lever, Ashby) and SimplifyJobs internship lists",
+  "Dice": "Tech jobs from Dice's official job-search service, searched for your target roles (a few searches per run). Listings are found with AI-assisted search; check details with the employer before applying",
   "Job alert emails": "Jobs LinkedIn, Handshake, Indeed and others emailed you (set up in Settings → Job alert emails)",
   "O*NET occupations": "U.S. Department of Labor data on 1,000+ occupations (tasks, tools, knowledge) for questions by occupation; about 20 MB, once",
 };
@@ -1296,12 +1297,18 @@ async function loadDbStatus() {
     const s = st.sources[name] || {};
     const running = st.running.includes(name);
     const isAlerts = key === "alerts";
+    const isDice = key === "dice";
     const btn = h("button", { class: "small secondary", type: "button", disabled: running },
-      running ? "Updating…" : isAlerts ? (st.alerts_configured ? "Check inbox" : "Set up") : s.updated ? "Update" : "Download");
+      running ? "Updating…" : isAlerts ? (st.alerts_configured ? "Check inbox" : "Set up") : isDice ? "Search Dice" : s.updated ? "Update" : "Download");
+    // Dice: which roles to search and whether to keep only employers that sponsor visas.
+    const diceRoles = isDice ? h("input", { class: "small", value: st.dice.keywords.join(", "), placeholder: "Roles, comma-separated (from your target roles)",
+      "aria-label": "Roles to search on Dice" }) : null;
+    const diceSponsor = isDice ? h("input", { type: "checkbox", checked: st.dice.sponsor }) : null;
     btn.addEventListener("click", async () => {
       if (isAlerts && !st.alerts_configured) { location.hash = "#settings"; setTimeout(() => $("#alert-settings").scrollIntoView({ behavior: "smooth" }), 200); return; }
+      const body = isDice ? { source: key, keywords: diceRoles.value, sponsor: diceSponsor.checked } : { source: key };
       try {
-        await api("/api/db/refresh", { method: "POST", body: { source: key } });
+        await api("/api/db/refresh", { method: "POST", body });
         loadDbStatus();
       } catch (err) { setMsg($("#db-msg"), err.message, "err"); }
     });
@@ -1309,7 +1316,11 @@ async function loadDbStatus() {
       h("div", {}, h("b", {}, name), h("div", { class: "muted small" }, SOURCE_TEXT[name]),
         h("div", { class: "small" + (s.status === "error" ? " sev-high" : "") },
           running ? `⏳ ${s.message || "Working…"}` : s.status === "error" ? `Failed: ${s.message}` : s.updated ? `✓ ${s.message} · updated ${s.updated.slice(0, 10)}`
-            : isAlerts ? (st.alerts_configured ? "Not checked yet" : "Not set up: connect your inbox, or add an alert by hand below") : "Not downloaded yet")),
+            : isAlerts ? (st.alerts_configured ? "Not checked yet" : "Not set up: connect your inbox, or add an alert by hand below")
+            : isDice ? "Not searched yet" : "Not downloaded yet"),
+        isDice ? h("div", { class: "dice-opts" }, diceRoles,
+          h("label", { class: "toggle small" }, diceSponsor, " Only employers willing to sponsor visas (for F-1 / CPT / OPT students)"),
+          h("div", { class: "muted small" }, `${st.dice.interns ? "Internships" : "Jobs"}${st.dice.remote ? ", remote" : st.dice.location ? `, near ${st.dice.location}` : ""} · from your target roles in About you`)) : null),
       btn);
   }));
   clearTimeout(dbPoll);

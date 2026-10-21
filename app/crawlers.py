@@ -52,7 +52,7 @@ def run_in_background(name, fn, *args):
             rows, message = fn(*args)
             db.set_source(name, "done", message, rows)
         except Exception as e:  # report any failure to the page instead of dying silently
-            db.set_source(name, "error", f"{e.__class__.__name__}: {e}"[:300])
+            db.set_source(name, "error", (str(e) if isinstance(e, CrawlError) else f"{e.__class__.__name__}: {e}")[:300])
         finally:
             with _lock:
                 _running.discard(name)
@@ -436,7 +436,8 @@ def crawl_jobs():
     seen = {r["url"] for r in rows}
     rows += [_posting_row(p, p["company"], "", "SimplifyJobs list", known.get(p["company"], "")) for p in simplify if p["url"] not in seen]
     with db.connect() as con:
-        con.execute("DELETE FROM postings")
+        # Replace only this crawl's rows; Dice and job-alert emails keep theirs.
+        con.execute("DELETE FROM postings WHERE source IN ('Company job boards', 'SimplifyJobs list')")
         for i in range(0, len(rows), 2000):
             db.upsert(con, "postings", rows[i:i + 2000])
         now = datetime.now().isoformat(timespec="seconds")

@@ -16,7 +16,7 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import alerts, assess, coderun, crawlers, db, grading, llm, memory, mentors, official, onet, outreach, pdf, pipeline, prep, profile_merge, prompts, qlibrary, research, timelines, resume_text, services, sourcing, store
+from . import alerts, assess, coderun, crawlers, db, dice, grading, llm, memory, mentors, official, onet, outreach, pdf, pipeline, prep, profile_merge, prompts, qlibrary, research, timelines, resume_text, services, sourcing, store
 from .jobs_fetch import FetchError, fetch_job
 
 STATIC = Path(__file__).resolve().parent.parent / "static"
@@ -1025,6 +1025,8 @@ def put_outreach(details: dict):
 class RefreshIn(BaseModel):
     source: str
     quarters: int = 4
+    keywords: Optional[str] = None  # Dice: comma-separated roles to search (blank = from your target roles)
+    sponsor: Optional[bool] = None  # Dice: only employers willing to sponsor work authorization
 
 
 class BoardIn(BaseModel):
@@ -1034,7 +1036,8 @@ class BoardIn(BaseModel):
 @app.get("/api/db/status")
 def db_status():
     return {"counts": db.counts(), "sources": db.sources(), "running": crawlers.running(), "vocab": db.vocab(),
-            "sec_contact_set": "@" in store.get_settings().get("sec_contact", ""), "alerts_configured": alerts.configured()}
+            "sec_contact_set": "@" in store.get_settings().get("sec_contact", ""), "alerts_configured": alerts.configured(),
+            "dice": dice.plan()}
 
 
 ALERTS_SOURCE = "Job alert emails"
@@ -1102,7 +1105,7 @@ async def upload_alert(file: UploadFile = File(...)):
 def db_refresh(body: RefreshIn):
     jobs = {"adv": ("SEC Form ADV", crawlers.import_adv, ()), "formd": ("SEC Form D", crawlers.import_form_d, (max(1, min(12, body.quarters)),)),
             "jobs": ("Job boards", crawlers.crawl_jobs, ()), "alerts": (ALERTS_SOURCE, _check_alerts, ()),
-            "onet": (ONET_SOURCE, _download_onet, ())}
+            "onet": (ONET_SOURCE, _download_onet, ()), "dice": (dice.NAME, dice.run, ())}
     if body.source not in jobs:
         raise HTTPException(400, "Unknown source.")
     name, fn, args = jobs[body.source]
@@ -1110,6 +1113,17 @@ def db_refresh(body: RefreshIn):
         raise HTTPException(400, "Add your email and app password in Settings → Job alert emails first, or paste an alert below.")
     if body.source in ("adv", "formd") and "@" not in store.get_settings().get("sec_contact", ""):
         raise HTTPException(400, "SEC requires a contact email for downloads. Add it in Settings → SEC contact email.")
+    if body.source == "dice":
+        if body.keywords is not None or body.sponsor is not None:
+            s = store.get_settings()
+            if body.keywords is not None:
+                s["dice_keywords"] = ", ".join(k.strip() for k in body.keywords.split(",") if k.strip())[:300]
+            if body.sponsor is not None:
+                s["dice_sponsor"] = "on" if body.sponsor else "off"
+            store.save("settings", s)
+        age = dice.last_run_age()
+        if age is not None and age < dice.COOLDOWN and dice.NAME not in crawlers.running():
+            raise HTTPException(400, f"Dice was searched {int(age)} seconds ago. To go easy on Dice's servers, wait {int(dice.COOLDOWN - age)} more seconds.")
     try:
         crawlers.run_in_background(name, fn, *args)
     except crawlers.CrawlError as e:
