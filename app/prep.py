@@ -24,6 +24,10 @@ def build(company, role):
             if found.get("answer"):
                 material.append(f"Q: {q}\nSummary: {found['answer']}")
             material += [f"- {r['title']} ({r['url']}): {r['content']}" for r in found.get("results", [])]
+    examples = assess.field_examples(f"{role} {company} " + " ".join(str(v) for v in (store.load("profile", {}).get("targets") or {}).values()))
+    if examples:
+        material.insert(0, "FIELD EXAMPLES (style and difficulty of technical questions in this field; write new ones for this company):\n"
+                        + "\n".join(f"- {e}" for e in examples))
     known = qlibrary.company_behavioral(company)
     if known:
         material.insert(0, f"Behavioral questions reported at {company} (Tech Interview Handbook; prefer these):\n"

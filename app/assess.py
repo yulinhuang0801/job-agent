@@ -41,10 +41,47 @@ def comps():
     return merged
 
 
+# Which bank areas fit a field, from words in a role, major or company description.
+FIELD_AREAS = [
+    (r"biochem|molecular|biolog|biotech|pharma|life science|genetic|chemis|protein|assay|cell (biology|culture)|immunolog|neurosci|lab\b|laborator|wet lab", ["biochem", "lab_methods"]),
+    (r"health|clinic|hospital|medical|patient|nurs|public health|pre-?med|epidemiolog|payer|provider", ["healthcare", "lab_methods"]),
+    (r"mechanical|aerospace|manufactur|automotive|robotic|hvac|thermal", ["mech"]),
+    (r"electrical|electronics|embedded|hardware|circuit|power systems|semiconductor|firmware", ["ee"]),
+    (r"civil|structural|geotech|transportation|construction|water resources|environmental eng", ["civil"]),
+    (r"marketing|brand|growth|social media|advertis|communications|content", ["marketing"]),
+    (r"audit|tax\b|accounting|cpa|assurance|big 4|controller", ["audit_tax", "accounting"]),
+    (r"\bux\b|\bui\b|user experience|product design|visual design|graphic design|interaction design|figma", ["ux_design"]),
+    (r"invest\w* bank|private equity|venture|valuation|m&a|finance|search fund", ["accounting", "valuation", "ma_lbo"]),
+    (r"consult|strategy", ["consulting"]),
+    (r"software|developer|\bswe\b|backend|frontend|full.?stack|web dev", ["python", "dsa", "system_design"]),
+    (r"data scien|data analy|analytics|machine learning|\bml\b|\bai\b", ["data", "ml", "sql"]),
+]
+
+
+def field_areas(text):
+    """Bank area ids that fit the field described in text (a role, major, company or posting)."""
+    import re
+    out = []
+    for pattern, keys in FIELD_AREAS:
+        if re.search(pattern, text or "", re.I):
+            out += [k for k in keys if k in TECHNICAL and k not in out]
+    return out
+
+
+def field_examples(text, n=6):
+    """A few bank questions from the matching fields, to show the AI the expected style."""
+    lines = []
+    for key in field_areas(text)[:3]:
+        area = TECHNICAL[key]
+        for q in area["questions"][: max(1, n // 3)]:
+            lines.append(f"[{area['label']} · level {q['level']} · {q['type']}] {q['question']}")
+    return lines
+
+
 def tech_areas():
-    areas = {k: {"label": v["label"], "questions": list(v["questions"])} for k, v in TECHNICAL.items()}
+    areas = {k: {"label": v["label"], "group": v.get("group", "Other"), "questions": list(v["questions"])} for k, v in TECHNICAL.items()}
     for q in load_custom()["technical"]:
-        areas.setdefault("my:" + q["area"], {"label": q["area"], "questions": []})["questions"].append(q)
+        areas.setdefault("my:" + q["area"], {"label": q["area"], "group": "My questions", "questions": []})["questions"].append(q)
     return areas
 
 
@@ -421,8 +458,8 @@ def _bank_index():
 
 
 def skill_areas():
-    built_in = [{"id": k, "label": v["label"], "count": len(v["questions"]), "mine": k.startswith("my:"), "source": "Job Agent"}
-                for k, v in tech_areas().items()]
+    built_in = [{"id": k, "label": v["label"], "count": len(v["questions"]), "mine": k.startswith("my:"), "source": "Job Agent",
+                 "group": v.get("group", "Other")} for k, v in tech_areas().items()]
     return built_in + qlibrary.areas()
 
 

@@ -880,7 +880,7 @@ function renderSkills() {
     }
     return h("div", { class: "card question" },
       h("div", { class: "job-top" },
-        h("div", { class: "qmeta" }, `Question ${i + 1} · ${q.area} · ${LEVELS[q.level] || ""}${coding ? " · coding" : ""}`),
+        h("div", { class: "qmeta" }, `Question ${i + 1} · ${q.area} · ${LEVELS[q.level] || ""}${coding ? " · coding" : q.type === "problem" ? " · calculation: show your working" : ""}`),
         g ? h("span", { class: `score ${g.score >= 3 ? "hi" : g.score >= 2 ? "mid" : "lo"}` }, `${g.score}/4`) : null),
       h("pre", {}, q.question),
       q.link ? h("div", { class: "muted small qsource" }, `From ${q.source}: `,
@@ -919,7 +919,11 @@ function areaChips(list) {
 
 function renderAreas(areas) {
   const own = areas.filter((a) => !a.source || a.source === "Job Agent");
-  $("#skills-areas").replaceChildren(...areaChips(own));
+  // Group the bank's areas by field (Software & data, Finance & business, Engineering…), yours last.
+  const ORDER = ["Software & data", "Finance & business", "Engineering", "Science & health", "Marketing & design", "My questions"];
+  const groups = [...new Set(own.map((a) => a.group || "Other"))].sort((x, y) => (ORDER.indexOf(x) + 99) % 99 - (ORDER.indexOf(y) + 99) % 99);
+  $("#skills-areas").replaceChildren(...groups.map((g) => h("div", { class: "area-group" },
+    h("span", { class: "area-group-title" }, g), h("div", { class: "chips pick" }, areaChips(own.filter((a) => (a.group || "Other") === g))))));
   $("#skills-areas-lc").replaceChildren(...areaChips(areas.filter((a) => a.source === "LeetCode")));
   $("#skills-areas-oi").replaceChildren(...areaChips(areas.filter((a) => a.source === "Open Interview")));
   $("#mt-areas").replaceChildren(...own.map((a) => h("option", { value: a.label })));

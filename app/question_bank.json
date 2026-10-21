@@ -264,7 +264,7 @@
     }
   },
   "technical": {
-    "_note": "Questions for the Skills check. type: concept (explain), practical (write or work something out), design. level: 1 easy, 2 medium, 3 harder. lang: editor language for practical questions (default by area). The rubric is what a strong answer includes. Your own questions live in data/custom_questions.json.",
+    "_note": "Questions for the Skills check. type: concept (explain), practical (write code), problem (a calculation or worked answer, typed), design (open-ended design). level: 1 easy, 2 medium, 3 harder. group: the field the area belongs to. lang: editor language for practical questions (default by area). The rubric is what a strong answer includes. Your own questions live in data/custom_questions.json.",
     "areas": {
       "python": {
         "label": "Python",
@@ -332,7 +332,8 @@
             "question": "What is the GIL, and when would you use threads vs. processes vs. asyncio in Python?",
             "rubric": "GIL lets one thread run Python bytecode at a time; threads/asyncio fit I/O-bound work (asyncio for many concurrent I/O tasks), multiprocessing for CPU-bound work; trade-offs in memory and complexity."
           }
-        ]
+        ],
+        "group": "Software & data"
       },
       "dsa": {
         "label": "Data structures & algorithms",
@@ -393,7 +394,8 @@
             "question": "How would you find the k-th largest number in an unsorted array? Compare two approaches.",
             "rubric": "Min-heap of size k: O(n log k); quickselect: average O(n), worst O(n^2); sorting O(n log n) as a baseline."
           }
-        ]
+        ],
+        "group": "Software & data"
       },
       "sql": {
         "label": "SQL & databases",
@@ -454,7 +456,8 @@
             "question": "Using orders(id, customer_id, amount, created_at), list each order with its rank among that customer's orders by amount (1 = biggest).",
             "rubric": "Window function: ROW_NUMBER() or RANK() OVER (PARTITION BY customer_id ORDER BY amount DESC); explains the difference between ROW_NUMBER and RANK on ties."
           }
-        ]
+        ],
+        "group": "Software & data"
       },
       "backend": {
         "label": "Backend & APIs",
@@ -508,7 +511,8 @@
             "question": "What is caching, and what makes cache invalidation hard? Name one strategy.",
             "rubric": "Storing results closer/faster to avoid recomputation; stale data when source changes; strategies: TTL expiry, write-through, write-behind, explicit invalidation on update, cache-aside."
           }
-        ]
+        ],
+        "group": "Software & data"
       },
       "frontend": {
         "label": "JavaScript & frontend",
@@ -548,7 +552,8 @@
             "question": "What is the difference between the DOM and HTML source code?",
             "rubric": "HTML is the text the server sends; the DOM is the browser's live tree of objects built from it that JavaScript can change."
           }
-        ]
+        ],
+        "group": "Software & data"
       },
       "systems": {
         "label": "Systems & OS",
@@ -581,7 +586,8 @@
             "question": "What is a deadlock, and what conditions must hold for one to occur?",
             "rubric": "Processes waiting on each other forever; mutual exclusion, hold and wait, no preemption, circular wait; prevention by lock ordering."
           }
-        ]
+        ],
+        "group": "Software & data"
       },
       "ml": {
         "label": "Machine learning",
@@ -635,7 +641,8 @@
             "question": "How does gradient descent train a model?",
             "rubric": "Compute loss, gradient of loss w.r.t. parameters, step opposite the gradient scaled by learning rate, repeat; mentions learning rate trade-offs, mini-batches/SGD, local minima or convergence."
           }
-        ]
+        ],
+        "group": "Software & data"
       },
       "data": {
         "label": "Data analysis",
@@ -675,7 +682,8 @@
             "question": "In pandas, you have orders (order_id, customer_id, amount) and customers (customer_id, country). Get total amount per country.",
             "rubric": "orders.merge(customers, on='customer_id').groupby('country')['amount'].sum(); mentions join type / missing customers."
           }
-        ]
+        ],
+        "group": "Software & data"
       },
       "java": {
         "label": "Java",
@@ -701,7 +709,8 @@
             "question": "When would you use an ArrayList vs. a LinkedList vs. a HashMap?",
             "rubric": "ArrayList fast index access, amortized append; LinkedList cheap insert/remove at known nodes but slow access; HashMap key-value lookups O(1) average."
           }
-        ]
+        ],
+        "group": "Software & data"
       },
       "c_cpp": {
         "label": "C / C++",
@@ -727,7 +736,8 @@
             "question": "What is the difference between passing by value, by pointer and by reference in C++?",
             "rubric": "Value copies; pointer passes address (can be null, needs dereference); reference is an alias (not null, can't reseat); const references avoid copies."
           }
-        ]
+        ],
+        "group": "Software & data"
       },
       "git": {
         "label": "Git & teamwork tools",
@@ -746,7 +756,8 @@
             "question": "Walk through how you would contribute a change to a team repository using branches and pull requests.",
             "rubric": "Create branch, commit, push, open PR, code review, address feedback, CI checks, merge; keep branch up to date."
           }
-        ]
+        ],
+        "group": "Software & data"
       },
       "accounting": {
         "label": "Accounting (finance technicals)",
@@ -788,7 +799,8 @@
             "rubric": "Step 1: inventory +100, cash -100, no income statement effect. Step 2: revenue 150, COGS 100, pre-tax 50, net income 37.5; CFS: net income 37.5 + inventory decrease 100 = cash +137.5; BS: cash +137.5, inventory -100, assets +37.5, retained earnings +37.5.",
             "lang": "plaintext"
           }
-        ]
+        ],
+        "group": "Finance & business"
       },
       "valuation": {
         "label": "Valuation (finance technicals)",
@@ -828,7 +840,8 @@
             "question": "Two similar companies trade at 10x and 7x EBITDA. What could explain the difference?",
             "rubric": "Higher growth, better margins, lower risk, stronger market position, lower capital intensity, larger size/liquidity, better management or recurring revenue justify the higher multiple; or one is mispriced."
           }
-        ]
+        ],
+        "group": "Finance & business"
       },
       "ma_lbo": {
         "label": "M&A and LBOs (finance technicals)",
@@ -869,7 +882,8 @@
             "rubric": "Entry EV 800, debt 480, equity 320. Exit EV 1,040, remaining debt 280, equity 760. Money multiple about 2.4x (760/320); IRR roughly 19% over 5 years.",
             "lang": "plaintext"
           }
-        ]
+        ],
+        "group": "Finance & business"
       },
       "markets": {
         "label": "Markets & investing",
@@ -902,7 +916,8 @@
             "question": "Pitch me a company you'd invest in (stock, private company or a small business you know).",
             "rubric": "Clear thesis in 2-3 points, rough key numbers or valuation view, catalysts, main risks and what would change their mind; specific, not generic."
           }
-        ]
+        ],
+        "group": "Finance & business"
       },
       "consulting": {
         "label": "Consulting cases & market sizing",
@@ -930,7 +945,8 @@
             "question": "A client's profits fell 20% this year. How would you structure the problem?",
             "rubric": "Profit = revenue - costs; revenue = price x volume by product/segment/channel; costs fixed vs variable; internal vs external causes (market, competitors, customers); form hypotheses and say what data to check first."
           }
-        ]
+        ],
+        "group": "Finance & business"
       },
       "stats": {
         "label": "Statistics & probability (quant)",
@@ -965,7 +981,8 @@
             "rubric": "2/3: there are 3 equally likely red faces you could be seeing, 2 of them are on the red/red card (Bayes); 1/2 is the common wrong answer.",
             "lang": "plaintext"
           }
-        ]
+        ],
+        "group": "Software & data"
       },
       "excel": {
         "label": "Excel",
@@ -992,7 +1009,8 @@
             "question": "What is a pivot table and when would you use one?",
             "rubric": "Summarizes large data by grouping and aggregating (sum, count, average) with filters; quick analysis like sales by region and month without formulas."
           }
-        ]
+        ],
+        "group": "Finance & business"
       },
       "system_design": {
         "label": "System design",
@@ -1018,7 +1036,8 @@
             "question": "How would you design a news feed for 10 million users?",
             "rubric": "Fan-out on write vs. on read (hybrid for celebrities), feed cache per user, ranking, pagination, storage for posts and follows, async workers/queues, trade-offs in latency and freshness."
           }
-        ]
+        ],
+        "group": "Software & data"
       },
       "nlp": {
         "label": "NLP & language tech",
@@ -1043,6 +1062,621 @@
             "type": "concept",
             "question": "How would you evaluate an OCR model or a text classifier?",
             "rubric": "OCR: character/word error rate (CER/WER) on a held-out labeled set, per-script or per-font breakdowns; classifier: precision, recall, F1, confusion matrix; check data leakage and error analysis."
+          }
+        ],
+        "group": "Software & data"
+      },
+      "biochem": {
+        "label": "Biochemistry & molecular biology",
+        "group": "Science & health",
+        "questions": [
+          {
+            "id": "biochem1",
+            "level": 1,
+            "type": "concept",
+            "question": "What are the four levels of protein structure, and which bonds or interactions hold each level together?",
+            "rubric": "Primary: amino-acid sequence joined by covalent peptide bonds. Secondary: alpha-helices and beta-sheets held by backbone hydrogen bonds. Tertiary: the 3D fold, held by side-chain interactions (hydrophobic effect, hydrogen bonds, ionic bonds/salt bridges, disulfide bonds, van der Waals). Quaternary: several subunits assembled by the same interactions (e.g. hemoglobin)."
+          },
+          {
+            "id": "biochem2",
+            "level": 1,
+            "type": "concept",
+            "question": "Explain the central dogma of molecular biology, and give one exception to it.",
+            "rubric": "DNA is replicated; DNA is transcribed into RNA; mRNA is translated into protein. Exceptions: reverse transcription (retroviruses like HIV, telomerase), RNA-to-RNA replication in RNA viruses, prions passing on protein conformation, and functional non-coding RNAs that are never translated."
+          },
+          {
+            "id": "biochem3",
+            "level": 1,
+            "type": "concept",
+            "question": "What's the relationship between a buffer's pKa and the pH, and why does a buffer work best near its pKa?",
+            "rubric": "Henderson-Hasselbalch: pH = pKa + log([A-]/[HA]). At pH = pKa the acid and conjugate base are equal, so the buffer can absorb added acid or base equally well and capacity is highest. Useful range is about pKa ± 1."
+          },
+          {
+            "id": "biochem4",
+            "level": 2,
+            "type": "concept",
+            "question": "In Michaelis-Menten kinetics, what do Km and Vmax mean, and how do a competitive and a non-competitive inhibitor change them?",
+            "rubric": "Vmax: the maximum rate when the enzyme is saturated with substrate (kcat x total enzyme). Km: the substrate concentration giving half of Vmax; a lower Km roughly means higher affinity. Competitive inhibitor binds the active site: apparent Km rises, Vmax unchanged (overcome by more substrate); Lineweaver-Burk lines meet on the y-axis. Non-competitive: Vmax falls, Km unchanged."
+          },
+          {
+            "id": "biochem5",
+            "level": 2,
+            "type": "concept",
+            "question": "How does PCR work? Name the steps, roughly what temperature each runs at, and what each reaction component does.",
+            "rubric": "Cycle of denaturation (~94-98 °C, strands separate), annealing (~50-65 °C, set by primer Tm, primers bind), extension (~72 °C, polymerase copies). Components: template DNA, forward and reverse primers, heat-stable polymerase (e.g. Taq), dNTPs, buffer with Mg2+. About 25-35 cycles; product roughly doubles each cycle."
+          },
+          {
+            "id": "biochem6",
+            "level": 2,
+            "type": "problem",
+            "question": "You need 500 mL of 0.15 M NaCl. (a) How much 5 M stock and how much water do you use? (b) How many grams of solid NaCl would you weigh out instead? (NaCl = 58.44 g/mol)",
+            "rubric": "(a) C1V1 = C2V2: V1 = 0.15 x 500 / 5 = 15 mL stock, brought up to 500 mL with water (about 485 mL). (b) 0.15 mol/L x 0.5 L = 0.075 mol x 58.44 g/mol = 4.38 g, dissolved and brought to 500 mL total volume."
+          },
+          {
+            "id": "biochem7",
+            "level": 2,
+            "type": "concept",
+            "question": "Compare SDS-PAGE and a Western blot: what does each tell you, and why do you need a loading control?",
+            "rubric": "SDS-PAGE separates denatured proteins by size (SDS gives uniform negative charge; reducing agent breaks disulfides) and a stain shows all proteins. A Western transfers them to a membrane, blocks it, and uses a primary antibody to the target plus a labeled secondary to detect one specific protein and its approximate amount. A loading control (actin, GAPDH, tubulin or total protein) shows equal loading so band differences are real."
+          },
+          {
+            "id": "biochem8",
+            "level": 2,
+            "type": "concept",
+            "question": "How does CRISPR-Cas9 knock out a gene?",
+            "rubric": "A guide RNA (~20 nt) matches the target next to a PAM (NGG for SpCas9); Cas9 cuts both strands. The cell repairs it by error-prone NHEJ, leaving insertions/deletions that cause frameshifts or early stop codons, so the gene is knocked out. Precise edits use HDR with a donor template. Mentions off-target cutting and verifying by sequencing and protein loss."
+          },
+          {
+            "id": "biochem9",
+            "level": 3,
+            "type": "concept",
+            "question": "Your qPCR shows a gene is up 8-fold after treatment, but the Western blot shows no change in the protein. What could explain it, and how would you test each idea?",
+            "rubric": "Explanations: post-transcriptional control (miRNAs, translation efficiency), faster protein degradation, a time lag between mRNA and protein, antibody problems (specificity, saturated or non-linear detection), a reference gene that changed with treatment, different isoforms. Tests: time course, protein half-life with cycloheximide, proteasome inhibitor, validate antibody with a knockdown, check other reference genes, quantify in the linear range."
+          }
+        ]
+      },
+      "lab_methods": {
+        "label": "Lab & research methods",
+        "group": "Science & health",
+        "questions": [
+          {
+            "id": "lab_methods1",
+            "level": 1,
+            "type": "concept",
+            "question": "What's the difference between a positive and a negative control? Give one of each for an experiment testing whether a new drug kills bacteria.",
+            "rubric": "Positive control: a treatment known to work (an established antibiotic), showing the assay can detect killing. Negative control: no treatment or vehicle only (the drug's solvent), giving the baseline and ruling out solvent effects. Without both you can't interpret a result."
+          },
+          {
+            "id": "lab_methods2",
+            "level": 1,
+            "type": "concept",
+            "question": "What's the difference between biological and technical replicates, and why does it matter for statistics?",
+            "rubric": "Biological replicates are independent samples (different cultures, animals, donors) and capture real biological variation; technical replicates re-measure the same sample and only capture measurement noise. Statistical n should be the biological replicates; treating technical replicates as n is pseudoreplication."
+          },
+          {
+            "id": "lab_methods3",
+            "level": 1,
+            "type": "concept",
+            "question": "What should a lab notebook entry contain, and why does it matter?",
+            "rubric": "Date, aim, protocol and any deviations, reagents with lot numbers and concentrations, equipment and settings, raw data and observations, analysis and conclusions, signed and dated. Reproducibility, troubleshooting, data integrity, intellectual property and compliance (GLP)."
+          },
+          {
+            "id": "lab_methods4",
+            "level": 2,
+            "type": "problem",
+            "question": "A bacterial culture has an OD600 of 0.8. You need 10 mL at OD600 0.1. How much culture and how much medium do you mix?",
+            "rubric": "0.8 x V = 0.1 x 10 mL, so V = 1.25 mL culture plus 8.75 mL medium. Notes that OD is only proportional to cell density in the linear range."
+          },
+          {
+            "id": "lab_methods5",
+            "level": 2,
+            "type": "concept",
+            "question": "When would you use a t-test versus an ANOVA, and what does a p-value of 0.03 actually mean?",
+            "rubric": "t-test compares the means of two groups; ANOVA three or more, followed by post-hoc tests with a multiple-comparison correction. Assumptions (independence, roughly normal data, similar variances; non-parametric alternatives otherwise). p = 0.03: if there were truly no difference, data this extreme would appear about 3% of the time. It is not the probability the hypothesis is true, and it says nothing about effect size."
+          },
+          {
+            "id": "lab_methods6",
+            "level": 2,
+            "type": "concept",
+            "question": "Walk me through making a standard curve for a protein assay (BCA or Bradford) and using it to find an unknown sample's concentration.",
+            "rubric": "Serial dilutions of a known standard (e.g. BSA) spanning the expected range, blank, replicates; measure absorbance; subtract blank; plot absorbance vs concentration and fit a line (check R²); read the unknown from the curve, multiplying by any dilution factor; unknowns must fall inside the linear range or be diluted; run standards and samples together."
+          },
+          {
+            "id": "lab_methods7",
+            "level": 2,
+            "type": "concept",
+            "question": "An experiment that worked last month fails now. How do you troubleshoot it?",
+            "rubric": "Check what changed: reagent lots and expiry, storage, equipment calibration, cells (passage number, contamination), protocol drift or a different person. Rerun with a positive control, change one variable at a time, compare with the notebook, ask colleagues, document every step."
+          },
+          {
+            "id": "lab_methods8",
+            "level": 3,
+            "type": "design",
+            "question": "Design an experiment to test whether a new compound reduces inflammation in cultured macrophages.",
+            "rubric": "Clear hypothesis; model (e.g. macrophage line stimulated with LPS); groups: unstimulated, LPS + vehicle, LPS + compound at several doses, LPS + known anti-inflammatory (e.g. dexamethasone) as positive control; readouts: cytokines like TNF-α and IL-6 by ELISA or qPCR; a viability assay so lower cytokines aren't just dead cells; biological replicates, randomization, statistics, dose-response."
+          }
+        ]
+      },
+      "mech": {
+        "label": "Mechanical engineering",
+        "group": "Engineering",
+        "questions": [
+          {
+            "id": "mech1",
+            "level": 1,
+            "type": "concept",
+            "question": "Explain stress, strain and the elastic modulus, and what the stress-strain curve tells you.",
+            "rubric": "Stress = force / area (Pa); strain = change in length / original length (no units); in the linear elastic region E = stress / strain measures stiffness. The curve shows yield strength (permanent deformation starts), ultimate strength, ductility (strain at fracture), and ductile vs brittle behavior."
+          },
+          {
+            "id": "mech2",
+            "level": 1,
+            "type": "concept",
+            "question": "What is a factor of safety, and how would you choose one?",
+            "rubric": "Ratio of failure load (or strength) to the expected working load or stress. Covers uncertainty in loads, material properties, manufacturing and analysis, and the consequences of failure. Typical 1.5-3 or more; higher for brittle materials, fatigue, poorly known loads or life-critical parts; codes and standards often set it."
+          },
+          {
+            "id": "mech3",
+            "level": 1,
+            "type": "concept",
+            "question": "What are tolerances and GD&T for, and what happens if you tolerance a part too tightly?",
+            "rubric": "They define allowed variation in size, form, orientation and position (relative to datums) so parts fit and function and can be inspected. Over-tight tolerances raise cost (slower machining, more inspection, more scrap); tolerance stack-up analysis; choose the loosest tolerance the function allows."
+          },
+          {
+            "id": "mech4",
+            "level": 2,
+            "type": "problem",
+            "question": "A steel rod 2 m long with a 100 mm² cross-section carries a 20 kN tensile load. Find the stress and the elongation (E = 200 GPa). Is it safe if yield strength is 250 MPa?",
+            "rubric": "σ = 20,000 N / 100x10⁻⁶ m² = 200 MPa. ε = σ/E = 200x10⁶ / 200x10⁹ = 0.001. δ = εL = 0.001 x 2 m = 2 mm. Below yield but the factor of safety is only 250/200 = 1.25, low for most designs."
+          },
+          {
+            "id": "mech5",
+            "level": 2,
+            "type": "concept",
+            "question": "Name the three modes of heat transfer and give an example of each in a laptop, with the basic equation for each.",
+            "rubric": "Conduction through the heat spreader, heat pipe walls and thermal paste (Fourier: q = -kA dT/dx); forced convection from the fan blowing air over fins (q = hA ΔT); radiation from the case surfaces (q = εσA(T⁴ - T∞⁴))."
+          },
+          {
+            "id": "mech6",
+            "level": 2,
+            "type": "concept",
+            "question": "State the first law of thermodynamics and apply it to a car engine. What limits the engine's efficiency?",
+            "rubric": "Energy is conserved: ΔU = Q - W (with a sign convention). The engine turns fuel's chemical energy into work plus rejected heat (exhaust, coolant, friction); efficiency = work out / heat in. The second law caps it below the Carnot limit 1 - Tc/Th; real gasoline engines are roughly 25-35%."
+          },
+          {
+            "id": "mech7",
+            "level": 2,
+            "type": "concept",
+            "question": "What is fatigue failure, and how do you design against it?",
+            "rubric": "Failure under repeated (cyclic) loading at stresses below yield: cracks start at stress concentrations or surface flaws, grow each cycle, then the part fractures suddenly. S-N curves and endurance limits; design by reducing stress concentrations (generous fillets), better surface finish, compressive residual stress (shot peening), lower alternating stress, Goodman analysis for mean stress, inspection."
+          },
+          {
+            "id": "mech8",
+            "level": 2,
+            "type": "problem",
+            "question": "Water flows at 2 m/s through a 10 cm diameter pipe that narrows to 5 cm. What's the velocity in the narrow section, and how much does the pressure change (horizontal pipe, no losses)?",
+            "rubric": "Continuity A1V1 = A2V2; area ratio (10/5)² = 4 so V2 = 8 m/s. Bernoulli: ΔP = ½ρ(V2² - V1²) = ½ x 1000 x (64 - 4) = 30 kPa drop in the narrow section."
+          },
+          {
+            "id": "mech9",
+            "level": 3,
+            "type": "design",
+            "question": "Walk me through designing a wall bracket that holds a 20 kg shelf.",
+            "rubric": "Requirements and loads (20 kg x 9.81 ≈ 196 N plus a margin for dynamic loads), free-body diagram with the moment arm, material and shape (L-bracket with a gusset), bending stress σ = Mc/I and deflection checks, fastener shear and pull-out depending on the wall (stud vs drywall anchors), factor of safety, manufacturability and cost, prototype and load test."
+          }
+        ]
+      },
+      "ee": {
+        "label": "Electrical engineering",
+        "group": "Engineering",
+        "questions": [
+          {
+            "id": "ee1",
+            "level": 1,
+            "type": "problem",
+            "question": "A 12 V source drives a 2 kΩ and a 4 kΩ resistor in series. What's the current, and the voltage across each resistor? State the laws you used.",
+            "rubric": "Ohm's law V = IR and Kirchhoff's voltage law (voltages around a loop sum to zero). Total 6 kΩ, so I = 12/6000 = 2 mA; V = 4 V across 2 kΩ and 8 V across 4 kΩ (a voltage divider)."
+          },
+          {
+            "id": "ee2",
+            "level": 1,
+            "type": "concept",
+            "question": "What do capacitors and inductors do, and how do they behave at DC versus at high frequency?",
+            "rubric": "Capacitor stores energy in an electric field, I = C dV/dt, impedance 1/(jωC): open circuit at DC, near short at high frequency. Inductor stores energy in a magnetic field, V = L dI/dt, impedance jωL: short at DC, open at high frequency. Uses: filtering, decoupling, energy storage, timing."
+          },
+          {
+            "id": "ee3",
+            "level": 1,
+            "type": "concept",
+            "question": "What is a pull-up resistor, and why does a digital input need one?",
+            "rubric": "It ties the input to a known high level when nothing drives it (e.g. a button to ground is open), so the input doesn't float and read noise. Value trade-off (typically 4.7-10 kΩ): lower = stronger and less noise-prone but more current. Many microcontrollers have internal pull-ups."
+          },
+          {
+            "id": "ee4",
+            "level": 1,
+            "type": "concept",
+            "question": "Compare AC and DC, and explain why power grids transmit AC at high voltage.",
+            "rubric": "AC alternates (60 Hz in the US), DC is constant. Transformers step AC voltage up and down easily. Higher voltage means lower current for the same power, so I²R line losses drop sharply. HVDC is used for very long or undersea links."
+          },
+          {
+            "id": "ee5",
+            "level": 2,
+            "type": "problem",
+            "question": "Design an RC low-pass filter with a cutoff near 1 kHz using a 10 nF capacitor. What resistor do you need, and what does the filter do above the cutoff?",
+            "rubric": "fc = 1/(2πRC), so R = 1/(2π x 1000 x 10x10⁻⁹) ≈ 15.9 kΩ (use 16 kΩ). Output is -3 dB at fc and falls about 20 dB per decade above it (first order). Mentions loading by the next stage."
+          },
+          {
+            "id": "ee6",
+            "level": 2,
+            "type": "concept",
+            "question": "Explain how an inverting op-amp amplifier works and derive its gain.",
+            "rubric": "Ideal op-amp: huge gain, no input current; negative feedback makes V- ≈ V+ = 0 (virtual ground). Current Vin/Rin through the input resistor must flow through Rf, so Vout = -(Rf/Rin) Vin. Real limits: supply rails, gain-bandwidth, slew rate, offset."
+          },
+          {
+            "id": "ee7",
+            "level": 2,
+            "type": "concept",
+            "question": "MOSFET versus BJT: what's the difference, and what do you need to use a MOSFET as a switch for a motor?",
+            "rubric": "BJT is current-controlled (base current), MOSFET voltage-controlled with almost no gate current. MOSFETs switch fast with low R_DS(on), common for power switching and logic. For a motor: gate voltage well above threshold (logic-level part or a gate driver), a flyback diode across the inductive load, enough current and heat margin."
+          },
+          {
+            "id": "ee8",
+            "level": 2,
+            "type": "concept",
+            "question": "What is sampling, what does the Nyquist theorem say, and what goes wrong if you sample too slowly?",
+            "rubric": "Sampling turns a continuous signal into discrete values at a fixed rate. The rate must exceed twice the highest frequency present, otherwise aliasing: higher frequencies show up as false lower ones. An anti-aliasing low-pass filter goes before the ADC; e.g. audio at 44.1 kHz for content up to about 20 kHz."
+          },
+          {
+            "id": "ee9",
+            "level": 3,
+            "type": "concept",
+            "question": "A microcontroller board resets randomly when a motor starts. What could cause it, and how would you debug and fix it?",
+            "rubric": "Likely supply dips (brownout) from the motor's inrush current on a shared supply, ground bounce, or voltage spikes/EMI from the motor. Debug with an oscilloscope on the supply rail and reset pin, check the brownout detector. Fixes: separate supply or regulator for the logic, bulk and decoupling capacitors, flyback diode, proper motor driver, star grounding, soft start, ferrites."
+          }
+        ]
+      },
+      "civil": {
+        "label": "Civil & structural engineering",
+        "group": "Engineering",
+        "questions": [
+          {
+            "id": "civil1",
+            "level": 1,
+            "type": "concept",
+            "question": "What's the difference between dead load and live load, and name two other loads a building must be designed for.",
+            "rubric": "Dead load: permanent weight of the structure and fixed elements. Live load: occupants, furniture, movable things. Others: snow, wind, seismic, rain, soil pressure, thermal. Combined with load factors per code (e.g. ASCE 7 load combinations, LRFD)."
+          },
+          {
+            "id": "civil2",
+            "level": 1,
+            "type": "concept",
+            "question": "What do the FE exam and a PE license mean for a civil engineer?",
+            "rubric": "FE (Fundamentals of Engineering) is usually taken near graduation and leads to EIT/EI status. After about four years of qualifying experience under a licensed engineer, the PE exam leads to licensure, which allows signing and sealing plans and carries legal responsibility for public safety. Licensure is by state."
+          },
+          {
+            "id": "civil3",
+            "level": 1,
+            "type": "concept",
+            "question": "How would you estimate peak stormwater runoff from a small paved parking lot?",
+            "rubric": "Rational Method Q = C i A: C runoff coefficient (about 0.9 for pavement), i rainfall intensity for the design storm with duration equal to the time of concentration (from IDF curves), A drainage area; units (cfs with acres and in/hr in US practice); pick a design return period (e.g. 10-year); consider detention."
+          },
+          {
+            "id": "civil4",
+            "level": 2,
+            "type": "problem",
+            "question": "A simply supported beam spans 6 m with a uniform load of 10 kN/m. Find the support reactions and the maximum bending moment, and say where it occurs.",
+            "rubric": "Total load 60 kN, so each reaction is 30 kN. Maximum moment wL²/8 = 10 x 36 / 8 = 45 kN·m at midspan; maximum shear 30 kN at the supports."
+          },
+          {
+            "id": "civil5",
+            "level": 2,
+            "type": "concept",
+            "question": "Why is concrete reinforced with steel, and where does the steel go in a simply supported beam?",
+            "rubric": "Concrete is strong in compression but weak in tension (roughly a tenth); steel carries the tension. In a simply supported beam under gravity loads the bottom is in tension, so main bars go near the bottom; stirrups resist shear; concrete cover protects against corrosion and fire. Prestressing is another approach."
+          },
+          {
+            "id": "civil6",
+            "level": 2,
+            "type": "concept",
+            "question": "What does the water-cement ratio do to concrete?",
+            "rubric": "Lower w/c gives higher strength and durability and lower permeability but worse workability; higher w/c is easier to place but weaker, more porous, more shrinkage. Typical 0.4-0.6; plasticizers keep workability at low w/c; proper curing matters."
+          },
+          {
+            "id": "civil7",
+            "level": 2,
+            "type": "concept",
+            "question": "Explain effective stress in soils and why it matters for foundations and slopes.",
+            "rubric": "σ' = σ - u (total stress minus pore water pressure). Soil strength and settlement depend on effective stress. Rising groundwater or excess pore pressure lowers σ', reducing shear strength (slope failures, liquefaction); consolidation settlement happens as pore pressure dissipates."
+          },
+          {
+            "id": "civil8",
+            "level": 2,
+            "type": "concept",
+            "question": "Shallow versus deep foundations: what's the difference, and when do you choose each?",
+            "rubric": "Shallow (spread footings, mats) carry load near the surface when competent soil is close. Deep foundations (driven piles, drilled shafts) carry load to deeper, stronger layers by end bearing and skin friction when surface soils are weak, loads are high, settlement must be limited, or scour is a risk. The geotechnical investigation and cost decide."
+          },
+          {
+            "id": "civil9",
+            "level": 3,
+            "type": "design",
+            "question": "A city wants a protected bike lane on a busy four-lane street. What would you analyze before recommending a design?",
+            "rubric": "Traffic volumes and capacity (effect of removing a lane, intersection operations), speeds and crash history, turning movements and intersection treatments, parking and loading, transit stops, drainage, available right-of-way, design guidance (NACTO, AASHTO), accessibility, stakeholder and business input, cost and phasing, how to measure safety results."
+          }
+        ]
+      },
+      "marketing": {
+        "label": "Marketing & brand",
+        "group": "Marketing & design",
+        "questions": [
+          {
+            "id": "marketing1",
+            "level": 1,
+            "type": "concept",
+            "question": "What are the 4 Ps of marketing? Apply them to a product you like.",
+            "rubric": "Product, price, place (distribution), promotion, applied concretely and consistently to one product and its target customer (e.g. positioning, price tier, channels, campaigns)."
+          },
+          {
+            "id": "marketing2",
+            "level": 1,
+            "type": "concept",
+            "question": "Explain segmentation, targeting and positioning (STP) with an example.",
+            "rubric": "Segment the market (demographic, geographic, psychographic, behavioral); choose target segments by size, growth and fit; position with a clear value proposition against competitors (a positioning statement). A concrete example."
+          },
+          {
+            "id": "marketing3",
+            "level": 1,
+            "type": "concept",
+            "question": "What makes a social media post perform well, and how would you measure it?",
+            "rubric": "Platform-native format, a strong hook early, relevance to the audience, a clear call to action, consistency and timing. Measure engagement rate relative to reach, saves and shares, watch time or completion, clicks, follower growth, against benchmarks and the business goal."
+          },
+          {
+            "id": "marketing4",
+            "level": 2,
+            "type": "problem",
+            "question": "A campaign cost $20,000 and brought 400 new customers. Each spends $50 a month at a 60% gross margin and stays 10 months on average. Calculate CAC and LTV, and say whether the campaign was worth it.",
+            "rubric": "CAC = 20,000 / 400 = $50. LTV on gross margin = 50 x 0.6 x 10 = $300. LTV:CAC = 6:1, above the common 3:1 rule of thumb, so worthwhile; payback about 50/30 ≈ 1.7 months. Caveats: attribution, churn assumptions, incrementality."
+          },
+          {
+            "id": "marketing5",
+            "level": 2,
+            "type": "concept",
+            "question": "What's the difference between awareness metrics and conversion metrics? Name two of each and when you'd focus on each.",
+            "rubric": "Awareness: reach, impressions, aided/unaided recall, share of voice, branded search volume. Conversion: conversion rate, cost per acquisition, ROAS, revenue per visitor. Awareness for launches and top of funnel; conversion for performance campaigns and bottom of funnel."
+          },
+          {
+            "id": "marketing6",
+            "level": 2,
+            "type": "concept",
+            "question": "How would you design an A/B test for a new email subject line?",
+            "rubric": "Change one variable; hypothesis and a primary metric (clicks or conversions are more reliable than opens, which privacy features inflate); random split; sample size from a power calculation; fixed duration; no peeking; significance test; check segments; roll out the winner."
+          },
+          {
+            "id": "marketing7",
+            "level": 2,
+            "type": "concept",
+            "question": "Sales of a popular snack brand dropped 15% this quarter. How would you find out why?",
+            "rubric": "Confirm the data and compare like periods (seasonality); split into volume vs price, channels, regions and products; internal causes (price increase, lost distribution, out-of-stocks, cut ad spend, product change) vs external (competitor launch or promotion, category decline, consumer trends); data sources like retail scanner data and surveys; form and test hypotheses."
+          },
+          {
+            "id": "marketing8",
+            "level": 2,
+            "type": "concept",
+            "question": "What are a customer persona and a customer journey map, and how do you build them?",
+            "rubric": "Persona: a research-based profile of a target customer (goals, pain points, behaviors, context). Journey map: stages (awareness, consideration, purchase, retention, advocacy) with touchpoints, emotions and pain points. Built from interviews, surveys and analytics; used to prioritize improvements."
+          },
+          {
+            "id": "marketing9",
+            "level": 3,
+            "type": "concept",
+            "question": "A brand is deciding between spending its budget on influencer marketing or on paid search. How would you decide?",
+            "rubric": "Start from objectives and funnel stage: search captures existing demand (bottom funnel), influencers build awareness and consideration. Audience fit, costs and expected CPA, measurability (search attribution vs codes, lift studies, marketing-mix models), brand safety; run small tests and measure incrementality before committing."
+          }
+        ]
+      },
+      "audit_tax": {
+        "label": "Audit, tax & GAAP",
+        "group": "Finance & business",
+        "questions": [
+          {
+            "id": "audit_tax1",
+            "level": 1,
+            "type": "concept",
+            "question": "What is the purpose of a financial statement audit, and what does \"reasonable assurance\" mean?",
+            "rubric": "An independent opinion on whether the financial statements are presented fairly, in all material respects, under the framework (e.g. US GAAP). Reasonable assurance is high but not absolute because of sampling, judgment and inherent limits; the audit is not designed to find every error or fraud; materiality."
+          },
+          {
+            "id": "audit_tax2",
+            "level": 1,
+            "type": "concept",
+            "question": "What's the difference between a tax deduction and a tax credit?",
+            "rubric": "A deduction lowers taxable income, so it's worth the deduction times the marginal rate; a credit lowers the tax owed dollar for dollar. Refundable credits can produce a refund; nonrefundable ones can't go below zero tax. A concrete example."
+          },
+          {
+            "id": "audit_tax3",
+            "level": 1,
+            "type": "concept",
+            "question": "Explain materiality and how an auditor might set it.",
+            "rubric": "A misstatement is material if it could influence users' decisions. Set with a benchmark (e.g. about 5% of pre-tax income, or a small percentage of revenue or total assets) plus qualitative factors; performance materiality is set lower; a trivial threshold for accumulating errors."
+          },
+          {
+            "id": "audit_tax4",
+            "level": 2,
+            "type": "concept",
+            "question": "What are the five steps of revenue recognition under ASC 606?",
+            "rubric": "Identify the contract; identify the performance obligations; determine the transaction price; allocate the price to the performance obligations; recognize revenue when (or as) each obligation is satisfied, at a point in time or over time."
+          },
+          {
+            "id": "audit_tax5",
+            "level": 2,
+            "type": "concept",
+            "question": "What's the difference between accrual and cash accounting? Give an example of an accrued expense and of a prepaid expense.",
+            "rubric": "Accrual records revenue when earned and expenses when incurred (matching); cash records when cash moves; GAAP requires accrual. Accrued expense: wages earned but unpaid at period end (a liability). Prepaid expense: insurance paid in advance (an asset expensed over the coverage period)."
+          },
+          {
+            "id": "audit_tax6",
+            "level": 2,
+            "type": "concept",
+            "question": "What are internal controls? Give one control over cash payments and explain how you'd test it.",
+            "rubric": "Processes that give reasonable assurance over reliable reporting, safeguarding assets and compliance (COSO). Example: segregation of duties, approval above a threshold, three-way match of purchase order, receiving report and invoice, reviewed bank reconciliations. Test: pick a sample of payments and inspect approvals and matching evidence, reperform a reconciliation; design vs operating effectiveness."
+          },
+          {
+            "id": "audit_tax7",
+            "level": 2,
+            "type": "problem",
+            "question": "A company buys equipment for $50,000 with a 5-year life and $5,000 salvage value. What's the annual straight-line depreciation, and the book value after 2 years? What does double-declining balance give in year 1?",
+            "rubric": "Straight-line: (50,000 - 5,000) / 5 = $9,000 a year; book value after 2 years = 50,000 - 18,000 = $32,000. Double-declining: rate 2/5 = 40% x 50,000 = $20,000 in year 1 (salvage isn't used in the rate, but the asset isn't depreciated below salvage)."
+          },
+          {
+            "id": "audit_tax8",
+            "level": 2,
+            "type": "concept",
+            "question": "What are deferred tax assets and liabilities? Give an example that creates each.",
+            "rubric": "They come from temporary differences between book and tax bases. Liability: accelerated tax depreciation (less tax now, more later). Asset: expenses recognized for books before they're deductible (warranty or bad-debt reserves), or net operating loss carryforwards. A valuation allowance if the asset is not more likely than not to be realized."
+          },
+          {
+            "id": "audit_tax9",
+            "level": 3,
+            "type": "concept",
+            "question": "During fieldwork you see the client's accounts receivable grew 40% while revenue grew 5%. What might it mean, and what would you do?",
+            "rubric": "Possible collection problems or looser credit terms, aggressive or fictitious revenue, channel stuffing near period end, a large new customer, changed terms. Procedures: AR aging, customer confirmations, testing subsequent cash receipts, cut-off testing, reviewing credit memos after year end, adequacy of the allowance for doubtful accounts, inquiry of management, professional skepticism and fraud risk."
+          }
+        ]
+      },
+      "healthcare": {
+        "label": "Healthcare & clinical",
+        "group": "Science & health",
+        "questions": [
+          {
+            "id": "healthcare1",
+            "level": 1,
+            "type": "concept",
+            "question": "What is HIPAA, and give two ways it affects someone working at a clinic or a health company.",
+            "rubric": "US law protecting the privacy and security of protected health information (PHI) held by covered entities and their business associates. Examples: access only the records you need (minimum necessary), don't discuss patients where others can hear, secure and encrypt PHI, patients' right to their records, breach notification."
+          },
+          {
+            "id": "healthcare2",
+            "level": 1,
+            "type": "concept",
+            "question": "What's the difference between incidence and prevalence?",
+            "rubric": "Incidence: new cases in an at-risk population over a period (a rate or risk). Prevalence: all existing cases at a point or over a period (a proportion). Prevalence ≈ incidence x average duration, so chronic diseases have high prevalence."
+          },
+          {
+            "id": "healthcare3",
+            "level": 1,
+            "type": "concept",
+            "question": "Payers versus providers: what's the difference, and how does a typical US doctor's visit get paid?",
+            "rubric": "Providers deliver care (physicians, hospitals); payers fund it (private insurers, Medicare, Medicaid, self-insured employers). The visit is coded (CPT procedures, ICD-10 diagnoses), a claim goes to the insurer, which adjudicates and pays the contracted rate minus the patient's share (deductible, copay, coinsurance); explanation of benefits; prior authorization for some services."
+          },
+          {
+            "id": "healthcare4",
+            "level": 2,
+            "type": "concept",
+            "question": "What's the difference between Medicare and Medicaid?",
+            "rubric": "Medicare: federal, mainly people 65+ and some people with disabilities or end-stage renal disease; Parts A (hospital), B (outpatient), C (Medicare Advantage through private plans), D (drugs). Medicaid: joint federal-state program for people with low income; eligibility and benefits vary by state (ACA expansion); major payer for long-term care."
+          },
+          {
+            "id": "healthcare5",
+            "level": 2,
+            "type": "concept",
+            "question": "Define sensitivity, specificity and positive predictive value. Why can a test with 95% sensitivity and 95% specificity still give mostly false positives?",
+            "rubric": "Sensitivity = TP/(TP+FN); specificity = TN/(TN+FP); PPV = TP/(TP+FP), which depends on prevalence. At 1% prevalence in 10,000 people: 95 true positives vs about 495 false positives, so PPV is only about 16%."
+          },
+          {
+            "id": "healthcare6",
+            "level": 2,
+            "type": "problem",
+            "question": "In a trial, 10% of patients on placebo had a heart attack versus 7% on the new drug. What are the absolute risk reduction, relative risk reduction and number needed to treat?",
+            "rubric": "ARR = 10% - 7% = 3 percentage points (0.03). RRR = 0.03 / 0.10 = 30%. NNT = 1 / 0.03 ≈ 33 patients treated to prevent one heart attack."
+          },
+          {
+            "id": "healthcare7",
+            "level": 2,
+            "type": "concept",
+            "question": "What are the phases of a clinical trial, and what does an IRB do?",
+            "rubric": "Phase I: safety and dosing in a small group; Phase II: preliminary efficacy and side effects; Phase III: large randomized trials against standard care or placebo; Phase IV: post-marketing surveillance. The IRB independently reviews research to protect participants: informed consent, risk-benefit, vulnerable groups, ongoing oversight; Good Clinical Practice."
+          },
+          {
+            "id": "healthcare8",
+            "level": 2,
+            "type": "concept",
+            "question": "What is value-based care, and how does it differ from fee-for-service?",
+            "rubric": "Fee-for-service pays for each service, rewarding volume. Value-based care ties payment to quality, outcomes and cost: accountable care organizations, bundled payments, capitation, shared savings, quality measures; providers share financial risk."
+          },
+          {
+            "id": "healthcare9",
+            "level": 3,
+            "type": "concept",
+            "question": "A hospital's 30-day readmission rate for heart failure is above the national average. How would you investigate and reduce it?",
+            "rubric": "Define the cohort and risk-adjust before comparing; look for root causes: discharge planning, medication reconciliation and adherence, follow-up within about 7 days, patient education, social needs (transport, cost), handoffs to nursing facilities. Interventions: transitional-care calls, early follow-up visits, pharmacist medication review, remote monitoring; measure with improvement cycles (PDSA); Medicare penalties (HRRP) raise the stakes."
+          }
+        ]
+      },
+      "ux_design": {
+        "label": "Product & UX design",
+        "group": "Marketing & design",
+        "questions": [
+          {
+            "id": "ux_design1",
+            "level": 1,
+            "type": "concept",
+            "question": "Walk me through your design process for a new feature.",
+            "rubric": "Understand the problem and users (research, data, stakeholders); define goals and success metrics; explore several ideas (sketches); prototype from low to high fidelity; test with users; iterate; hand off with specs and design-system components; measure after launch."
+          },
+          {
+            "id": "ux_design2",
+            "level": 1,
+            "type": "concept",
+            "question": "What's the difference between UX design and UI design?",
+            "rubric": "UX covers the whole experience: research, information architecture, flows, usability. UI is the visual and interactive layer: layout, typography, color, components and states. They overlap and both serve users' goals."
+          },
+          {
+            "id": "ux_design3",
+            "level": 1,
+            "type": "concept",
+            "question": "How do you handle a stakeholder who strongly disagrees with your design?",
+            "rubric": "Listen for the underlying concern; tie decisions to user research, data and shared goals; separate preference from evidence; propose testing the alternatives; look for a compromise; document the decision."
+          },
+          {
+            "id": "ux_design4",
+            "level": 2,
+            "type": "concept",
+            "question": "How would you run a usability test of a checkout flow, and how many participants would you use?",
+            "rubric": "Define tasks and what success looks like; recruit representative users (about 5 per round finds most major issues); moderated think-aloud; neutral, non-leading prompts; record success, time and errors; synthesize issues by severity; fix and retest."
+          },
+          {
+            "id": "ux_design5",
+            "level": 2,
+            "type": "concept",
+            "question": "Name three accessibility requirements every interface should meet.",
+            "rubric": "Any three of: sufficient color contrast (WCAG AA 4.5:1 for body text), not relying on color alone, full keyboard access with visible focus, alt text for images, labels for form fields, correct semantics for screen readers, captions, resizable text and adequate touch targets; WCAG's perceivable, operable, understandable, robust."
+          },
+          {
+            "id": "ux_design6",
+            "level": 2,
+            "type": "concept",
+            "question": "What is a design system, and why do teams use one?",
+            "rubric": "A shared library of reusable components, patterns and tokens (color, type, spacing) with guidelines and matching code. Brings consistency, speed, built-in accessibility and smoother designer-engineer work; needs ownership and versioning (e.g. Material, Apple's guidelines)."
+          },
+          {
+            "id": "ux_design7",
+            "level": 2,
+            "type": "concept",
+            "question": "Explain visual hierarchy and the tools you use to create it.",
+            "rubric": "Guiding the eye to the most important things first, using size, weight, color and contrast, spacing and whitespace, alignment and grids, position, grouping (Gestalt proximity), and a type scale; checked with a squint test."
+          },
+          {
+            "id": "ux_design8",
+            "level": 2,
+            "type": "design",
+            "question": "Critique the sign-up flow of an app you use. What would you change, and why?",
+            "rubric": "Names a real app and its steps; finds specific friction (too many fields, account required before value, unclear errors, hidden password rules); grounds it in usability heuristics (visibility of status, error prevention, recognition over recall); proposes concrete changes and how to measure them (completion rate, drop-off by step)."
+          },
+          {
+            "id": "ux_design9",
+            "level": 3,
+            "type": "design",
+            "question": "Design a feature that helps college students track their job applications. Walk me through it.",
+            "rubric": "Users and needs from research; jobs to be done (track status, deadlines, follow-ups); a focused first version; key flows and screens (list or board, add from a link, reminders); edge cases; success metrics (active users, applications tracked, follow-ups sent); trade-offs; accessibility; how to iterate."
           }
         ]
       }

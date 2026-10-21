@@ -352,3 +352,5 @@ details.alert-paste summary { cursor: pointer; color: var(--accent); }
   .cal-item { grid-template-columns: 1fr; }
   .offer-grid { grid-template-columns: 1fr; }
 }
+.area-group { margin: 6px 0 2px; }
+.area-group-title { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin: 8px 0 4px; }
