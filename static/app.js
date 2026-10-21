@@ -83,12 +83,12 @@ async function busy(button, label, fn) {
 // ---------- Tabs ----------
 
 const loaders = {};
-const TABS = ["mentors", "interview", "stories", "skills", "profile", "find", "jobs", "guide", "settings"];
+const TABS = ["mentors", "interview", "stories", "skills", "profile", "find", "jobs", "network", "calendar", "guide", "settings"];
 // Three areas, each with its own pages. Old page names (#tracker, #mentors…) still work.
 const GROUPS = {
   home: { views: [["mentors", "Today & coaches"]] },
   prepare: { views: [["interview", "About you"], ["profile", "Profile"], ["stories", "Stories"], ["skills", "Skills check"]], numbered: true },
-  apply: { views: [["find", "Find"], ["jobs", "My jobs"]] },
+  apply: { views: [["find", "Find"], ["jobs", "My jobs"], ["network", "Network"], ["calendar", "Calendar"]] },
 };
 const lastView = {};
 let overview = null;
@@ -119,6 +119,8 @@ function stepBadge(view) {
     case "stories": return o.stories.total ? (o.stories.ready >= o.stories.total ? done(`${o.stories.ready}/${o.stories.total} ✓`) : info(`${o.stories.ready}/${o.stories.total}`)) : null;
     case "skills": return o.skills.status === "graded" ? done(`${o.skills.score} ✓`) : o.skills.status === "answering" ? info("in progress") : null;
     case "jobs": return o.jobs.total ? [info(String(o.jobs.total)), o.jobs.due ? info(`${o.jobs.due} due`, "warn") : null] : null;
+    case "network": return o.network && o.network.total ? [info(String(o.network.total)), o.network.due ? info(`${o.network.due} due`, "warn") : null] : null;
+    case "calendar": return o.calendar ? [o.calendar.overdue ? info(`${o.calendar.overdue} overdue`, "warn") : null, o.calendar.week ? info(`${o.calendar.week} this week`) : null] : null;
     default: return null;
   }
 }
@@ -1145,7 +1147,7 @@ const DB_FILTERS = {
   firms: [["industry", "Industry"], ["category", "Category"], ["size", "Employees"], ["state", "State"], ["source", "Source"]],
 };
 const DB_TOGGLES = {
-  postings: [["remote", "Remote only"]],
+  postings: [["remote", "Remote only"], ["hide_citizen", "Hide US-citizen-only"], ["hide_nosponsor", "Hide \"no sponsorship\""]],
   firms: [["small", "Small firms (≤30 people)"], ["has_website", "Has a website"], ["has_people", "Has named people"]],
 };
 let dbTable = "postings";
@@ -1761,6 +1763,7 @@ function jobCard(job) {
     h("div", { class: "row actions" }, msg),
     researchSection(job, run),
     job.channel === "form" ? formSection(job) : emailSection(job, run),
+    pipelineSection(job),
     h("details", { class: "fit" },
       h("summary", {}, "3. Fit, tailored resume & cover letter"),
       h("div", { class: "row actions" },
@@ -1793,7 +1796,7 @@ $("#jobs-mode-cards").addEventListener("click", () => setJobsMode("cards"));
 $("#jobs-mode-table").addEventListener("click", () => setJobsMode("table"));
 
 function jobsSummary() {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Date().toLocaleDateString("en-CA");
   const by = {};
   for (const j of jobs) by[j.status] = (by[j.status] || 0) + 1;
   const due = jobs.filter((j) => j.followup_due && j.followup_due <= today && j.status === "Contacted").length;
@@ -1877,7 +1880,7 @@ function trackerRow(job) {
     jobs = jobs.filter((j) => j.id !== job.id);
     renderTracker();
   });
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Date().toLocaleDateString("en-CA");
   const due = job.followup_due && !["Followed up", "Interviewing", "Offer", "Rejected", "Withdrawn"].includes(job.status) ? job.followup_due : "";
   return h("tr", {},
     h("td", {}, job.website ? h("a", { href: job.website, target: "_blank", rel: "noopener" }, job.company || "?") : job.company || "?"),
@@ -1921,7 +1924,7 @@ async function runAction(a, button) {
   try {
     if (a.type === "open") location.hash = "#" + a.tab;
     else if (a.type === "job") { openJobs.add(a.job_id); location.hash = "#jobs"; }
-    else if (a.type === "coach") { await switchCoach(a.coach); if (a.message) await sendCoach(a.message); }
+    else if (a.type === "coach") { location.hash = "#mentors"; await switchCoach(a.coach); if (a.message) await sendCoach(a.message); }
     else if (a.type === "company_prep") {
       await busy(button, "Researching… (up to a minute)", () => api("/api/prep", { method: "POST", body: { company: a.company, role: a.role } }));
       location.hash = "#skills";

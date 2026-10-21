@@ -86,6 +86,10 @@ def _where(filters, text_cols):
             clauses.append("employees <= ?"); args.append(int(val))
         elif col == "since":
             clauses.append("filed >= ?"); args.append(val)
+        elif col == "hide_citizen":
+            clauses.append("COALESCE(sponsorship, '') != 'US citizens only'")
+        elif col == "hide_nosponsor":
+            clauses.append("COALESCE(sponsorship, '') != 'No sponsorship'")
         elif col == "has_website":
             clauses.append("website != ''")
         elif col == "has_people":

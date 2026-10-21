@@ -4,7 +4,7 @@ changes until the user clicks one."""
 import json
 from datetime import date, datetime, timedelta
 
-from . import assess, llm, memory, prep, profile_merge, prompts, store
+from . import assess, llm, memory, pipeline, prep, profile_merge, prompts, store
 
 COACHES = {
     "lead": {"name": "Lead mentor", "system": "LEAD_SYSTEM"},
@@ -12,7 +12,7 @@ COACHES = {
     "technical": {"name": "Technical coach", "system": "TECHNICAL_COACH_SYSTEM"},
     "resume": {"name": "Resume coach", "system": "RESUME_COACH_SYSTEM"},
 }
-TABS = {"interview", "stories", "skills", "profile", "find", "jobs", "tracker", "guide", "settings"}
+TABS = {"interview", "stories", "skills", "profile", "find", "jobs", "tracker", "network", "calendar", "guide", "settings"}
 DEFAULT_GOAL = 10  # firms contacted per day, from the boutique internship guide
 HISTORY_TURNS = 30
 
@@ -38,7 +38,7 @@ def snapshot():
     by_status = {}
     for j in jobs:
         by_status[j["status"]] = by_status.get(j["status"], 0) + 1
-    contacted = [j for j in jobs if j.get("contacted_date") or j["status"] in ("Contacted", "Followed up", "Applied", "Interviewing", "Offer")]
+    contacted = [j for j in jobs if j.get("contacted_date") or j["status"] in ("Contacted", "Followed up", "Applied", "Online assessment", "Interviewing", "Offer", "Accepted")]
     due = [j for j in jobs if j.get("followup_due") and j["followup_due"] <= today and j["status"] == "Contacted"]
     ready_stories = [c for c in stories["plan"] if stories["stories"][c]["status"] == "done"]
     thin_stories = [{"type": stories["labels"][c], "missing": stories["stories"][c].get("missing", [])}
@@ -77,6 +77,8 @@ def snapshot():
         "coach_notes": {c: mentor["notes"].get(c, [])[-3:] for c in COACHES if c != "lead"},
         "team_memory": [f"[{f['at'][:10]}, {f['source']}] {f['text']}" for f in memory.facts()[-40:]],
         "recent_activity": [f"{e['at'][:16].replace('T', ' ')}: {e['text']}" for e in memory.events(15)],
+        # Dated items from every job and the networking list: deadlines, assessments, interviews, thank-yous, offers.
+        "pipeline": pipeline.summary_for_mentors(),
     }
 
 

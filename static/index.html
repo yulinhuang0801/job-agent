@@ -91,6 +91,29 @@
           <li><b>Job postings:</b> company career pages on Greenhouse, Lever and Ashby (Apply → Find → Database).</li>
         </ul>
       </div>
+
+      <div class="card" id="after-applying">
+        <h2>After you apply</h2>
+        <ul class="tight">
+          <li><b>Put every date on the Calendar</b> (Apply → Calendar): deadlines, online assessments, interviews, offer deadlines. Download the .ics to see them in Google Calendar or Outlook.</li>
+          <li><b>Online assessments</b> usually arrive by email a few days after you apply, with a deadline of about a week. Add one to the job, press <b>Prepare</b>, and practice in the same format: timed video answers for HireVue, LeetCode-style problems for CodeSignal and HackerRank.</li>
+          <li><b>Interviews:</b> prepare with company prep (Prepare → Skills check) and a mock with the behavioral coach. Send a thank-you note within a day; the job card drafts it from what you talked about.</li>
+          <li><b>Networking:</b> a 15-minute call with an alumnus before you apply is often what gets your resume read. Ask for advice, not a job; ask for a referral only after a good conversation (Apply → Network).</li>
+          <li><b>Offers:</b> record them on the job. Asking for a few more days to decide is normal; negotiating an internship offer is reasonable only with a real reason, like a competing offer.</li>
+        </ul>
+      </div>
+
+      <div class="card" id="work-authorization">
+        <h2>Work authorization for international students (F-1)</h2>
+        <p class="muted small">General information, not legal advice. Your school's international student office decides; at Illinois that's <a href="https://isss.illinois.edu" target="_blank" rel="noopener">ISSS</a>.</p>
+        <ul class="tight">
+          <li><b>CPT</b> (Curricular Practical Training) is how most F-1 undergraduates do US internships during their degree. Your school authorizes it, usually after one full academic year in status, and it needs an offer letter and often a course or registration. It doesn't need the employer to sponsor a visa.</li>
+          <li><b>OPT</b> (Optional Practical Training) is work authorization you apply for from USCIS, usually used after graduation (STEM degrees can extend it).</li>
+          <li><b>Reading postings:</b> "must be a US citizen" or "security clearance" rules you out. "Will not sponsor now or in the future" usually means the employer won't hire students who'll need a work visa later, even if CPT would cover the internship. Job Agent flags both on postings and in fit scores, and Find → Database can hide them.</li>
+          <li><b>Small firms</b> (search funds, boutiques) often haven't thought about it. Mention CPT early and briefly: "I'm authorized to work through CPT; there's no cost or sponsorship needed from you."</li>
+          <li><b>Remote work from outside the US</b> follows different rules; ask your international office before accepting.</li>
+        </ul>
+      </div>
     </section>
 
     <!-- Settings -->
@@ -659,9 +682,60 @@
       </div>
     </section>
 
+    <!-- Network -->
+    <section id="view-network" class="view">
+      <h1>Network</h1>
+      <p class="muted">People who can tell you about a firm, refer you, or hire you: alumni, recruiters, people you met at events. A short call with an alumnus is often what gets a resume read. Job Agent drafts every message; you send it.</p>
+      <p id="net-summary" class="muted small"></p>
+      <details class="card" open>
+        <summary>Find people at a firm</summary>
+        <div class="row wrap">
+          <input id="net-company-q" placeholder="Firm, e.g. Houlihan Lokey">
+          <input id="net-school" placeholder="Your school">
+          <button id="net-find" class="secondary small" type="button">Find people</button>
+        </div>
+        <div id="net-found"></div>
+      </details>
+      <details class="card">
+        <summary>Add a person</summary>
+        <div class="grid2">
+          <div><label for="net-name">Name</label><input id="net-name"></div>
+          <div><label for="net-title">Title</label><input id="net-title" placeholder="Analyst, Recruiter…"></div>
+          <div><label for="net-company">Company</label><input id="net-company"></div>
+          <div><label for="net-how">How you're connected</label><select id="net-how"></select></div>
+          <div><label for="net-linkedin">LinkedIn link</label><input id="net-linkedin" placeholder="https://www.linkedin.com/in/…"></div>
+          <div><label for="net-email">Email</label><input id="net-email" type="email"></div>
+          <div><label for="net-job">Related job</label><select id="net-job"></select></div>
+          <div><label for="net-notes">Notes</label><input id="net-notes" placeholder="Same club, met at the fall career fair…"></div>
+        </div>
+        <div class="row actions"><button id="net-add" type="button">Add</button><span id="net-msg" class="msg"></span></div>
+      </details>
+      <div id="net-list"></div>
+    </section>
+
+    <!-- Calendar -->
+    <section id="view-calendar" class="view">
+      <div class="view-head">
+        <div>
+          <h1>Calendar</h1>
+          <p class="muted">Every date in one place: application deadlines, online assessments, interviews, thank-you notes, follow-ups and offer deadlines.</p>
+        </div>
+        <a class="button secondary small" href="/api/calendar.ics" title="Import into Google Calendar, Outlook or Apple Calendar">Download .ics</a>
+      </div>
+      <div id="cal-list"></div>
+      <details class="card">
+        <summary>Add a date to a job</summary>
+        <div id="cal-add"></div>
+      </details>
+      <details class="card" open>
+        <summary>When recruiting happens</summary>
+        <div id="timeline"></div>
+      </details>
+    </section>
   </main>
 
   <script src="/static/editor.js"></script>
   <script src="/static/app.js"></script>
+  <script src="/static/pipeline.js"></script>
 </body>
 </html>

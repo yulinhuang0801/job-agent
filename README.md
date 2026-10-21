@@ -17,7 +17,7 @@ Then open http://127.0.0.1:8000, go to **Settings** and paste your DeepSeek API 
 The app has three areas, plus Guide and Settings in the top corner:
 - **Home**: today's plan and your mentor team.
 - **Prepare**, in numbered steps with progress badges: 1 About you → 2 Profile → 3 Stories → 4 Skills check. **Prepare** opens the first step you haven't finished, and each step ends with a link to the next.
-- **Apply**: Find (database, web search, import) → My jobs (cards to work on each firm, or a table to track them all).
+- **Apply**: Find (database, web search, import) → My jobs (cards to work on each firm, or a table to track them all) → Network (alumni and contacts) → Calendar (every date, plus when recruiting happens).
 
 Old links like `#tracker` or `#mentors` still work.
 
@@ -66,8 +66,23 @@ Old links like `#tracker` or `#mentors` still work.
    1. **Research & contact**: reads the firm's home, team, about, contact and careers pages; writes a summary and specific hooks; picks the senior person to contact; finds their email (published on the site, Hunter.io if you add a key, or a guess from the firm's email pattern, clearly marked). If there's no email, it points you to Apollo.io.
    2. **Cold email** (with LinkedIn note and 7-day follow-up) in the voice of your example emails, opened as a draft in Gmail, Outlook or your mail app; or **Application form**: paste the form or its link, and walk through every question with drafted answers; download all answers as a .txt.
    3. **Fit score, tailored resume and cover letter** (addressed to the contact).
+   4. **Next steps**:
+      - The application deadline (read from the posting when you score fit).
+      - A work-authorization check, such as "US citizens only" or "no sponsorship now or in the future", compared with your status.
+      - Events: online assessments, interviews, coffee chats, info sessions and career fairs. Adding an assessment or interview moves the job forward (Applied → Online assessment → Interviewing).
+      - **Prepare** writes a plan for the event with one-click steps: a skills check on the right topics, a mock with a coach, or company prep. It also lists likely questions and explains how each assessment platform works (HireVue, CodeSignal, HackerRank, Codility, game-based tests, SHL/Aon reasoning tests, modeling tests, written cases).
+      - **Timed practice** works like HireVue: 30 seconds to prepare, 2 minutes to answer, then a rubric grade.
+      - After an interview, a **thank-you note** is drafted from what you talked about, to send within a day.
+      - **Offers**: pay, dates, the decision deadline, housing and return-offer chances. Drafts are available to ask for more time, negotiate (only with a real reason), accept or decline.
 8. **My jobs** (Table view): status, contact, applied/contacted date, follow-up due date and notes; export to CSV for Excel or Google Sheets.
-9. **Guide**: the outreach playbook, including how to find emails with Apollo.io.
+9. **Network**: track alumni, recruiters and other contacts (how you're connected, status, next follow-up).
+   - **Find people at a firm**: opens LinkedIn and Google searches for the firm plus your school in your own browser (Job Agent never logs into LinkedIn), and lists people named in the firm's SEC filings.
+   - Drafts the coffee-chat request (LinkedIn note under 300 characters, plus an email), a follow-up, the thank-you after a chat and a referral request. **Prepare for a chat** writes how to introduce yourself, 6–8 questions, and what to avoid.
+   - Logging a chat sets a thank-you for the next day; marking someone Messaged sets a follow-up in 7 days.
+10. **Calendar**: every deadline, assessment, interview, thank-you note, follow-up and offer deadline, grouped into overdue, next 7 days and later. Each item has a link to add it to Google Calendar, and the whole calendar downloads as an .ics file for Google Calendar, Outlook or Apple Calendar.
+   - **When recruiting happens**: typical US windows for 12 fields (investment banking, boutiques and small PE, consulting, software, quant, data, product, accounting, marketing, biotech, engineering, policy), placed on your own summers using your graduation year (freshman, sophomore and junior summer), with advice for each. They're typical patterns, not guarantees.
+   - The lead mentor's daily plan puts anything due in the next two days first.
+11. **Guide**: the outreach playbook, how to find emails with Apollo.io, what to do after you apply, and work authorization for F-1 students (CPT, OPT, and how to read "no sponsorship" lines; general information, not legal advice). Find → Database can hide US-citizen-only and no-sponsorship postings.
 
 ## Layout
 
@@ -88,6 +103,9 @@ Old links like `#tracker` or `#mentors` still work.
 | `app/crawlers.py` | Importers: SEC Form ADV, SEC Form D, company job boards, SimplifyJobs (background, with progress) |
 | `app/taxonomy.py` | Handshake-style categories and the rules that assign them |
 | `app/alerts.py` | Job-alert emails (IMAP read-only, or pasted/uploaded) → postings |
+| `app/pipeline.py` | Events, calendar and .ics, assessment prep, thank-you notes, offers, networking |
+| `app/timelines.py` | Typical recruiting windows by field, placed on your own summers |
+| `static/pipeline.js` | Next steps on job cards, the Network and Calendar pages |
 | `app/grading.py` | Rubric grading for stories and short answers, quote checks, "was this fair?" log |
 | `app/coderun.py` | Runs Python answers against LeetCodeDataset test cases with time and resource limits |
 | `tests/calibration/` | Fixed answers with expected grades; `run_calibration.py` is the grading regression test |

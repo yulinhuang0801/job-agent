@@ -16,11 +16,11 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import alerts, assess, coderun, crawlers, db, llm, memory, mentors, outreach, pdf, prep, profile_merge, prompts, qlibrary, research, resume_text, services, sourcing, store
+from . import alerts, assess, coderun, crawlers, db, grading, llm, memory, mentors, outreach, pdf, pipeline, prep, profile_merge, prompts, qlibrary, research, timelines, resume_text, services, sourcing, store
 from .jobs_fetch import FetchError, fetch_job
 
 STATIC = Path(__file__).resolve().parent.parent / "static"
-STATUSES = ["Saved", "Ready", "Contacted", "Followed up", "Applied", "Interviewing", "Offer", "Rejected", "Withdrawn"]
+STATUSES = ["Saved", "Ready", "Contacted", "Followed up", "Applied", "Online assessment", "Interviewing", "Offer", "Accepted", "Rejected", "Withdrawn"]
 MAX_JD_CHARS = 12000
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 
@@ -619,6 +619,7 @@ class JobPatch(BaseModel):
     contact_name: Optional[str] = None
     contact_title: Optional[str] = None
     contact_email: Optional[str] = None
+    deadline: Optional[str] = None
 
 
 def _jobs():
@@ -672,6 +673,8 @@ def update_job(job_id: str, body: JobPatch):
     changes = body.model_dump(exclude_none=True)
     if "status" in changes and changes["status"] not in STATUSES:
         raise HTTPException(400, f"Status must be one of: {', '.join(STATUSES)}")
+    if "deadline" in changes:
+        changes["deadline"] = pipeline._clean_date(changes["deadline"])
     if changes.get("status") == "Applied" and not job.get("applied_date") and "applied_date" not in changes:
         changes["applied_date"] = datetime.now().date().isoformat()
     contact = {k[8:]: changes.pop(k) for k in list(changes) if k.startswith("contact_")}
@@ -727,6 +730,8 @@ def analyze_job(job_id: str):
     for field in ("title", "company", "location"):
         if not job.get(field) and fit.get(field):
             job[field] = fit[field]
+    if not job.get("deadline") and re.match(r"^\d{4}-\d{2}-\d{2}$", str(fit.get("deadline") or "")):
+        job["deadline"] = fit["deadline"]
     store.save("jobs", jobs)
     return job
 
@@ -1083,7 +1088,8 @@ def db_firms(request: Request, page: int = 1):
 
 @app.get("/api/db/postings")
 def db_postings(request: Request, page: int = 1):
-    f = _db_filters(request, ["q", "job_type", "function", "industry", "term", "state", "country", "remote", "sponsorship", "source", "company"])
+    f = _db_filters(request, ["q", "job_type", "function", "industry", "term", "state", "country", "remote", "sponsorship", "source", "company",
+                              "hide_citizen", "hide_nosponsor"])
     return db.search("postings", f, page)
 
 
@@ -1149,7 +1155,27 @@ def overview():
     return {"intake": s["intake_chat"], "profile_built": s["profile_built"],
             "stories": {"ready": s["stories"]["ready"], "total": s["stories"]["total"]},
             "skills": {"status": s["skills"]["status"], "score": s["skills"]["score"]},
-            "jobs": {"total": s["jobs"]["total"], "due": len(s["jobs"]["followups_due"])}}
+            "jobs": {"total": s["jobs"]["total"], "due": len(s["jobs"]["followups_due"])},
+            "network": {"total": s["pipeline"]["network"]["total"],
+                        "due": sum(1 for p in pipeline.load_network() if p.get("next_followup") and p["next_followup"] <= datetime.now().date().isoformat())},
+            "calendar": {"overdue": sum(1 for i in pipeline.calendar(7) if i["overdue"]),
+                         "week": sum(1 for i in pipeline.calendar(7) if not i["overdue"])}}
+
+
+class PracticeIn(BaseModel):
+    question: str
+    answer: str
+
+
+@app.post("/api/practice/grade")
+def practice_grade(body: PracticeIn):
+    """Grade one timed practice answer with the story/answer rubric."""
+    if len(body.answer.strip()) < 20:
+        raise HTTPException(400, "Answer first (at least a couple of sentences).")
+    kind = "story" if re.search(r"tell me about a time|describe a (time|situation)|give (me )?an example|讲一次|举个例子", body.question, re.I) else "answer"
+    g = grading.grade([{"id": "p", "kind": kind, "question": body.question, "answer": body.answer}])["p"]
+    memory.log("practice", f"Timed practice: \"{body.question[:60]}\" ({g['stars']}/5)")
+    return g
 
 
 @app.get("/api/mentor/today")
@@ -1210,6 +1236,162 @@ def mentor_edit_profile(body: ProfileEdit):
 def mentor_save_story(body: StorySave):
     mentors.save_story(body.competency, body.fields)
     return {"ok": True}
+
+
+# ---------- Pipeline: events, calendar, assessments, offers, networking ----------
+
+class EventIn(BaseModel):
+    type: str = "other"
+    title: str = ""
+    date: str = ""
+    time: str = ""
+    notes: str = ""
+    platform: str = ""
+    people: str = ""
+
+
+class EventPatch(BaseModel):
+    title: Optional[str] = None
+    date: Optional[str] = None
+    time: Optional[str] = None
+    notes: Optional[str] = None
+    platform: Optional[str] = None
+    people: Optional[str] = None
+    done: Optional[bool] = None
+    thanks_sent: Optional[bool] = None
+
+
+class ThanksIn(BaseModel):
+    notes: str = ""
+    people: str = ""
+
+
+class OfferIn(BaseModel):
+    pay: Optional[str] = None
+    pay_unit: Optional[str] = None
+    bonus: Optional[str] = None
+    location: Optional[str] = None
+    start: Optional[str] = None
+    end: Optional[str] = None
+    deadline: Optional[str] = None
+    housing: Optional[str] = None
+    return_offer: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class DraftIn(BaseModel):
+    kind: str
+    notes: str = ""
+
+
+@app.post("/api/jobs/{job_id}/events")
+def add_event(job_id: str, body: EventIn):
+    return pipeline.add_event(job_id, body.model_dump())
+
+
+@app.patch("/api/jobs/{job_id}/events/{event_id}")
+def update_event(job_id: str, event_id: str, body: EventPatch):
+    return pipeline.update_event(job_id, event_id, body.model_dump(exclude_none=True))
+
+
+@app.delete("/api/jobs/{job_id}/events/{event_id}")
+def delete_event(job_id: str, event_id: str):
+    return pipeline.delete_event(job_id, event_id)
+
+
+@app.post("/api/jobs/{job_id}/events/{event_id}/prep")
+def event_prep(job_id: str, event_id: str):
+    return pipeline.event_prep(job_id, event_id)
+
+
+@app.post("/api/jobs/{job_id}/events/{event_id}/thanks")
+def event_thanks(job_id: str, event_id: str, body: ThanksIn):
+    return pipeline.thank_you(job_id, event_id, body.notes, body.people)
+
+
+@app.put("/api/jobs/{job_id}/offer")
+def save_offer(job_id: str, body: OfferIn):
+    return pipeline.save_offer(job_id, body.model_dump(exclude_none=True))
+
+
+@app.post("/api/jobs/{job_id}/offer/draft")
+def offer_draft(job_id: str, body: DraftIn):
+    return pipeline.offer_draft(job_id, body.kind, body.notes)
+
+
+@app.get("/api/calendar")
+def get_calendar(days: int = 120):
+    return {"items": pipeline.calendar(max(7, min(400, days))), "today": datetime.now().date().isoformat(),
+            "timeline": timelines.for_profile(store.load("profile", {})),
+            "event_types": pipeline.EVENT_TYPES, "oa_platforms": {k: v["label"] for k, v in pipeline.OA_PLATFORMS.items()}}
+
+
+@app.get("/api/calendar.ics")
+def calendar_ics():
+    return Response(pipeline.ics(pipeline.calendar(400)), media_type="text/calendar",
+                    headers={"Content-Disposition": 'attachment; filename="job-agent-recruiting.ics"'})
+
+
+class PersonIn(BaseModel):
+    name: Optional[str] = None
+    title: Optional[str] = None
+    company: Optional[str] = None
+    how: Optional[str] = None
+    linkedin: Optional[str] = None
+    email: Optional[str] = None
+    status: Optional[str] = None
+    next_followup: Optional[str] = None
+    notes: Optional[str] = None
+    job_id: Optional[str] = None
+    school: Optional[str] = None
+
+
+class ChatIn(BaseModel):
+    date: str = ""
+    notes: str = ""
+
+
+@app.get("/api/network")
+def get_network():
+    profile = store.load("profile", {})
+    school = next((e.get("school") for e in profile.get("education") or [] if e.get("school")), "")
+    return {"people": pipeline.load_network(), "statuses": pipeline.NETWORK_STATUSES, "how": pipeline.HOW_MET, "school": school}
+
+
+@app.post("/api/network")
+def add_person(body: PersonIn):
+    pipeline.add_person(body.model_dump(exclude_none=True))
+    return get_network()
+
+
+@app.patch("/api/network/{pid}")
+def update_person(pid: str, body: PersonIn):
+    pipeline.update_person(pid, body.model_dump(exclude_none=True))
+    return get_network()
+
+
+@app.delete("/api/network/{pid}")
+def delete_person(pid: str):
+    pipeline.delete_person(pid)
+    return get_network()
+
+
+@app.post("/api/network/{pid}/chat")
+def log_chat(pid: str, body: ChatIn):
+    pipeline.log_chat(pid, body.date, body.notes)
+    return get_network()
+
+
+@app.post("/api/network/{pid}/draft")
+def person_draft(pid: str, body: DraftIn):
+    pipeline.person_draft(pid, body.kind, body.notes)
+    return get_network()
+
+
+@app.post("/api/network/{pid}/prep")
+def chat_prep(pid: str):
+    pipeline.chat_prep(pid)
+    return get_network()
 
 
 @app.get("/api/meta")

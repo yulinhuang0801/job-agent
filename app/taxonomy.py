@@ -144,6 +144,9 @@ def parse_location(location):
 
 def sponsorship_hint(text):
     t = (text or "").lower()
+    if re.search(r"(u\.?s\.? citizen(ship)?|united states citizen(ship)?)\s*(is |are )?(required|only)|must (be|hold) (a )?(u\.?s\.?|united states) citizen|"
+                 r"(active|obtain|eligible (for|to obtain)) (a )?(security|secret|top secret|ts/sci) clearance|citizens? (or|and) (lawful )?permanent residents? only", t):
+        return "US citizens only"
     if re.search(r"(not|unable to|cannot|can't|will not|won't|no) (be able to )?(provide |offer )?(visa )?sponsor|without (the need for )?(visa )?sponsorship|no sponsorship", t):
         return "No sponsorship"
     if re.search(r"\b(opt|cpt|f-1|h-1b|visa sponsorship (is )?available|will sponsor)\b", t):

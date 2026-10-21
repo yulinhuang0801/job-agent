@@ -99,6 +99,8 @@ def dims_for(kind):
 
 def answer_text(item):
     """The answer as one text, in STAR order for stories."""
+    if item.get("kind") == "story" and item.get("answer") and not any(item.get(k) for k in ("situation", "task", "action", "result")):
+        return item["answer"]  # a story told in one piece (timed practice)
     if item.get("kind") == "story":
         parts = [(k.capitalize(), item.get(k, "")) for k in ("situation", "task", "action", "result", "reflection")]
         return "\n".join(f"{k}: {v}" for k, v in parts if v)

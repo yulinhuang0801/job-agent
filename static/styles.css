@@ -324,3 +324,31 @@ details.alert-paste summary { cursor: pointer; color: var(--accent); }
 .tests pre.fail { margin: 6px 0; font-size: 12px; white-space: pre-wrap; font-family: ui-monospace, Menlo, monospace; }
 @media (max-width: 640px) { .rubric-row { grid-template-columns: 1fr auto; } .rubric-why { grid-column: 1 / -1; } }
 .row .spacer { flex: 1; }
+
+/* Pipeline: events, offers, network, calendar */
+.row.wrap { flex-wrap: wrap; }
+.event { padding: 8px 0; border-top: 1px dashed var(--border); }
+.event.done { opacity: 0.6; }
+.event .row { gap: 8px; align-items: center; flex-wrap: wrap; }
+.event-form .row { gap: 6px; margin: 6px 0; }
+.event-form input, .event-form select { width: auto; }
+.prep { margin: 8px 0 4px; padding: 8px 12px; background: var(--bg); border-radius: 8px; font-size: 14px; }
+.practice { margin-top: 8px; }
+.practice-q { margin: 8px 0; }
+.clock { font-variant-numeric: tabular-nums; font-weight: 700; font-size: 18px; }
+.draft { margin-top: 8px; }
+.thanks { margin-top: 6px; }
+.offer-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 12px; margin: 8px 0; }
+.offer-grid .field { display: flex; flex-direction: column; gap: 2px; margin: 0; }
+.person .row { gap: 8px; align-items: center; }
+.person input[type="date"], .person select { width: auto; }
+.cal-item { display: grid; grid-template-columns: 110px 1fr auto; gap: 10px; align-items: center; padding: 8px 12px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin: 6px 0; }
+.cal-item.overdue { border-color: var(--warn); }
+.cal-date { font-weight: 600; font-size: 14px; }
+.tl-field { margin: 10px 0; }
+.tl-field ul { margin: 4px 0; }
+@media (max-width: 640px) {
+  .cal-item { grid-template-columns: 1fr; }
+  .offer-grid { grid-template-columns: 1fr; }
+}

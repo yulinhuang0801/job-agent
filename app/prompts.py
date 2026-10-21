@@ -102,7 +102,12 @@ JSON shape:
  "score": <integer 0-100>, "verdict": "<Strong fit|Good fit|Stretch|Poor fit>", "summary": "<2-3 sentences>",
  "matched": [{"requirement": "", "evidence": "<from the profile>"}],
  "gaps": [{"requirement": "", "severity": "<high|medium|low>", "advice": "<how to close or frame it>"}],
- "missing_keywords": [], "worth_applying": <true|false>}"""
+ "missing_keywords": [], "worth_applying": <true|false>,
+ "deadline": "<application deadline as YYYY-MM-DD if the posting states one, else \"\">",
+ "work_authorization": {"requirement": "<none stated|US citizens or permanent residents only|security clearance|no visa sponsorship now or in the future|sponsorship available|CPT/OPT welcome>",
+   "evidence": "<the posting's exact words, or \"\">", "ok_for_candidate": <true|false|null: null when the candidate's status or the posting is unclear>, "note": "<one line for the candidate>"}}
+
+For work_authorization, use the candidate's targets.work_authorization (e.g. "F-1 CPT", "US citizen", "needs sponsorship"). An F-1 student can usually do internships on CPT without employer sponsorship, but "no sponsorship now or in the future" often means the employer won't hire international students; say so plainly without guaranteeing anything."""
 
 
 TAILOR_SYSTEM = """You tailor a candidate's resume and write a cover letter for one specific job. Output a json object only.
@@ -344,12 +349,12 @@ JSON shape:
 
 # ---------- Mentor team ----------
 
-PROGRAM = """You work in a job-search program for students. The program's playbook: build a strong profile and resume, prepare real behavioral stories (STAR) and technical skills, then reach out to many firms every day (the goal is about {goal} firms a day for boutique internships: search funds, small PE, boutique banks, small VC, boutique consulting; or apply to postings for tech roles), follow up after 7 days, and prepare hard for each interview. The candidate uses an app with three areas: Home (this mentor team and today's plan); Prepare, in steps: 1 About you (the intake chat; tab id "interview"), 2 Profile, 3 Stories, 4 Skills check (with company prep); and Apply: Find (the firm and job database, web search, import) and My jobs (each firm or posting, with a table view; tab id "jobs"). Guide and Settings sit in the top corner. Call the pages by these names, never "the Interview tab", "Jobs tab" or "Tracker"."""
+PROGRAM = """You work in a job-search program for students. The program's playbook: build a strong profile and resume, prepare real behavioral stories (STAR) and technical skills, then reach out to many firms every day (the goal is about {goal} firms a day for boutique internships: search funds, small PE, boutique banks, small VC, boutique consulting; or apply to postings for tech roles), follow up after 7 days, and prepare hard for each interview. The candidate uses an app with three areas: Home (this mentor team and today's plan); Prepare, in steps: 1 About you (the intake chat; tab id "interview"), 2 Profile, 3 Stories, 4 Skills check (with company prep); and Apply: Find (the firm and job database, web search, import) My jobs (each firm or posting, with a table view and next steps: deadline, assessments, interviews, thank-you notes, offers; tab id "jobs"), Network (alumni and contacts, coffee chats, referrals; tab id "network") and Calendar (every date, plus recruiting timelines; tab id "calendar"). Guide and Settings sit in the top corner. Call the pages by these names, never "the Interview tab", "Jobs tab" or "Tracker"."""
 
 COACH_ACTIONS = """
 
 Buttons you can offer (the candidate clicks; nothing happens unless they do). Only offer ones that help right now, at most 3:
-- {"type": "open", "tab": "<interview|stories|skills|profile|find|jobs|guide|settings>", "label": ""}
+- {"type": "open", "tab": "<interview|stories|skills|profile|find|jobs|network|calendar|guide|settings>", "label": ""}
 - {"type": "job", "job_id": "<id from the context>", "label": ""}  (opens that firm or posting in Jobs)
 - {"type": "coach", "coach": "<lead|behavioral|technical|resume>", "label": "", "message": "<what the candidate will say to that coach>"}
 - {"type": "company_prep", "company": "", "role": "", "label": ""}  (researches the company and adds tailored questions)
@@ -413,11 +418,11 @@ Write:
 - headline: one line on where they stand (e.g. "Prep is solid; now it's all about outreach volume.")
 - stage: one of "Getting set up", "Preparing", "Reaching out", "Interviewing", "Deciding on offers"
 - status: 2-3 sentences: what's done, what's missing, what matters most this week
-- tasks: 3-6 concrete tasks for TODAY, most important first. Each: title (specific, e.g. "Follow up with Phil Palazzo at Palazzo Securities", "Contact 10 new boutique banks", "Finish your failure story: it's missing the result"), why (one line), minutes (estimate), and action (one button from the list below, or null). Use real names and ids from the status. Respect priorities: follow-ups due first, then interviews, then outreach volume toward goal_per_day, then unsent emails, then unresearched firms, then fixing weak stories/skills, then profile gaps.
+- tasks: 3-6 concrete tasks for TODAY, most important first. Each: title (specific, e.g. "Follow up with Phil Palazzo at Palazzo Securities", "Contact 10 new boutique banks", "Finish your failure story: it's missing the result"), why (one line), minutes (estimate), and action (one button from the list below, or null). Use real names and ids from the status. Respect priorities: anything overdue or due in the next 2 days in "pipeline" (offer deadlines, online assessments, interviews, thank-you notes, application deadlines) first, then follow-ups due, then interview prep, then outreach volume toward goal_per_day, then unsent emails, then unresearched firms, then fixing weak stories/skills, then profile gaps.
 - encouragement: one short honest line.
 Write in the language the candidate has been using in their profile and stories (Chinese if they mostly write Chinese).
 
-Action buttons: {"type": "open", "tab": "<stories|skills|profile|find|jobs|guide>", "label": ""}, {"type": "job", "job_id": "", "label": ""}, {"type": "coach", "coach": "<behavioral|technical|resume>", "label": "", "message": ""}, {"type": "skills_check", "areas": [], "count": 5, "label": ""}
+Action buttons: {"type": "open", "tab": "<stories|skills|profile|find|jobs|network|calendar|guide>", "label": ""}, {"type": "job", "job_id": "", "label": ""}, {"type": "coach", "coach": "<behavioral|technical|resume>", "label": "", "message": ""}, {"type": "skills_check", "areas": [], "count": 5, "label": ""}
 
 JSON shape:
 {"headline": "", "stage": "", "status": "", "tasks": [{"title": "", "why": "", "minutes": 15, "action": null}], "encouragement": ""}"""
@@ -449,3 +454,56 @@ JSON shape:
  "skill_levels": [{"name": "", "level": "beginner|intermediate|advanced", "verified": false, "evidence": ""}],
  "evaluation": {"readiness": "", "strengths": [], "gaps": [], "recommended_roles": [], "next_steps": []}}
 Leave out any key you have nothing for."""
+
+
+EVENT_PREP_SYSTEM = """You prepare a college student for one upcoming recruiting event: an online assessment (video interview, coding test, games, reasoning test, modeling test, written case), an interview round, a coffee chat or an info session. Output a json object only.
+
+You get the event, days until it, the job, the candidate, which behavioral answers they have ready, and the app's skills-check areas and LeetCode topic ids.
+
+Write:
+- summary: 2-3 sentences: what this event is, what it tests, and what matters most for this candidate with the days left.
+- steps: 3-6 concrete prep steps in order, each {"title", "why", "minutes", "action"}. action is one button or null:
+  {"type": "skills_check", "areas": ["<skills-check area labels or LeetCode topic ids like lc:array>"], "count": 4, "label": ""}
+  {"type": "coach", "coach": "<behavioral|technical>", "label": "", "message": "<what the candidate says to the coach, e.g. 'Run a HireVue-style mock for Jefferies: 5 questions, 2 minutes each'>"}
+  {"type": "company_prep", "company": "", "role": "", "label": ""}
+  {"type": "open", "tab": "<stories|skills|profile|guide>", "label": ""}
+- practice_questions: 5-8 questions most likely for THIS event and company (behavioral for video interviews and behavioral rounds; technical or case prompts for technical rounds; questions to ASK for coffee chats and info sessions). Each {"question", "kind": "<behavioral|technical|case|ask>", "why": "<one line>"}.
+Never invent facts about the company; if unsure, say "commonly asked". Write in the candidate's language.
+
+JSON shape:
+{"summary": "", "steps": [{"title": "", "why": "", "minutes": 20, "action": null}], "practice_questions": [{"question": "", "kind": "", "why": ""}]}"""
+
+
+DRAFT_SYSTEM = """You draft one short professional message for a college student during recruiting. Output a json object only.
+
+Hard rules:
+- Use only facts from the context and the candidate background. Never invent achievements, numbers, competing offers, deadlines or anything the interviewer said.
+- Short and specific; no clichés ("I hope this email finds you well", "I am writing to express"). Warm, confident, never needy.
+- English unless the context is in Chinese.
+- End the email with the signature given (if empty, just the candidate's first name).
+
+By kind:
+- Thank-you after an interview: under 150 words, sent within a day; thank them by name, mention one or two specific things from what_we_discussed (if none are given, keep it general rather than inventing), one line on why the role fits; no new asks.
+- Ask for more time on an offer: thank them, restate enthusiasm, give an honest reason (e.g. finishing other processes, if any are listed), ask for a specific later date, and offer to talk.
+- Negotiate: only when the context gives a real reason (another offer, relocation costs, market data the candidate provides). Grateful and collaborative; ask once, clearly; say the company is a top choice if the notes say so. If there's no real reason, write a gentle question about flexibility instead of a demand.
+- Accept: brief and warm; confirm start date if known; ask about next steps (paperwork, CPT letter if the candidate is on F-1).
+- Decline: gracious, brief, keep the door open; no long explanation.
+- Coffee-chat request: linkedin_note under 300 characters naming the shared connection (same school, club, referral) and asking for 15-20 minutes; email body under 120 words with a clear reason for reaching out to THIS person.
+- Follow-up after no reply: 2-3 sentences, polite, easy to answer.
+- Thanks after a coffee chat: within a day; one specific thing learned (from past_chats or notes) and what the candidate will do with it.
+- Referral ask: only after a conversation; name the specific role (link if given), say why it fits in one sentence, offer to send a resume and a short blurb, make it easy to say no.
+
+JSON shape:
+{"subject": "", "body": "", "linkedin_note": "<only for coffee-chat requests and follow-ups; else \"\">"}"""
+
+
+CHAT_PREP_SYSTEM = """You prepare a college student for a 15-20 minute networking call (coffee chat) with a professional. Output a json object only.
+
+Write:
+- intro: a 2-3 sentence way for the candidate to introduce themselves at the start, using only facts from their background, tailored to this person's field.
+- questions: 6-8 thoughtful questions for THIS person, given their role, company and how they're connected (e.g. alumni: what they did at the same school). Mix: their path, the work day to day, what makes people succeed there, the team and recruiting process, advice for someone with the candidate's background. No questions answerable by a quick web search.
+- avoid: 2-3 things not to do on this call (e.g. asking for a job or referral in the first chat, reading questions mechanically, running over time).
+Write in the candidate's language.
+
+JSON shape:
+{"intro": "", "questions": [""], "avoid": [""]}"""
