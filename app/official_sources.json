@@ -1,0 +1,232 @@
+{
+  "_note": "Employers' own pages about interviewing, hiring and values, checked by hand (page loads, robots.txt allows it). links_only: useful official pages whose robots.txt blocks crawlers; the app shows them as links but never fetches them. frameworks: official public frameworks behind the app's rubrics and question banks.",
+  "employers": [
+    {
+      "name": "Amazon",
+      "aliases": [
+        "AWS",
+        "Amazon Web Services"
+      ],
+      "pages": [
+        {
+          "url": "https://www.amazon.jobs/content/en/how-we-hire",
+          "about": "How Amazon hires"
+        },
+        {
+          "url": "https://www.amazon.jobs/content/en/our-workplace/leadership-principles",
+          "about": "Leadership Principles (asked in every interview)"
+        },
+        {
+          "url": "https://www.amazon.jobs/content/en/how-we-hire/sde-ii-interview-prep",
+          "about": "Software engineer interview prep"
+        }
+      ]
+    },
+    {
+      "name": "Meta",
+      "aliases": [
+        "Facebook",
+        "Instagram"
+      ],
+      "pages": [
+        {
+          "url": "https://www.metacareers.com/swe-prep-techscreen/",
+          "about": "Software engineer technical screen prep"
+        },
+        {
+          "url": "https://www.metacareers.com/swe-prep-onsite/",
+          "about": "Software engineer full-loop prep"
+        }
+      ]
+    },
+    {
+      "name": "Microsoft",
+      "aliases": [
+        "LinkedIn Corporation"
+      ],
+      "pages": [
+        {
+          "url": "https://careers.microsoft.com/v2/global/en/hiring-tips.html",
+          "about": "How Microsoft hires"
+        },
+        {
+          "url": "https://careers.microsoft.com/v2/global/en/hiring-tips/interview-tips.html",
+          "about": "Interview tips"
+        }
+      ]
+    },
+    {
+      "name": "Netflix",
+      "aliases": [],
+      "pages": [
+        {
+          "url": "https://jobs.netflix.com/culture",
+          "about": "Culture memo (values interviewers probe)"
+        }
+      ]
+    },
+    {
+      "name": "Atlassian",
+      "aliases": [],
+      "pages": [
+        {
+          "url": "https://www.atlassian.com/company/careers/resources/interviewing",
+          "about": "Interviewing at Atlassian"
+        }
+      ]
+    },
+    {
+      "name": "Stripe",
+      "aliases": [],
+      "pages": [
+        {
+          "url": "https://stripe.com/careers/compatibility",
+          "about": "What Stripe looks for"
+        }
+      ]
+    },
+    {
+      "name": "Apple",
+      "aliases": [],
+      "pages": [
+        {
+          "url": "https://www.apple.com/careers/us/work-at-apple/students.html",
+          "about": "Students and internships"
+        }
+      ]
+    },
+    {
+      "name": "Goldman Sachs",
+      "aliases": [
+        "GS"
+      ],
+      "pages": [
+        {
+          "url": "https://www.goldmansachs.com/careers/students",
+          "about": "Student programs and hiring"
+        }
+      ]
+    },
+    {
+      "name": "JPMorgan Chase",
+      "aliases": [
+        "JPMorgan",
+        "J.P. Morgan",
+        "Chase"
+      ],
+      "pages": [
+        {
+          "url": "https://www.jpmorganchase.com/careers/explore-opportunities/programs",
+          "about": "Student and graduate programs"
+        }
+      ]
+    },
+    {
+      "name": "Procter & Gamble",
+      "aliases": [
+        "P&G",
+        "PG"
+      ],
+      "pages": [
+        {
+          "url": "https://www.pgcareers.com/global/en/hiring-process",
+          "about": "P&G hiring process, step by step"
+        }
+      ]
+    },
+    {
+      "name": "PepsiCo",
+      "aliases": [
+        "Pepsi",
+        "Frito-Lay"
+      ],
+      "pages": [
+        {
+          "url": "https://www.pepsicojobs.com/main/hiring-process",
+          "about": "PepsiCo hiring process"
+        }
+      ]
+    },
+    {
+      "name": "Google",
+      "aliases": [
+        "Alphabet",
+        "YouTube",
+        "DeepMind"
+      ],
+      "pages": [
+        {
+          "url": "https://www.google.com/about/careers/applications/how-we-hire/",
+          "about": "How Google hires"
+        }
+      ]
+    },
+    {
+      "name": "Bain & Company",
+      "aliases": [
+        "Bain"
+      ],
+      "pages": [
+        {
+          "url": "https://www.bain.com/careers/hiring-process/interviewing/",
+          "about": "Interviewing at Bain, with case examples"
+        }
+      ]
+    },
+    {
+      "name": "McKinsey & Company",
+      "aliases": [
+        "McKinsey"
+      ],
+      "pages": [],
+      "links_only": [
+        {
+          "url": "https://www.mckinsey.com/careers/interviewing",
+          "about": "Interviewing at McKinsey (the site refuses automated requests; open it yourself)"
+        }
+      ]
+    },
+    {
+      "name": "Anthropic",
+      "aliases": [],
+      "pages": [
+        {
+          "url": "https://www.anthropic.com/candidate-ai-guidance",
+          "about": "Guidance on candidates' AI use"
+        }
+      ]
+    }
+  ],
+  "frameworks": [
+    {
+      "name": "NACE career readiness competencies",
+      "url": "https://www.naceweb.org/career-readiness/competencies/career-readiness-defined/",
+      "use": "The eight competencies each story is tagged with"
+    },
+    {
+      "name": "OPM structured interviews",
+      "url": "https://www.opm.gov/policy-data-oversight/assessment-and-selection/structured-interviews/",
+      "use": "Proficiency levels (awareness to expert) used to rate each competency"
+    },
+    {
+      "name": "O*NET 31.0 Database (USDOL/ETA)",
+      "url": "https://www.onetcenter.org/database.html",
+      "use": "Occupations, tasks, technologies and knowledge behind questions by occupation (CC BY 4.0)"
+    },
+    {
+      "name": "NCEES FE exam specifications",
+      "url": "https://ncees.org/exams/fe-exam/",
+      "use": "Reference blueprint for engineering topics (the bank hasn't been checked against it yet)"
+    },
+    {
+      "name": "AICPA CPA exam blueprints",
+      "url": "https://www.aicpa-cima.com/resources/download/learn-what-is-tested-on-the-cpa-exam",
+      "use": "Reference blueprint for accounting, audit and tax topics (the bank hasn't been checked against it yet)"
+    },
+    {
+      "name": "AAMC core competencies for entering medical students",
+      "url": "https://students-residents.aamc.org/applying-medical-school-amcas/core-competencies-entering-medical-students",
+      "use": "Reference for what health-professions interviews assess (not yet used by the app)"
+    }
+  ]
+}

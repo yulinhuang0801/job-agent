@@ -103,6 +103,12 @@
         </ul>
       </div>
 
+      <div class="card" id="sources">
+        <h2>Where Job Agent's knowledge comes from</h2>
+        <p class="muted small">Official frameworks the rubrics use, references for checking the question banks, and the employers whose own interview pages company prep reads. Pages are fetched only where the site's robots.txt allows it, at most one request every two seconds per site, and cached on this computer.</p>
+        <div id="sources-list"></div>
+      </div>
+
       <div class="card" id="work-authorization">
         <h2>Work authorization for international students (F-1)</h2>
         <p class="muted small">General information, not legal advice. Your school's international student office decides; at Illinois that's <a href="https://isss.illinois.edu" target="_blank" rel="noopener">ISSS</a>.</p>
@@ -441,6 +447,7 @@
         <p>Every answer is scored 1–4 on fixed dimensions, using written descriptions of each level and two worked examples, so the same answer gets the same grade. Stories: situation and stakes, your own actions (counts double), result (counts double), reflection, and whether it answers the question. Short answers: answers the question, specific evidence (counts double), structure, and how personal and tailored it is.</p>
         <p>The grader has to quote your exact words for each score; the app checks every quote, and a 3 or 4 without a real quote is lowered to 2. It's still an AI judgment: if a grade looks wrong, press <b>Too harsh</b> or <b>Too generous</b>. Those votes are saved to improve the grader.</p>
       </details>
+      <div id="competency-coverage" class="card hidden"></div>
       <div id="story-cards"></div>
     </section>
 
@@ -469,6 +476,14 @@
           <div id="skills-areas-lc" class="chips pick"></div>
           <label>Concept questions from <a href="https://open-interview.github.io/" target="_blank" rel="noopener">Open Interview</a> <span class="muted small">(community-written, with reference answers the grader compares against)</span></label>
           <div id="skills-areas-oi" class="chips pick"></div>
+          <label>Questions for your occupation, from <a href="https://www.onetcenter.org/database.html" target="_blank" rel="noopener">O*NET</a> <span class="muted small">(the U.S. Department of Labor's database of what people in each job actually do; the AI writes questions from the job's real tasks, tools and knowledge, best for non-software majors)</span></label>
+          <div id="skills-areas-onet" class="chips pick"></div>
+          <div class="row wrap">
+            <input id="onet-q" placeholder="Find an occupation, e.g. biochemist, civil engineer, auditor">
+            <button id="onet-find" class="secondary small" type="button">Find</button>
+          </div>
+          <div id="onet-results"></div>
+          <p class="muted small onet-credit">Includes information from the O*NET 31.0 Database by the U.S. Department of Labor, Employment and Training Administration (USDOL/ETA), used under the <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a> license. O*NET® is a trademark of USDOL/ETA. Job Agent selected and reformatted this information to write practice questions; USDOL/ETA has not approved, endorsed, or tested these modifications.</p>
         </details>
         <label for="skills-count">Number of questions</label>
         <select id="skills-count" class="inline-select">

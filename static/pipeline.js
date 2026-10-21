@@ -411,3 +411,17 @@ loaders.calendar = async () => {
 
 // Load event types for job cards as soon as the page opens.
 loadCalMeta().catch(() => {});
+
+// ---------- Guide: where the knowledge comes from ----------
+
+loaders.guide = async () => {
+  const d = await api("/api/official");
+  fill($("#sources-list"),
+    h("b", {}, "Frameworks"),
+    h("ul", { class: "tight" }, d.frameworks.map((f) => h("li", {}, h("a", { href: f.url, target: "_blank", rel: "noopener" }, f.name), ` · ${f.use}`))),
+    h("b", {}, `Employers with official interview pages (${d.employers.length})`),
+    h("ul", { class: "tight" }, d.employers.map((e) => h("li", {}, h("b", {}, e.name), ": ",
+      e.pages.map((p, i) => [i ? ", " : "", h("a", { href: p.url, target: "_blank", rel: "noopener" }, p.about)])))),
+    h("p", { class: "muted small" }, "For other companies, company prep looks for interview pages on the company's own website only."),
+    h("p", { class: "muted small" }, d.onet_attribution));
+};

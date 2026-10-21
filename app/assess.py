@@ -4,7 +4,7 @@ import json
 import uuid
 from pathlib import Path
 
-from . import coderun, grading, llm, memory, prompts, qlibrary, store
+from . import coderun, grading, llm, memory, onet, prompts, qlibrary, store
 
 BANK = json.loads((Path(__file__).resolve().parent / "question_bank.json").read_text(encoding="utf-8"))
 BEHAVIORAL = BANK["behavioral"]
@@ -172,8 +172,11 @@ def public_stories(state):
         "done": current is None and bool(state["messages"]),
         "messages": [{**m, "content": f"📄 Pasted my prep document ({len(m['content']):,} characters)"}
                      if m.get("kind") == "import" else m for m in state["messages"]],
-        "stories": {c: {**e, "grade_stale": bool(e.get("grade")) and e["grade"].get("hash") != grading.text_hash({**e, "kind": all_comps[c]["kind"]})}
+        "stories": {c: {**e, "grade_stale": bool(e.get("grade")) and (e["grade"].get("hash") != grading.text_hash({**e, "kind": all_comps[c]["kind"]})
+                                                                     or e["grade"].get("version") != grading.RUBRIC_VERSION)}
                     for c, e in state["stories"].items() if c in all_comps},
+        "coverage": grading.coverage({c: e for c, e in state["stories"].items() if c in all_comps},
+                                     {c: all_comps[c]["label"] for c in all_comps}),
         "sources": [{"name": s["name"], "chars": len(s["text"])} for s in state["sources"]],
         "labels": {c: comps()[c]["label"] for c in comps()},
         "kinds": {c: comps()[c]["kind"] for c in comps()},
@@ -460,11 +463,11 @@ def _bank_index():
 def skill_areas():
     built_in = [{"id": k, "label": v["label"], "count": len(v["questions"]), "mine": k.startswith("my:"), "source": "Job Agent",
                  "group": v.get("group", "Other")} for k, v in tech_areas().items()]
-    return built_in + qlibrary.areas()
+    return built_in + qlibrary.areas() + onet.areas_for(store.load("profile", {}))
 
 
 def _is_source(area):
-    return area.startswith(("lc:", "oi:"))
+    return area.startswith(("lc:", "oi:", "onet:"))
 
 
 def _from_sources(wanted, max_level):
@@ -474,8 +477,11 @@ def _from_sources(wanted, max_level):
         if n <= 0:
             continue
         try:
-            out += qlibrary.pick(area, n, max_level)
-        except qlibrary.LibraryError as e:
+            if area.startswith("onet:"):  # AI-written from the occupation's real tasks
+                out += onet.questions(area[5:], n, candidate_background(2500))
+            else:
+                out += qlibrary.pick(area, n, max_level)
+        except (qlibrary.LibraryError, onet.OnetError) as e:
             errors.append(str(e))
     return out, errors
 
@@ -498,7 +504,7 @@ def start_skills(count=5, areas=None):
             raise llm.LLMError("No questions in those areas yet.")
         ask = f"\n\nThe candidate chose these areas, so use only them: {', '.join(bank_areas)}." if bank_areas else ""
         extra = "" if areas else "\n\nEXTRA SOURCES (id | label):\n" + "\n".join(
-            f"{a['id']} | {a['label']}" for a in qlibrary.areas())
+            f"{a['id']} | {a['label']}" for a in qlibrary.areas() + onet.areas_for(store.load("profile", {})))
         index = _bank_index()
         out = llm.chat_json([
             {"role": "system", "content": prompts.SKILLS_PICK_SYSTEM.format(count=bank_count, bank=bank) + extra + ask},
@@ -528,7 +534,8 @@ def start_skills(count=5, areas=None):
         errors += more
         names = sorted({q["source"] for q in picked})
         if names:
-            reason = (reason + " " if reason else "") + f"Coding and concept questions from {' and '.join(names)}."
+            reason = (reason + " " if reason else "") + f"Questions from {' and '.join(names)}" + (
+                " (written by the AI from the occupation's real tasks and tools)." if "O*NET" in names else ".")
     if errors and not questions:
         raise llm.LLMError(errors[0])
 

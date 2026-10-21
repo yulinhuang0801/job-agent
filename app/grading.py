@@ -11,7 +11,7 @@ import re
 
 from . import llm
 
-RUBRIC_VERSION = "stories-v1"
+RUBRIC_VERSION = "stories-v2"  # v2 adds competency tags
 
 STORY_DIMS = [
     ("situation", "Situation & stakes", 1,
@@ -65,6 +65,27 @@ B) Question: "Tell me about a time you resolved a conflict." Answer: "Two weeks 
 → situation 4, action 4 (specific steps and a decision with a reason), result 4 (numbers), reflection 4 (applied later), fit 4."""
 
 
+# The eight NACE career readiness competencies (National Association of Colleges and Employers),
+# described here in our own words; see naceweb.org for NACE's definitions.
+COMPETENCIES = {
+    "Career & self-development": "knows their strengths and gaps, seeks feedback and learning, plans their growth, builds relationships",
+    "Communication": "explains ideas clearly in speech and writing, listens, adapts to the audience, persuades",
+    "Critical thinking": "analyzes information, solves problems, makes reasoned decisions, uses data",
+    "Equity & inclusion": "works respectfully with people of different backgrounds, includes others, addresses barriers",
+    "Leadership": "rallies others toward a goal, takes initiative, delegates, develops people",
+    "Professionalism": "reliable, accountable, ethical, manages time, follows through",
+    "Teamwork": "collaborates, shares credit, handles conflict, contributes to a shared goal",
+    "Technology": "learns and uses tools or technology to do work better",
+}
+# A proficiency scale in the style of OPM's structured-interview rating scales, written for students.
+LEVELS = {1: "Awareness: knows it matters; little evidence of doing it",
+          2: "Basic: did it with guidance, in a simple situation",
+          3: "Intermediate: did it on their own in a real situation with some difficulty",
+          4: "Advanced: did it well under pressure or ambiguity, with a clear result",
+          5: "Expert: did it at a level that changed how others work, repeatedly"}
+LEVEL_NAMES = {k: v.split(":")[0] for k, v in LEVELS.items()}
+
+
 def _rubric_text(dims):
     out = []
     for key, label, _, anchors in dims:
@@ -88,9 +109,13 @@ Rules:
 - "why": one short sentence naming what earns the score or what's missing.
 - "top_fix": the single change that would raise the overall grade most, specific to this answer (e.g. "Add how many users the fix reached"), never generic advice.
 - Write why and top_fix in the language given in "write_feedback_in" for that answer, even if other answers in the batch use another language.
+- "competencies": the 1-3 competencies (names exactly from this list) the answer gives real evidence of, strongest first, each with a proficiency level 1-5 and the candidate's exact words as "quote" (at most 25 words). Don't tag a competency the answer only claims ("I'm a great leader") without showing it; a level of 4 or 5 needs a concrete situation with a result.
+Competencies (NACE career readiness): {competencies}
+Proficiency levels: {levels}
 
 JSON shape:
-{{"grades": [{{"id": "", "scores": {{"<dimension key>": {{"score": <1-4>, "quote": "", "why": ""}}}}, "top_fix": ""}}]}}"""
+{{"grades": [{{"id": "", "scores": {{"<dimension key>": {{"score": <1-4>, "quote": "", "why": ""}}}}, "top_fix": "",
+  "competencies": [{{"name": "", "level": <1-5>, "quote": ""}}]}}]}}"""
 
 
 def dims_for(kind):
@@ -161,15 +186,34 @@ def _finish(item, raw):
         out.append({"key": key, "label": label, "score": score, "quote": quote if verified else "", "why": why})
     n_stars, total, max_total = stars(scores, dims)
     words = len(re.findall(r"\w+", text))
+    comps, seen = [], set()
+    for c in (raw or {}).get("competencies") or []:
+        name = next((k for k in COMPETENCIES if k.lower() == str(c.get("name") or "").strip().lower()), None)
+        if not name or name in seen:
+            continue
+        try:
+            level = max(1, min(5, int(c.get("level") or 1)))
+        except (TypeError, ValueError):
+            level = 1
+        quote = str(c.get("quote") or "").strip()
+        if not quote_found(quote, text):
+            if level >= 3:
+                level = 2  # same rule as the rubric: no real quote, no high rating
+            quote = ""
+        seen.add(name)
+        comps.append({"name": name, "level": level, "level_name": LEVEL_NAMES[level], "quote": quote})
     return {"version": RUBRIC_VERSION, "dims": out, "stars": n_stars, "total": total, "max": max_total,
-            "top_fix": str((raw or {}).get("top_fix") or "").strip(), "words": words, "hash": text_hash(item)}
+            "top_fix": str((raw or {}).get("top_fix") or "").strip(), "words": words, "hash": text_hash(item),
+            "competencies": comps[:3]}
 
 
 def grade(items):
     """items: [{id, kind ("story"|"answer"), question, look_for, situation..reflection | answer}] → {id: grade}.
     Graded six at a time at temperature 0."""
     results = {}
-    system = GRADE_SYSTEM.format(story_rubric=_rubric_text(STORY_DIMS), answer_rubric=_rubric_text(ANSWER_DIMS), examples=EXAMPLES)
+    system = GRADE_SYSTEM.format(story_rubric=_rubric_text(STORY_DIMS), answer_rubric=_rubric_text(ANSWER_DIMS), examples=EXAMPLES,
+                                 competencies="; ".join(f"{k} ({v})" for k, v in COMPETENCIES.items()),
+                                 levels="; ".join(f"{k} = {v}" for k, v in LEVELS.items()))
     todo = [i for i in items if answer_text(i).strip()]
     for start in range(0, len(todo), 6):
         batch = todo[start:start + 6]
@@ -200,3 +244,17 @@ def record_feedback(entry):
     with open(store.DATA_DIR / FEEDBACK_FILE, "a", encoding="utf-8") as f:
         f.write(json.dumps(entry, ensure_ascii=False) + "\n")
     return entry
+
+
+def coverage(stories, labels):
+    """Best level per competency across graded answers: {name: {"level", "level_name", "answers": [labels]}}."""
+    out = {name: {"level": 0, "level_name": "", "answers": []} for name in COMPETENCIES}
+    for comp, e in stories.items():
+        for c in ((e.get("grade") or {}).get("competencies") or []):
+            slot = out.get(c["name"])
+            if slot is None:
+                continue
+            slot["answers"].append(labels.get(comp, comp))
+            if c["level"] > slot["level"]:
+                slot["level"], slot["level_name"] = c["level"], c["level_name"]
+    return out

@@ -16,7 +16,7 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import alerts, assess, coderun, crawlers, db, grading, llm, memory, mentors, outreach, pdf, pipeline, prep, profile_merge, prompts, qlibrary, research, timelines, resume_text, services, sourcing, store
+from . import alerts, assess, coderun, crawlers, db, grading, llm, memory, mentors, official, onet, outreach, pdf, pipeline, prep, profile_merge, prompts, qlibrary, research, timelines, resume_text, services, sourcing, store
 from .jobs_fetch import FetchError, fetch_job
 
 STATIC = Path(__file__).resolve().parent.parent / "static"
@@ -37,6 +37,7 @@ async def _revalidate_page(request: Request, call_next):
     return response
 
 
+@app.exception_handler(onet.OnetError)
 @app.exception_handler(alerts.AlertError)
 @app.exception_handler(qlibrary.LibraryError)
 def _source_error(request: Request, exc: Exception):
@@ -392,6 +393,42 @@ class FairIn(BaseModel):
 @app.post("/api/feedback/grade")
 def grade_feedback(body: FairIn):
     return assess.grade_feedback(body.kind, body.id, body.verdict, body.comment)
+
+
+@app.get("/api/onet/search")
+def onet_search(q: str = ""):
+    if not onet.ready():
+        return {"ready": False, "results": []}
+    return {"ready": True, "results": onet.match(q, 8)}
+
+
+class OnetPickIn(BaseModel):
+    code: str
+
+
+@app.post("/api/onet/pick")
+def onet_pick(body: OnetPickIn):
+    onet.profile(body.code)  # raises for an unknown code
+    picked = [c for c in store.load("onet_picked", []) if c != body.code] + [body.code]
+    store.save("onet_picked", picked[-6:])
+    return {"areas": assess.skill_areas()}
+
+
+@app.delete("/api/onet/pick/{code}")
+def onet_unpick(code: str):
+    store.save("onet_picked", [c for c in store.load("onet_picked", []) if c != code])
+    return {"areas": assess.skill_areas()}
+
+
+@app.get("/api/onet/occupation/{code}")
+def onet_occupation(code: str):
+    return {**onet.profile(code), "attribution": onet.ATTRIBUTION, "license": onet.LICENSE_URL}
+
+
+@app.get("/api/official")
+def official_sources():
+    return {"employers": [{"name": e["name"], "pages": e["pages"] + e.get("links_only", [])} for e in official.REGISTRY["employers"]],
+            "frameworks": official.REGISTRY["frameworks"], "onet_attribution": onet.ATTRIBUTION}
 
 
 @app.get("/api/skills/areas")
@@ -1001,6 +1038,11 @@ def db_status():
 
 
 ALERTS_SOURCE = "Job alert emails"
+ONET_SOURCE = "O*NET occupations"
+
+
+def _download_onet():
+    return onet.download(progress=lambda m: crawlers._progress(ONET_SOURCE, m))
 
 
 def _check_alerts():
@@ -1059,7 +1101,8 @@ async def upload_alert(file: UploadFile = File(...)):
 @app.post("/api/db/refresh")
 def db_refresh(body: RefreshIn):
     jobs = {"adv": ("SEC Form ADV", crawlers.import_adv, ()), "formd": ("SEC Form D", crawlers.import_form_d, (max(1, min(12, body.quarters)),)),
-            "jobs": ("Job boards", crawlers.crawl_jobs, ()), "alerts": (ALERTS_SOURCE, _check_alerts, ())}
+            "jobs": ("Job boards", crawlers.crawl_jobs, ()), "alerts": (ALERTS_SOURCE, _check_alerts, ()),
+            "onet": (ONET_SOURCE, _download_onet, ())}
     if body.source not in jobs:
         raise HTTPException(400, "Unknown source.")
     name, fn, args = jobs[body.source]

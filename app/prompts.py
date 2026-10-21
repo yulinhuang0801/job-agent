@@ -196,7 +196,7 @@ Pick {count} questions from the question bank below that best test the skills th
 - Cover the 2-3 most relevant areas for the candidate's field: their major and target roles decide it (e.g. biochemistry and lab methods for life-science research, mechanical/electrical/civil engineering for those majors, marketing for marketing roles, audit and tax for accounting careers, healthcare for clinical and health-business roles, UX design for design roles), not just the tools they list. Mix levels: mostly level 1-2 and one level 3. Include at least one practical (coding) or problem (calculation) question when the area has one.
 - If an important claimed skill has no questions in the bank, you may write up to 2 custom questions in the same style (answerable in a few minutes in text, with a rubric). Custom questions count toward the {count}.
 - Don't pick areas unrelated to their goals just to fill the count.
-- If EXTRA SOURCES are listed and the candidate targets software, data or quant roles, you may also ask for 1-2 questions from them: a LeetCode topic (lc:...) for a real coding problem, or an Open Interview channel (oi:...) for concept questions. Set max_level 1 (Easy) for beginners, 2 for most students, 3 only for strong candidates. These come on top of "picked"; pick fewer bank questions to keep the total at {count}.
+- If EXTRA SOURCES are listed and the candidate targets software, data or quant roles, you may also ask for 1-2 questions from them: a LeetCode topic (lc:...) for a real coding problem, an Open Interview channel (oi:...) for concept questions, or an occupation (onet:...) for questions written from that job's real tasks, which suits non-software majors best. Set max_level 1 (Easy) for beginners, 2 for most students, 3 only for strong candidates. These come on top of "picked"; pick fewer bank questions to keep the total at {count}.
 
 JSON shape:
 {{"picked": ["<bank question id>"], "custom": [{{"area": "<label>", "level": <1-3>, "type": "<concept|practical|problem|design>", "question": "", "rubric": ""}}], "sources": [{{"area": "<lc:... or oi:... id>", "count": <1-2>}}], "max_level": <1-3>, "reason": "<one sentence for the candidate: why these areas>"}}
@@ -339,6 +339,7 @@ Produce:
 - tips: 3-5 specific, practical tips for this company's interviews
 - sources_used: which search results you relied on
 Be specific to this company. Never invent facts about the process you can't support; flag uncertainty.
+OFFICIAL PAGE blocks are the company's own words: trust them over third-party search results, quote their values and process accurately, and list their URLs first in sources_used. An OCCUPATION PROFILE block (from O*NET) lists the real tasks and tools of the role: use it to make technical questions match the actual work.
 
 JSON shape:
 {"summary": "", "process": [""], "values": [{"value": "", "how_to_show": ""}],

@@ -363,3 +363,12 @@ details.alert-paste summary { cursor: pointer; color: var(--accent); }
 }
 .area-group { margin: 6px 0 2px; }
 .area-group-title { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin: 8px 0 4px; }
+
+/* Competency tags */
+.comp-chips { margin: 6px 0; align-items: center; }
+.comp-chips .chip { font-size: 12px; }
+.chip.lvl1, .chip.lvl2 { background: color-mix(in srgb, var(--warn) 14%, transparent); color: var(--warn); }
+.chip.lvl3 { background: var(--accent-soft); color: var(--accent); }
+.chip.lvl4, .chip.lvl5 { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); }
+.chip.empty { background: transparent; border: 1px dashed var(--border); color: var(--muted); }
+.onet-credit { margin-top: 8px; font-size: 11px; }

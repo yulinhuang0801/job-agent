@@ -672,6 +672,9 @@ function gradeBlock(comp, s) {
     h("div", { class: "rubric-rows" }, g.dims.map((d) => h("div", { class: "rubric-row" },
       h("div", { class: "rubric-label" }, d.label), dots(d.score),
       h("div", { class: "rubric-why" }, d.why, d.quote ? h("div", { class: "quote" }, `“${d.quote}”`) : null)))),
+    (g.competencies || []).length ? h("div", { class: "chips comp-chips" }, h("span", { class: "muted small" }, "Shows: "),
+      g.competencies.map((c) => h("span", { class: `chip lvl${c.level}`, title: c.quote ? `“${c.quote}”` : "No quote found, so the level is capped" },
+        `${c.name} · ${c.level_name}`))) : null,
     g.top_fix ? h("p", { class: "top-fix" }, h("b", {}, "Biggest improvement: "), g.top_fix) : null,
     fairButtons("story", comp, g.verdict, (data) => { stories = data; renderStories(); }));
 }
@@ -703,6 +706,20 @@ $("#grade-all").addEventListener("click", (e) => busy(e.target, "Grading…", as
     setMsg($("#grade-msg"), "Done.", "ok");
   } catch (err) { setMsg($("#grade-msg"), err.message, "err"); }
 }));
+
+function renderCoverage() {
+  const cov = stories.coverage || {};
+  const any = Object.values(cov).some((c) => c.answers.length);
+  $("#competency-coverage").classList.toggle("hidden", !any);
+  if (!any) return;
+  const missing = Object.entries(cov).filter(([, c]) => !c.answers.length).map(([n]) => n);
+  fill($("#competency-coverage"),
+    h("div", { class: "row" }, h("b", {}, "Competency coverage"), h("span", { class: "muted small" }, "(NACE career readiness; levels on a 1–5 scale like OPM's)")),
+    h("div", { class: "chips comp-chips" }, Object.entries(cov).map(([name, c]) => h("span", {
+      class: `chip ${c.answers.length ? "lvl" + c.level : "empty"}`, title: c.answers.length ? `In: ${c.answers.join(", ")}` : "No graded answer shows this yet" },
+      c.answers.length ? `${name} · ${c.level_name}` : `${name} · none yet`))),
+    missing.length ? h("p", { class: "muted small" }, `Interviewers often probe ${missing.slice(0, 3).join(", ")}. Add a story that shows ${missing.length > 1 ? "them" : "it"}, or ask the behavioral coach for one.`) : null);
+}
 
 function storyCard(comp) {
   const s = stories.stories[comp];
@@ -743,6 +760,7 @@ function renderStories(pendingText) {
   });
   const ORDER = ["Pitch", "Motivation", "Strengths & weaknesses", "Stories", "Others"];
   const groups = [...new Set(filled.map((c) => stories.groups[c]))].sort((a, b) => ORDER.indexOf(a) - ORDER.indexOf(b));
+  renderCoverage();
   $("#story-cards").replaceChildren(...(filled.length
     ? groups.map((g) => [h("h3", { class: "group-title" }, g), filled.filter((c) => stories.groups[c] === g).map(storyCard)])
     : [h("p", { class: "muted" }, "Answers show up here as you go.")]).flat(2));
@@ -984,6 +1002,9 @@ function renderAreas(areas) {
     h("span", { class: "area-group-title" }, g), h("div", { class: "chips pick" }, areaChips(own.filter((a) => (a.group || "Other") === g))))));
   $("#skills-areas-lc").replaceChildren(...areaChips(areas.filter((a) => a.source === "LeetCode")));
   $("#skills-areas-oi").replaceChildren(...areaChips(areas.filter((a) => a.source === "Open Interview")));
+  const onetAreas = areas.filter((a) => a.source === "O*NET");
+  $("#skills-areas-onet").replaceChildren(...(onetAreas.length ? areaChips(onetAreas)
+    : [h("span", { class: "muted small" }, "None yet: find an occupation below, or set target roles in your profile.")]));
   $("#mt-areas").replaceChildren(...own.map((a) => h("option", { value: a.label })));
 }
 
@@ -1016,6 +1037,31 @@ async function refreshStoriesExtras() {
   }
 }
 
+$("#onet-find").addEventListener("click", () => busy($("#onet-find"), "Searching…", async () => {
+  const r = await api(`/api/onet/search?q=${encodeURIComponent($("#onet-q").value)}`);
+  if (!r.ready) {
+    const dl = h("button", { class: "secondary small", type: "button" }, "Download O*NET (about 20 MB)");
+    dl.addEventListener("click", () => busy(dl, "Downloading… (about a minute)", async () => {
+      await api("/api/db/refresh", { method: "POST", body: { source: "onet" } });
+      for (let i = 0; i < 60; i++) {
+        await new Promise((res) => setTimeout(res, 3000));
+        if ((await api("/api/onet/search?q=x")).ready) break;
+      }
+      $("#onet-find").click();
+    }));
+    fill($("#onet-results"), h("p", { class: "small" }, "The occupation data isn't downloaded yet. "), dl);
+    return;
+  }
+  fill($("#onet-results"), r.results.length ? r.results.map((o) => {
+    const add = h("button", { class: "ghost small", type: "button" }, "+ Add");
+    add.addEventListener("click", async () => {
+      renderAreas((await api("/api/onet/pick", { method: "POST", body: { code: o.code } })).areas);
+      add.textContent = "Added ✓"; add.disabled = true;
+    });
+    return h("div", { class: "qrow" }, h("div", {}, o.title, h("div", { class: "muted small" }, `${o.code}${o.matched_title !== o.title ? " · matched “" + o.matched_title + "”" : ""}`)), add);
+  }) : h("p", { class: "muted small" }, "No occupation matches; try other words."));
+}));
+
 function prepCard(p) {
   const practice = h("button", { class: "small", type: "button" }, "Practice these in Stories");
   practice.addEventListener("click", () => busy(practice, "Adding…", async () => {
@@ -1044,6 +1090,12 @@ function prepCard(p) {
     (p.process || []).length ? [h("b", {}, "Likely interview stages"), h("ol", { class: "tight" }, p.process.map((x) => h("li", {}, x)))] : null,
     (p.values || []).length ? [h("b", {}, "What they look for"), list(p.values.map((v) => `${v.value}: ${v.how_to_show}`))] : null,
     (p.tips || []).length ? [h("b", {}, "Tips"), list(p.tips)] : null,
+    (p.official_pages || []).length || (p.official_links || []).length ? [h("b", {}, "From the company's own site"),
+      h("ul", { class: "tight" }, [...(p.official_pages || []), ...(p.official_links || [])].map((x) =>
+        h("li", {}, h("a", { href: x.url, target: "_blank", rel: "noopener" }, x.title || x.about || x.url))))] : null,
+    (p.official_skipped || []).length ? h("p", { class: "muted small" }, "Not read: " + p.official_skipped.map((x) => `${x.url} (${x.reason})`).join("; ")) : null,
+    p.occupation ? h("p", { class: "muted small" }, "Technical questions grounded in the O*NET occupation ",
+      h("a", { href: `https://www.onetonline.org/link/summary/${p.occupation.code}`, target: "_blank", rel: "noopener" }, p.occupation.title), ".") : null,
     h("p", { class: "muted small" }, `Added ${p.behavioral_ids.length} behavioral and ${p.technical_ids.length} technical questions to your question bank.`),
     h("div", { class: "row actions" }, practice, check, del));
 }
@@ -1217,12 +1269,13 @@ let dbFilters = { postings: { job_type: "Internship" }, firms: { small: "1" } };
 let dbPage = 1;
 let dbResult = null;
 let dbPoll = null;
-const SOURCE_KEYS = { "SEC Form ADV": "adv", "SEC Form D": "formd", "Job boards": "jobs", "Job alert emails": "alerts" };
+const SOURCE_KEYS = { "SEC Form ADV": "adv", "SEC Form D": "formd", "Job boards": "jobs", "Job alert emails": "alerts", "O*NET occupations": "onet" };
 const SOURCE_TEXT = {
   "SEC Form ADV": "Investment advisers (PE, VC, hedge, real estate, wealth managers), monthly",
   "SEC Form D": "New funds and startups that just raised money, with people on the filing, quarterly",
   "Job boards": "Company job boards (Greenhouse, Lever, Ashby) and SimplifyJobs internship lists",
   "Job alert emails": "Jobs LinkedIn, Handshake, Indeed and others emailed you (set up in Settings → Job alert emails)",
+  "O*NET occupations": "U.S. Department of Labor data on 1,000+ occupations (tasks, tools, knowledge) for questions by occupation; about 20 MB, once",
 };
 
 function setFindMode(mode) {

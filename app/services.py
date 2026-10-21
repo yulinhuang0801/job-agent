@@ -46,7 +46,7 @@ def web_search(args):
         resp = httpx.post("https://api.tavily.com/search", timeout=20,
                           headers={"Authorization": f"Bearer {key}"},
                           json={"query": query, "search_depth": "basic", "max_results": int(args.get("max_results") or 4),
-                                "include_answer": True})
+                                "include_answer": True, **({"include_domains": list(args["include_domains"])} if args.get("include_domains") else {})})
         resp.raise_for_status()
         data = resp.json()
     except httpx.HTTPError as e:

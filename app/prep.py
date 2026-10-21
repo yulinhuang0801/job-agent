@@ -5,7 +5,7 @@ import re
 import uuid
 from datetime import datetime
 
-from . import assess, llm, memory, prompts, qlibrary, services, store
+from . import assess, llm, memory, official, onet, prompts, qlibrary, services, store
 
 
 def load_preps():
@@ -24,6 +24,14 @@ def build(company, role):
             if found.get("answer"):
                 material.append(f"Q: {q}\nSummary: {found['answer']}")
             material += [f"- {r['title']} ({r['url']}): {r['content']}" for r in found.get("results", [])]
+    # The company's own pages first: they're the most reliable account of its process and values.
+    website = next((j.get("website", "") for j in store.load("jobs", []) if (j.get("company") or "").lower() == company.lower() and j.get("website")), "")
+    off = official.for_company(company, website)
+    for page in reversed(off["pages"]):
+        material.insert(0, f"OFFICIAL PAGE FROM {company.upper()} ({page['url']}, \"{page['title']}\"):\n{page['excerpt']}")
+    occ = onet.best_match(role) if role and onet.ready() else None
+    if occ:
+        material.insert(0, onet.material(occ["code"]))
     examples = assess.field_examples(f"{role} {company} " + " ".join(str(v) for v in (store.load("profile", {}).get("targets") or {}).values()))
     if examples:
         material.insert(0, "FIELD EXAMPLES (style and difficulty of technical questions in this field; write new ones for this company):\n"
@@ -62,7 +70,10 @@ def build(company, role):
     prep = {"id": uuid.uuid4().hex[:8], "company": company, "role": role, "created_at": datetime.now().isoformat(timespec="seconds"),
             "area": group, "searched": bool(material), "known_questions": len(known) + len(tagged),
             **{k: out.get(k) or [] for k in ("process", "values", "tips", "sources_used")},
-            "summary": out.get("summary") or "", "behavioral_ids": added_b, "technical_ids": added_t}
+            "summary": out.get("summary") or "", "behavioral_ids": added_b, "technical_ids": added_t,
+            "official_pages": [{"url": p["url"], "title": p["title"]} for p in off["pages"]],
+            "official_skipped": off["skipped"], "official_links": off["links_only"],
+            "occupation": {"code": occ["code"], "title": occ["title"]} if occ else None}
     preps = [p for p in load_preps() if not (p["company"].lower() == company.lower() and p["role"].lower() == role.lower())]
     preps.insert(0, prep)
     store.save("prep", preps)

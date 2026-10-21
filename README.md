@@ -61,8 +61,13 @@ Old links like `#tracker` or `#mentors` still work.
      - **[Open Interview](https://github.com/open-interview/open-interview)** concept questions (system design, backend, databases, ML, generative AI, networking, security… 27 channels) with community-written reference answers the grader compares against. Easy and medium only, since its "advanced" ones are senior-level.
      - The AI picker can add one or two of these on its own for software, data and quant targets.
    - **Prepare for a specific company**: researches the company's interview process and values, then adds tailored behavioral questions to Stories and technical questions to the Skills check. Technical questions follow the role's field: a Genentech protein-sciences internship gets lab, assay and dilution questions; a Big 4 assurance role gets audit and GAAP. Matching questions from the bank are shown to the AI as examples of style and difficulty. Uses the behavioral questions the Tech Interview Handbook lists for that company (Airbnb, Amazon, ByteDance, Palantir, Stripe and others) and Open Interview questions tagged with it.
+     - **Official employer pages first.** Company prep reads the company's own interview, hiring-process and values pages before any third-party search results, and cites them. Some come from a hand-checked registry (`app/official_sources.json`): Amazon, Google, Meta, Microsoft, Netflix, Atlassian, Stripe, Apple, Anthropic, Goldman Sachs, JPMorgan Chase, Bain, P&G, PepsiCo, and McKinsey (link only). For other companies it searches the company's own domain only; Jane Street and Deloitte, for example, were found this way.
+     - **Polite fetching** (`app/official.py`): every page is checked against the site's robots.txt, following the standard rules (wildcards, longest match wins). Pages that are blocked, or whose robots.txt can't be read, are never fetched. Requests to one site are at least two seconds apart, and pages are cached on your computer for 30 days.
+     - **The real job:** prep also adds the matching O*NET occupation's tasks and tools, so technical questions fit the actual work.
+   - **Questions for your occupation (O*NET):** pick from occupations matched to your target roles, or search all 1,016. The AI writes questions from that occupation's real tasks, technologies and knowledge areas, with calculations for numeric fields; they're labelled as AI-written. This is the best option for majors the built-in bank covers thinly. The data downloads once (about 20 MB) from Find → Data sources or the Skills page.
    - **How grading works**:
      - **Stories** are scored 1–4 on fixed rubric dimensions, with written descriptions of each level and two worked examples, at temperature 0. STAR stories are scored on situation and stakes, your own actions (×2), result (×2), reflection, and whether the story answers the question. Short answers are scored on answering the question, specific evidence (×2), structure, and how personal they are.
+     - Each graded answer is also tagged with the 1–3 **NACE career-readiness competencies** it shows: career and self-development, communication, critical thinking, equity and inclusion, leadership, professionalism, teamwork, technology. Each tag gets a proficiency level on a 1–5 scale like OPM's structured-interview ratings (awareness, basic, intermediate, advanced, expert) and a quote that is checked against your answer. **Competency coverage** on the Stories page shows which competencies have no story yet, and the coaches see it too.
      - The grader must quote your exact words for each score. The app checks every quote, and a 3 or 4 without a real quote drops to 2.
      - Each graded story shows the biggest single improvement. Finished answers are graded automatically; **Grade all** grades the rest.
      - **Python coding answers** run against real test cases from [LeetCodeDataset](https://huggingface.co/datasets/newfacade/LeetCodeDataset) (Apache-2.0, about 2,870 problems, downloaded once). They run in a separate process with time, CPU, memory and file limits. **▶ Run tests** works while you answer.
@@ -124,6 +129,8 @@ Old links like `#tracker` or `#mentors` still work.
 | `app/pipeline.py` | Events, calendar and .ics, assessment prep, thank-you notes, offers, networking |
 | `app/timelines.py` | Typical recruiting windows by field, placed on your own summers |
 | `static/pipeline.js` | Next steps on job cards, the Network and Calendar pages |
+| `app/official.py` | Robots-aware fetcher and official employer page lookup (registry in `app/official_sources.json`) |
+| `app/onet.py` | O*NET occupations: download, role matching, occupation profiles, questions by occupation |
 | `app/grading.py` | Rubric grading for stories and short answers, quote checks, "was this fair?" log |
 | `app/coderun.py` | Runs Python answers against LeetCodeDataset test cases with time and resource limits |
 | `tests/calibration/` | Fixed answers with expected grades; `run_calibration.py` is the grading regression test |
@@ -137,6 +144,13 @@ Old links like `#tracker` or `#mentors` still work.
 | `app/jobs_fetch.py` | Reads job descriptions from posting URLs |
 | `app/store.py` | JSON-file storage in `data/` |
 | `static/` | The web page (plain HTML, CSS and JS; no build step) |
+
+## Data sources and credits
+
+- **O*NET:** includes information from the O*NET 31.0 Database by the U.S. Department of Labor, Employment and Training Administration (USDOL/ETA), used under the [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) license. O*NET® is a trademark of USDOL/ETA. Job Agent selected and reformatted this information (titles, core tasks, technologies, top knowledge areas) to write practice questions; USDOL/ETA has not approved, endorsed, or tested these modifications.
+- **Frameworks:** competency names follow NACE's career readiness competencies, with our own short descriptions. Proficiency levels follow the style of OPM's structured-interview rating scales.
+- **Employer pages:** only fetched where robots.txt allows. They're used as prep material on your computer and are linked, not republished.
+- **Other sources:** SEC EDGAR, LeetCodeDataset (Apache-2.0), Tech Interview Handbook (MIT) and Open Interview (MIT); see above.
 
 ## Optional services (Settings)
 

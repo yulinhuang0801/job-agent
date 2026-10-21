@@ -83,6 +83,9 @@ def snapshot():
         # Dated items from every job and the networking list: deadlines, assessments, interviews, thank-yous, offers.
         "pipeline": pipeline.summary_for_mentors(),
         "jobs_index": [{"job_id": j["id"], "company": j.get("company"), "title": j.get("title", ""), "status": j["status"]} for j in jobs[:60]],
+        # NACE competencies with no graded story yet: what the behavioral prep is missing.
+        "competencies_without_a_story": [k for k, v in stories["coverage"].items() if not v["answers"]] if any(
+            v["answers"] for v in stories["coverage"].values()) else "not graded yet",
         "weak_graded_answers": [{"type": stories["labels"][c], "stars": stories["stories"][c]["grade"]["stars"],
                                  "fix": stories["stories"][c]["grade"].get("top_fix", "")}
                                 for c in stories["plan"] if (stories["stories"][c].get("grade") or {}).get("stars", 5) <= 3][:8],
@@ -243,9 +246,11 @@ def _context(coach, s):
             a = {k: v for k, v in e.items() if k in ("title", "situation", "task", "action", "result", "reflection", "answer", "quality", "missing", "status")}
             g = e.get("grade")
             if g:  # the rubric grade, so coaching starts from the weakest dimension
-                a["rubric"] = {"stars": g["stars"], "scores": {d["label"]: d["score"] for d in g["dims"]}, "biggest_fix": g.get("top_fix", "")}
+                a["rubric"] = {"stars": g["stars"], "scores": {d["label"]: d["score"] for d in g["dims"]}, "biggest_fix": g.get("top_fix", ""),
+                               "competencies": [f"{x['name']} ({x['level_name']})" for x in g.get("competencies") or []]}
             answers[comps[c]["label"]] = a
         return {"targets": s["targets"], "answers": answers, "company_preps": s["company_preps"], "upcoming": _upcoming(),
+                "competencies_without_a_story": s["competencies_without_a_story"],
                 "jobs_index": s["jobs_index"],
                 "experience": [(e.get("company"), e.get("title")) for e in profile.get("experience", [])]}
     if coach == "technical":
