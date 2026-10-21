@@ -40,6 +40,64 @@ function fill(el, ...children) {
   return el;
 }
 
+// Light markdown for AI replies: **bold**, *italics*, `code`, "- " and "1. " lists, ``` blocks and line breaks.
+// Builds elements and text nodes only (never innerHTML), so any other markup in a reply shows as plain text.
+function inlineMd(text) {
+  const out = [];
+  const re = /\*\*(.+?)\*\*|(?<![\w*])\*(?![\s*])(.+?)(?<![\s*])\*(?![\w*])|`([^`]+)`/g;
+  let last = 0, m;
+  while ((m = re.exec(text))) {
+    if (m.index > last) out.push(text.slice(last, m.index));
+    out.push(m[1] != null ? h("strong", {}, inlineMd(m[1])) : m[2] != null ? h("em", {}, inlineMd(m[2])) : h("code", {}, m[3]));
+    last = re.lastIndex;
+  }
+  if (last < text.length) out.push(text.slice(last));
+  return out;
+}
+
+function richText(text) {
+  const blocks = [];
+  let para = [], list = null, code = null;
+  const flush = () => {
+    if (para.length) blocks.push(h("p", {}, para.map((l, i) => [i ? "\n" : null, inlineMd(l)])));
+    para = [];
+  };
+  for (const raw of String(text || "").split("\n")) {
+    const line = raw.replace(/\s+$/, "");
+    if (code) {
+      if (/^\s*```/.test(line)) { blocks.push(h("pre", {}, h("code", {}, code.join("\n")))); code = null; } else code.push(raw);
+      continue;
+    }
+    if (/^\s*```/.test(line)) { flush(); list = null; code = []; continue; }
+    const item = line.match(/^\s*(?:[-*•]|(\d+)[.)])\s+(.*)$/);
+    if (item) {
+      flush();
+      const tag = item[1] ? "ol" : "ul";
+      if (!list || list.tagName.toLowerCase() !== tag) blocks.push((list = h(tag, item[1] && item[1] !== "1" ? { start: item[1] } : {})));
+      list.append(h("li", {}, inlineMd(item[2])));
+    } else if (!line.trim()) {
+      flush(); // a blank line ends a paragraph; a list carries on if the next line is another item
+    } else if (list && !para.length && /^\s{2,}\S/.test(line)) {
+      list.lastChild.append(h("br"), ...inlineMd(line.trim())); // an indented line continues the item above
+    } else if (/^\s*(-{3,}|\*{3,})$/.test(line)) {
+      flush(); list = null;
+    } else {
+      list = null;
+      const heading = line.match(/^\s*#{1,6}\s+(.*)$/);
+      para.push(heading ? `**${heading[1].replace(/\*\*/g, "")}**` : line);
+    }
+  }
+  if (code) blocks.push(h("pre", {}, h("code", {}, code.join("\n"))));
+  flush();
+  return blocks;
+}
+
+// A chat bubble: the assistant's markdown is rendered, the candidate's own text is shown as typed.
+function chatBubble(m, extraClass = "") {
+  const cls = `bubble ${m.role}${extraClass ? " " + extraClass : ""}`;
+  return m.role === "assistant" ? h("div", { class: cls + " md" }, richText(m.content)) : h("div", { class: cls }, m.content);
+}
+
 const list = (items) => h("ul", { class: "tight" }, (items || []).map((i) => h("li", {}, i)));
 const chips = (items) => h("div", { class: "chips" }, (items || []).filter(Boolean).map((i) => h("span", { class: "chip" }, i)));
 
@@ -173,7 +231,7 @@ function showTab(name) {
   document.querySelectorAll("#utility a").forEach((a) => a.classList.toggle("active", a.dataset.tab === name));
   renderSubnav(group, name);
   window.scrollTo(0, 0);
-  Promise.resolve(loaders[name] && loaders[name]()).catch((e) => console.error(e));
+  Promise.resolve(loaders[name] && loaders[name]()).catch((e) => console.error(e)).then(revealSection);
   refreshOverview();
 }
 window.addEventListener("hashchange", () => showTab(location.hash.slice(1)));
@@ -327,7 +385,7 @@ let interview = { messages: [], section: "goals", progress: 0, complete: false }
 
 function messageBubble(m) {
   if (m.kind === "upload") return h("div", { class: "bubble user upload" }, `📎 Uploaded ${interview.resume_name || "my CV"}`);
-  const bubble = h("div", { class: `bubble ${m.role}` }, m.content);
+  const bubble = chatBubble(m);
   return [(m.lookups || []).length ? h("div", { class: "lookups" }, "🔎 Looked up: " + m.lookups.join(" · ")) : null,
           bubble, rememberedChips(m.remembered)].filter(Boolean);
 }
@@ -368,7 +426,7 @@ speakToggle.addEventListener("change", () => {
 function speak(text) {
   if (!speakToggle.checked || !window.speechSynthesis) return;
   speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
+  const u = new SpeechSynthesisUtterance(String(text || "").replace(/[*`#]/g, "").replace(/^\s*[-•]\s+/gm, ""));
   u.lang = /[一-鿿]/.test(text) ? "zh-CN" : "en-US";
   speechSynthesis.speak(u);
 }
@@ -667,7 +725,7 @@ function storyCard(comp) {
 
 function renderStories(pendingText) {
   const chat = $("#story-chat");
-  chat.replaceChildren(...stories.messages.map((m) => h("div", { class: `bubble ${m.role}` }, m.content)));
+  chat.replaceChildren(...stories.messages.map((m) => chatBubble(m)));
   if (pendingText) {
     chat.append(h("div", { class: "bubble user" }, pendingText),
       h("div", { class: "bubble assistant typing" }, pendingText.startsWith("📄") ? "Reading your document and filing each answer… (up to a minute)" : "Thinking…"));
@@ -1923,10 +1981,32 @@ let coach = "lead";
 let coachChat = { messages: [] };
 let today = null;
 
+// Cards an "open" button can scroll to (the server's mentors.SECTIONS lists the same names).
+const SECTIONS = { alerts: "alert-settings", outreach: "outreach-card", add_job: "add-job-card", data_sources: "db-sources",
+  company_prep: "prep-card", my_behavioral: "my-beh", my_technical: "my-tech" };
+
+let pendingSection = null;
+
+function openPage(tab, section) {
+  pendingSection = SECTIONS[section] || null;
+  if (location.hash.slice(1) !== tab) location.hash = "#" + tab; // showTab reveals the card once the page has loaded
+  else revealSection();
+}
+
+function revealSection() {
+  const el = pendingSection && document.getElementById(pendingSection);
+  pendingSection = null;
+  if (!el || !el.closest(".view.active")) return;
+  if (el.tagName === "DETAILS") el.open = true;
+  el.scrollIntoView({ behavior: "smooth", block: "start" });
+  el.classList.add("flash");
+  setTimeout(() => el.classList.remove("flash"), 1600);
+}
+
 async function runAction(a, button) {
   const msg = $("#coach-msg");
   try {
-    if (a.type === "open") location.hash = "#" + a.tab;
+    if (a.type === "open") openPage(a.tab, a.section);
     else if (a.type === "job") { openJobs.add(a.job_id); location.hash = "#jobs"; }
     else if (a.type === "coach") { location.hash = "#mentors"; await switchCoach(a.coach); if (a.message) await sendCoach(a.message); }
     else if (a.type === "company_prep") {
@@ -2019,7 +2099,7 @@ function renderCoachChat(pending) {
     })));
   }
   for (const m of coachChat.messages) {
-    items.push(h("div", { class: `bubble ${m.role}` }, m.content));
+    items.push(chatBubble(m));
     if (m.role === "assistant") items.push(actionButtons(m.actions), rememberedChips(m.remembered));
   }
   if (pending) items.push(h("div", { class: "bubble user" }, pending), h("div", { class: "bubble assistant typing" }, `${info.name} is thinking…`));

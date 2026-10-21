@@ -12,7 +12,10 @@ COACHES = {
     "technical": {"name": "Technical coach", "system": "TECHNICAL_COACH_SYSTEM"},
     "resume": {"name": "Resume coach", "system": "RESUME_COACH_SYSTEM"},
 }
-TABS = {"interview", "stories", "skills", "profile", "find", "jobs", "tracker", "network", "calendar", "guide", "settings"}
+TABS = {"mentors", "interview", "stories", "skills", "profile", "find", "jobs", "tracker", "network", "calendar", "guide", "settings"}
+# Cards an "open" button can scroll to, and the page each one is on (ids in static/app.js SECTIONS).
+SECTIONS = {"alerts": "settings", "outreach": "jobs", "add_job": "jobs", "data_sources": "find",
+            "company_prep": "skills", "my_behavioral": "stories", "my_technical": "skills"}
 DEFAULT_GOAL = 10  # firms contacted per day, from the boutique internship guide
 HISTORY_TURNS = 30
 
@@ -113,8 +116,10 @@ def _clean_actions(actions):
         if not isinstance(a, dict) or not a.get("label"):
             continue
         t = a.get("type")
-        if t == "open" and a.get("tab") in TABS:
-            out.append({"type": t, "tab": a["tab"], "label": a["label"]})
+        if t == "open" and (a.get("tab") in TABS or a.get("section") in SECTIONS):
+            section = a.get("section") if a.get("section") in SECTIONS else None
+            tab = SECTIONS[section] if section else a["tab"]  # the section decides the page, so the two can't disagree
+            out.append({"type": t, "tab": tab, "label": a["label"], **({"section": section} if section else {})})
         elif t == "coach" and a.get("coach") in COACHES:
             out.append({"type": t, "coach": a["coach"], "label": a["label"], "message": str(a.get("message") or "")})
         elif t == "job" and a.get("job_id"):
