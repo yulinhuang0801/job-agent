@@ -4,7 +4,7 @@ import json
 import uuid
 from pathlib import Path
 
-from . import llm, memory, prompts, qlibrary, store
+from . import coderun, grading, llm, memory, prompts, qlibrary, store
 
 BANK = json.loads((Path(__file__).resolve().parent / "question_bank.json").read_text(encoding="utf-8"))
 BEHAVIORAL = BANK["behavioral"]
@@ -127,6 +127,7 @@ def _current(state):
 
 def public_stories(state):
     current = _current(state)
+    all_comps = comps()
     return {
         "plan": state["plan"],
         "current": current,
@@ -134,7 +135,8 @@ def public_stories(state):
         "done": current is None and bool(state["messages"]),
         "messages": [{**m, "content": f"📄 Pasted my prep document ({len(m['content']):,} characters)"}
                      if m.get("kind") == "import" else m for m in state["messages"]],
-        "stories": state["stories"],
+        "stories": {c: {**e, "grade_stale": bool(e.get("grade")) and e["grade"].get("hash") != grading.text_hash({**e, "kind": all_comps[c]["kind"]})}
+                    for c, e in state["stories"].items() if c in all_comps},
         "sources": [{"name": s["name"], "chars": len(s["text"])} for s in state["sources"]],
         "labels": {c: comps()[c]["label"] for c in comps()},
         "kinds": {c: comps()[c]["kind"] for c in comps()},
@@ -327,6 +329,32 @@ def story_turn(text):
     return public_stories(state)
 
 
+def grade_stories(ids=None):
+    """Grade answers against the rubric: the given ids, or every answer with content that has no
+    grade yet or changed since it was graded."""
+    state = load_stories()
+    cs = comps()
+    items = []
+    for c, e in state["stories"].items():
+        if c not in cs:
+            continue
+        item = {**e, "id": c, "kind": cs[c]["kind"], "look_for": cs[c]["look_for"]}
+        if not grading.answer_text(item).strip():
+            continue
+        fresh = e.get("grade") and e["grade"].get("hash") == grading.text_hash(item) and e["grade"].get("version") == grading.RUBRIC_VERSION
+        if (ids and c in ids) or (not ids and not fresh):
+            items.append(item)
+    if not items:
+        return public_stories(state)
+    grades = grading.grade(items)
+    for c, g in grades.items():
+        state["stories"][c]["grade"] = g
+        state["stories"][c]["quality"] = g["stars"]
+    store.save("stories", state)
+    memory.log("story", "Graded " + ", ".join(f"{cs[c]['label']} ({g['stars']}/5)" for c, g in grades.items()))
+    return public_stories(state)
+
+
 def add_story(comp):
     state = load_stories()
     if comp not in comps() or comp in state["plan"]:
@@ -476,6 +504,8 @@ def start_skills(count=5, areas=None):
         raise llm.LLMError("Couldn't pick questions. Please try again.")
     if errors:
         reason += f" (Skipped: {errors[0]})"
+    if any(_coding_slug(q) for q in unique):
+        coderun.ensure()  # fetch the LeetCode test cases in the background while they answer
     state = {**_empty_skills(), "status": "answering", "reason": reason.strip(), "questions": unique[:count]}
     store.save("skills", state)
     return public_skills(state)
@@ -490,19 +520,70 @@ def save_answers(answers):
     return state
 
 
-def grade_skills(answers):
-    state = save_answers(answers)
+def _coding_slug(q):
+    return coderun.slug_for(q) if q.get("type") == "practical" else ""
+
+
+def run_tests(qid, code):
+    """The Run tests button: run one coding answer against the dataset's test cases."""
+    state = load_skills()
+    q = next((q for q in state["questions"] if q["id"] == qid), None)
+    slug = _coding_slug(q or {})
+    if not slug:
+        return {"ran": False, "reason": "This question has no test cases; it's graded by reading your answer."}
+    return coderun.run(slug, code)
+
+
+def _apply_test_caps(score, res):
+    """Tests set a floor and a ceiling; the grader decides within them."""
+    if not res or not res.get("ran"):
+        return score, ""
+    if res.get("fatal") and not res.get("passed"):
+        return min(score, 1), "Capped at 1: the code didn't run."
+    if res.get("total") and res["passed"] == 0:
+        return min(score, 1), "Capped at 1: no test case passed."
+    if res.get("total", 0) >= 10 and res["passed"] == res["total"]:
+        return max(score, 2), ""
+    return score, ""
+
+
+def score_items(questions, answers, tests):
+    """Grade answers against their rubrics (temperature 0), then apply the test-result caps.
+    No storage, so the calibration set can call it too."""
     items = [{"id": q["id"], "area": q["area"], "question": q["question"], "rubric": q["rubric"],
-              "answer": state["answers"].get(q["id"], "").strip() or "(no answer)"} for q in state["questions"]]
+              "answer": str(answers.get(q["id"], "")).strip() or "(no answer)",
+              **({"test_results": coderun.summary_for_grader(tests[q["id"]])} if q["id"] in tests else {})}
+             for q in questions]
     out = llm.chat_json([
         {"role": "system", "content": prompts.SKILLS_GRADE_SYSTEM},
         {"role": "user", "content": json.dumps(items, ensure_ascii=False)},
-    ], max_tokens=12000, temperature=0.2, timeout=180)
+    ], max_tokens=12000, temperature=0, timeout=180)
     grades = {g.get("id"): g for g in out.get("grades") or []}
+    rows = []
+    for q in questions:
+        g = grades.get(q["id"]) or {}
+        try:
+            score = max(0, min(4, int(g.get("score") or 0)))
+        except (TypeError, ValueError):
+            score = 0
+        score, cap_note = _apply_test_caps(score, tests.get(q["id"]))
+        res = tests.get(q["id"])
+        rows.append({"id": q["id"], "score": score, "feedback": (g.get("feedback", "") + (" " + cap_note if cap_note else "")).strip(),
+                     "model_answer": g.get("model_answer", ""), **({"tests": res} if res else {})})
+    return rows, out
+
+
+def grade_skills(answers):
+    state = save_answers(answers)
+    tests = {}
+    coding = {q["id"]: _coding_slug(q) for q in state["questions"] if _coding_slug(q)}
+    if coding:
+        coderun.ensure(wait=True, timeout=150)
+        for qid, slug in coding.items():
+            tests[qid] = coderun.run(slug, state["answers"].get(qid, ""))
+    rows, out = score_items(state["questions"], state["answers"], tests)
     results = {
-        "grades": [{"id": q["id"], "score": max(0, min(4, int((grades.get(q["id"]) or {}).get("score") or 0))),
-                    "feedback": (grades.get(q["id"]) or {}).get("feedback", ""),
-                    "model_answer": (grades.get(q["id"]) or {}).get("model_answer", "")} for q in state["questions"]],
+        "grades": rows,
         "skills": out.get("skills") or [],
         "summary": out.get("summary") or "",
     }
@@ -528,3 +609,35 @@ def skills_for_profile():
     per_q = [f"{q['area']} (level {q['level']}): {g['score']}/4: {q['question'][:90]}"
              for q, g in zip(state["questions"], r["grades"])]
     return {"score": f"{r['total']}/{r['max']}", "areas": r["skills"], "questions": per_q, "summary": r["summary"]}
+
+
+def grade_feedback(kind, item_id, verdict, comment=""):
+    """Save a "was this grade fair?" verdict with everything needed to learn from it later."""
+    if verdict not in ("fair", "too_harsh", "too_generous"):
+        raise llm.LLMError("Unknown verdict.")
+    if kind == "story":
+        state = load_stories()
+        e = state["stories"].get(item_id)
+        if not e or not e.get("grade"):
+            raise llm.LLMError("Grade this answer first.")
+        info = comps().get(item_id, {})
+        grading.record_feedback({"kind": "story", "id": item_id, "verdict": verdict, "comment": comment[:1000],
+                                 "question": e.get("question"), "answer_kind": info.get("kind"),
+                                 "answer": grading.answer_text({**e, "kind": info.get("kind")}), "grade": e["grade"]})
+        e["grade"]["verdict"] = verdict
+        store.save("stories", state)
+        return public_stories(state)
+    state = load_skills()
+    if state["status"] != "graded":
+        raise llm.LLMError("Grade the skills check first.")
+    idx = next((i for i, q in enumerate(state["questions"]) if q["id"] == item_id), None)
+    if idx is None:
+        raise llm.LLMError("Unknown question.")
+    q, g = state["questions"][idx], state["results"]["grades"][idx]
+    grading.record_feedback({"kind": "skill", "id": item_id, "verdict": verdict, "comment": comment[:1000],
+                             "question": q["question"], "rubric": q.get("rubric"), "area": q.get("area"),
+                             "answer": state["answers"].get(item_id, ""), "score": g["score"], "feedback": g.get("feedback"),
+                             "tests": {k: v for k, v in (g.get("tests") or {}).items() if k in ("passed", "total", "fatal")}})
+    g["verdict"] = verdict
+    store.save("skills", state)
+    return public_skills(state)

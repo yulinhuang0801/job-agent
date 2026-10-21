@@ -407,7 +407,17 @@
         <div id="mb-list"></div>
       </details>
 
-      <h2 class="section-title">Your answers</h2>
+      <div class="row section-row">
+        <h2 class="section-title">Your answers</h2>
+        <span class="spacer"></span>
+        <span id="grade-msg" class="msg"></span>
+        <button id="grade-all" class="secondary small" type="button">Grade all</button>
+      </div>
+      <details class="small rubric-help">
+        <summary>How answers are graded</summary>
+        <p>Every answer is scored 1–4 on fixed dimensions, using written descriptions of each level and two worked examples, so the same answer gets the same grade. Stories: situation and stakes, your own actions (counts double), result (counts double), reflection, and whether it answers the question. Short answers: answers the question, specific evidence (counts double), structure, and how personal and tailored it is.</p>
+        <p>The grader has to quote your exact words for each score; the app checks every quote, and a 3 or 4 without a real quote is lowered to 2. It's still an AI judgment: if a grade looks wrong, press <b>Too harsh</b> or <b>Too generous</b>. Those votes are saved to improve the grader.</p>
+      </details>
       <div id="story-cards"></div>
     </section>
 

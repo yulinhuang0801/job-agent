@@ -43,6 +43,15 @@ Old links like `#tracker` or `#mentors` still work.
      - **[Open Interview](https://github.com/open-interview/open-interview)** concept questions (system design, backend, databases, ML, generative AI, networking, security… 27 channels) with community-written reference answers the grader compares against. Easy and medium only, since its "advanced" ones are senior-level.
      - The AI picker can add one or two of these on its own for software, data and quant targets.
    - **Prepare for a specific company**: researches the company's interview process and values, then adds tailored behavioral questions to Stories and technical questions to the Skills check. Uses the behavioral questions the Tech Interview Handbook lists for that company (Airbnb, Amazon, ByteDance, Palantir, Stripe and others) and Open Interview questions tagged with it.
+   - **How grading works**:
+     - **Stories** are scored 1–4 on fixed rubric dimensions, with written descriptions of each level and two worked examples, at temperature 0. STAR stories are scored on situation and stakes, your own actions (×2), result (×2), reflection, and whether the story answers the question. Short answers are scored on answering the question, specific evidence (×2), structure, and how personal they are.
+     - The grader must quote your exact words for each score. The app checks every quote, and a 3 or 4 without a real quote drops to 2.
+     - Each graded story shows the biggest single improvement. Finished answers are graded automatically; **Grade all** grades the rest.
+     - **Python coding answers** run against real test cases from [LeetCodeDataset](https://huggingface.co/datasets/newfacade/LeetCodeDataset) (Apache-2.0, about 2,870 problems, downloaded once). They run in a separate process with time, CPU, memory and file limits. **▶ Run tests** works while you answer.
+     - Test results set a floor and a ceiling: code that doesn't run, or passes nothing, scores at most 1; passing every test (when there are 10 or more) scores at least 2. The grader checks failed cases itself, because some dataset tests expect one specific answer when several are valid. "Any order" answers count as passes when the problem allows it.
+     - Other languages are graded by reading the code.
+     - **Was this fair?** buttons save your verdict, the answer and the grade to `data/grade_feedback.jsonl`. No public dataset of scored behavioral answers exists, so these votes are how a better grader gets built later.
+     - **Calibration set** (`tests/calibration/`): 16 behavioral answers and 8 technical answers with expected score ranges. Run `.venv/bin/python tests/calibration/run_calibration.py --repeat 2` after changing a grading prompt or model. It fails if fewer than 85% of scores land in range, and it reports how often a second run disagrees. With DeepSeek Flash: 100% in range; 2 of 16 behavioral and 1 of 8 technical answers scored a little differently on a second run. The expected scores were written by the same person as the rubric, so this catches regressions; it doesn't prove the grades match real interviewers.
    - **My questions**: add your own behavioral and technical questions (stored in `data/custom_questions.json`).
 4. **Build my profile**: turns the CV, interview, stories, skills check and anything looked up into `data/profile.json`, plus an honest evaluation (strengths, gaps, roles to target). Download a general CV from the Profile tab.
 5. **Find → Database** (default): a local SQLite database (`data/jobs_db.sqlite`) built from public sources, with Handshake-style filters:
@@ -79,6 +88,9 @@ Old links like `#tracker` or `#mentors` still work.
 | `app/crawlers.py` | Importers: SEC Form ADV, SEC Form D, company job boards, SimplifyJobs (background, with progress) |
 | `app/taxonomy.py` | Handshake-style categories and the rules that assign them |
 | `app/alerts.py` | Job-alert emails (IMAP read-only, or pasted/uploaded) → postings |
+| `app/grading.py` | Rubric grading for stories and short answers, quote checks, "was this fair?" log |
+| `app/coderun.py` | Runs Python answers against LeetCodeDataset test cases with time and resource limits |
+| `tests/calibration/` | Fixed answers with expected grades; `run_calibration.py` is the grading regression test |
 | `app/qlibrary.py` | Outside questions: Tech Interview Handbook, LeetCode (alfa-leetcode-api), Open Interview |
 | `app/sourcing.py` | Find tab: category searches, SimplifyJobs lists, Hacker News, your sites, AI screening, list/CSV import |
 | `app/research.py` | Reads a firm's website, finds the contact and their email (incl. email patterns, Hunter.io) |
@@ -105,7 +117,8 @@ Old links like `#tracker` or `#mentors` still work.
 ## Not built yet
 
 - Creating drafts directly in Gmail or Outlook through their APIs (needs a Google Cloud / Microsoft app registration and OAuth). For now the app opens a pre-filled draft via a compose link. The same OAuth would let Outlook.com users connect their inbox for job alerts (Microsoft turned off app passwords for it).
-- Running code against LeetCode's test cases (today the AI traces the examples instead).
+- A real sandbox for running code when hosted for many users (a container or Judge0). Today's limits suit one person running their own code on their own computer.
+- Checking the grader against human ratings (for example, career-center staff scoring the calibration answers).
 - Chrome extension that fills application forms (the user clicks Submit)
 - Accounts and a real database for hosting many users
 - Crawling JavaScript-heavy sites at scale (Crawl4AI or Firecrawl would replace `app/research.py`'s fetcher; Jina Reader is used as a fallback today)

@@ -578,6 +578,72 @@ const STAR_LABELS = { situation: "Situation", task: "Task", action: "What you di
 const STATUS_TEXT = { done: "✓ ready", active: "in progress", pending: "to do", skipped: "skipped" };
 let stories = null;
 
+function fairButtons(kind, id, current, after) {
+  const box = h("div", { class: "fair row" }, h("span", { class: "muted small" }, "Was this grade fair?"));
+  for (const [v, label] of [["fair", "Fair"], ["too_harsh", "Too harsh"], ["too_generous", "Too generous"]]) {
+    const b = h("button", { class: `ghost small${current === v ? " on" : ""}`, type: "button" }, label);
+    b.addEventListener("click", async () => {
+      const comment = v === "fair" ? "" : (prompt("What did the grader miss? (optional)") || "");
+      try { after(await api("/api/feedback/grade", { method: "POST", body: { kind, id, verdict: v, comment } })); }
+      catch (err) { alert(err.message); }
+    });
+    box.append(b);
+  }
+  if (current) box.append(h("span", { class: "muted small" }, "Thanks, saved."));
+  return box;
+}
+
+function dots(n, max = 4) {
+  return h("span", { class: `dots s${n}`, title: `${n} of ${max}` }, "●".repeat(n) + "○".repeat(max - n));
+}
+
+function gradeBlock(comp, s) {
+  const g = s.grade;
+  const regrade = h("button", { class: "ghost small", type: "button" }, g ? "Regrade" : "Grade this answer");
+  regrade.addEventListener("click", () => busy(regrade, "Grading…", async () => {
+    try { stories = await api("/api/stories/grade", { method: "POST", body: { ids: [comp] } }); renderStories(); }
+    catch (err) { setMsg($("#grade-msg"), err.message, "err"); }
+  }));
+  if (!g) return h("div", { class: "row" }, regrade);
+  return h("div", { class: "rubric" },
+    h("div", { class: "row" }, h("b", {}, "Rubric grade"), h("span", { class: "quality" }, "★".repeat(g.stars) + "☆".repeat(5 - g.stars)),
+      h("span", { class: "muted small" }, `${g.total}/${g.max} points`),
+      s.grade_stale ? h("span", { class: "badge warn" }, "answer changed since grading") : null, h("span", { class: "spacer" }), regrade),
+    h("div", { class: "rubric-rows" }, g.dims.map((d) => h("div", { class: "rubric-row" },
+      h("div", { class: "rubric-label" }, d.label), dots(d.score),
+      h("div", { class: "rubric-why" }, d.why, d.quote ? h("div", { class: "quote" }, `“${d.quote}”`) : null)))),
+    g.top_fix ? h("p", { class: "top-fix" }, h("b", {}, "Biggest improvement: "), g.top_fix) : null,
+    fairButtons("story", comp, g.verdict, (data) => { stories = data; renderStories(); }));
+}
+
+let autoGrading = false;
+async function autoGradeStories() {
+  // Grade answers that are finished but ungraded (or changed), a few at a time, in the background.
+  if (autoGrading || !stories) return;
+  const ids = stories.plan.filter((c) => {
+    const s = stories.stories[c];
+    return s && s.status === "done" && (!s.grade || s.grade_stale);
+  }).slice(0, 6);
+  if (!ids.length) return;
+  autoGrading = true;
+  setMsg($("#grade-msg"), `Grading ${ids.length} answer${ids.length === 1 ? "" : "s"}…`);
+  try {
+    stories = await api("/api/stories/grade", { method: "POST", body: { ids } });
+    renderStories();
+    setMsg($("#grade-msg"), "");
+  } catch (err) { setMsg($("#grade-msg"), err.message, "err"); }
+  finally { autoGrading = false; }
+}
+
+$("#grade-all").addEventListener("click", (e) => busy(e.target, "Grading…", async () => {
+  try {
+    setMsg($("#grade-msg"), "Grading every answer that's new or changed (about 10 seconds per 6)…");
+    stories = await api("/api/stories/grade", { method: "POST", body: { ids: [] } });
+    renderStories();
+    setMsg($("#grade-msg"), "Done.", "ok");
+  } catch (err) { setMsg($("#grade-msg"), err.message, "err"); }
+}));
+
 function storyCard(comp) {
   const s = stories.stories[comp];
   const kind = stories.kinds[comp];
@@ -590,8 +656,9 @@ function storyCard(comp) {
     h("div", { class: "job-top" },
       h("div", {}, h("div", { class: "qmeta" }, `${stories.labels[comp]} · ${STATUS_TEXT[s.status] || s.status}`),
         h("b", {}, s.title || s.question)),
-      stars ? h("span", { class: "quality", title: "The coach\u2019s estimate of how convincing this would be in an interview (an AI judgment, not a test)" }, stars) : null),
+      stars ? h("span", { class: "quality", title: s.grade ? "Rubric grade (see the breakdown below)" : "The coach\u2019s quick estimate; press Grade this answer for a rubric grade" }, stars) : null),
     body,
+    s.answer || s.action || s.result || s.situation ? gradeBlock(comp, s) : null,
     (s.missing || []).length && s.status !== "done" ? h("p", { class: "small missing-note" }, "Still needed: " + s.missing.join(", ")) : null,
     s.notes ? h("p", { class: "muted small" }, s.notes) : null);
 }
@@ -643,6 +710,7 @@ async function sendStory(text) {
   try {
     stories = await api("/api/stories/message", { method: "POST", body: { text } });
     renderStories();
+    autoGradeStories();
     const last = stories.messages[stories.messages.length - 1];
     if (last && text.length < 2500) speak(last.content);
     return true;
@@ -682,6 +750,7 @@ $("#story-file").addEventListener("change", async (e) => {
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(typeof data.detail === "string" ? data.detail : `Import failed (${res.status})`);
     stories = data;
+    autoGradeStories();
     renderStories();
   } catch (err) {
     renderStories();
@@ -747,6 +816,15 @@ function codeBox(q, answer) {
       ? "VS Code editor: brackets and quotes close themselves, Tab indents."
       : "Basic editor (the VS Code editor couldn't load): brackets close themselves, Tab indents.";
   });
+  const leet = /^lc_/.test(q.id) || /leetcode\.com\/problems\//.test(q.link || "");
+  const testOut = h("div", { class: "test-out" });
+  const runBtn = leet ? h("button", { class: "secondary small", type: "button", title: "Run your Python code against LeetCode test cases" }, "▶ Run tests") : null;
+  if (runBtn) runBtn.addEventListener("click", () => busy(runBtn, "Running…", async () => {
+    const ed = editors[q.id];
+    if (lang.value !== "python") { fill(testOut, h("p", { class: "muted small" }, "Tests run only for Python. Switch the language to Python, or submit and the grader reads your code.")); return; }
+    try { fill(testOut, renderTests(await api("/api/skills/run", { method: "POST", body: { id: q.id, code: ed ? ed.getValue() : "" } }))); }
+    catch (err) { fill(testOut, h("p", { class: "msg err" }, err.message)); }
+  }));
   lang.addEventListener("change", () => {
     const ed = editors[q.id];
     if (!ed) return;
@@ -756,7 +834,21 @@ function codeBox(q, answer) {
     const untouched = !ed.getValue().trim() || Object.values(starters).some((c) => c.trim() === ed.getValue().trim());
     if (untouched && starters[lang.value]) ed.setValue(starters[lang.value]);
   });
-  return [h("div", { class: "row editor-bar" }, lang, status), box];
+  return [h("div", { class: "row editor-bar" }, lang, status, runBtn ? [h("span", { class: "spacer" }), runBtn] : null), box, testOut];
+}
+
+function renderTests(res) {
+  if (!res) return null;
+  if (!res.ran) return h("p", { class: "muted small" }, res.reason || "Tests didn't run.");
+  if (res.fatal && !res.total) return h("div", { class: "tests bad" }, h("b", {}, "Your code didn't run: "), res.fatal);
+  const all = res.passed === res.total;
+  return h("div", { class: `tests ${all ? "good" : "bad"}` },
+    h("b", {}, `${all ? "✓ " : ""}Passed ${res.passed} of ${res.total} test cases`),
+    res.reordered ? h("span", { class: "muted small" }, ` (${res.reordered} in a different order, which this problem allows)`) : null,
+    res.fatal ? h("div", { class: "small" }, res.fatal) : null,
+    res.total < 10 ? h("div", { class: "muted small" }, "This problem has only a few test cases in the dataset, so passing proves little; the grader also reads your code.") : null,
+    (res.failures || []).map((f) => h("pre", { class: "fail" }, `${f.case}${f.got != null ? `\n  got:      ${f.got}\n  expected: ${f.expected}` : ""}${f.error ? `\n  ${f.error}` : ""}`)),
+    h("div", { class: "muted small" }, "Test cases come from the public LeetCodeDataset. A few expect one specific answer when several are valid; the grader checks failed cases before taking points off."));
 }
 
 function renderSkills() {
@@ -793,8 +885,9 @@ function renderSkills() {
         h("a", { href: q.link, target: "_blank", rel: "noopener" }, q.source === "LeetCode" ? "open on LeetCode ↗" : "open-interview.github.io ↗"),
         q.guide ? [" · ", h("a", { href: q.guide, target: "_blank", rel: "noopener" }, "topic guide (Tech Interview Handbook) ↗")] : null) : null,
       input,
-      g ? [h("p", {}, g.feedback), g.model_answer ? h("details", {}, h("summary", {}, "A strong answer"),
-        h("pre", { class: coding ? "code-answer" : "" }, g.model_answer)) : null] : null);
+      g ? [g.tests ? renderTests(g.tests) : null, h("p", {}, g.feedback), g.model_answer ? h("details", {}, h("summary", {}, "A strong answer"),
+        h("pre", { class: coding ? "code-answer" : "" }, g.model_answer)) : null,
+        fairButtons("skill", q.id, g.verdict, (data) => { skills = data; renderSkills(); })] : null);
   }));
 
   const r = skills.results;

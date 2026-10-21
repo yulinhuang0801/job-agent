@@ -16,7 +16,7 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import alerts, assess, crawlers, db, llm, memory, mentors, outreach, pdf, prep, profile_merge, prompts, qlibrary, research, resume_text, services, sourcing, store
+from . import alerts, assess, coderun, crawlers, db, llm, memory, mentors, outreach, pdf, prep, profile_merge, prompts, qlibrary, research, resume_text, services, sourcing, store
 from .jobs_fetch import FetchError, fetch_job
 
 STATIC = Path(__file__).resolve().parent.parent / "static"
@@ -356,6 +356,42 @@ def get_skills():
 class SkillsStart(BaseModel):
     count: int = 5
     areas: list = []
+
+
+class RunIn(BaseModel):
+    id: str
+    code: str
+
+
+@app.post("/api/skills/run")
+def run_skill_tests(body: RunIn):
+    return assess.run_tests(body.id, body.code)
+
+
+@app.get("/api/skills/tests-status")
+def tests_status():
+    return coderun.status()
+
+
+class GradeIdsIn(BaseModel):
+    ids: list = []
+
+
+@app.post("/api/stories/grade")
+def grade_stories(body: Optional[GradeIdsIn] = None):
+    return assess.grade_stories([str(i) for i in (body.ids if body else [])])
+
+
+class FairIn(BaseModel):
+    kind: str  # "story" or "skill"
+    id: str
+    verdict: str  # fair, too_harsh, too_generous
+    comment: str = ""
+
+
+@app.post("/api/feedback/grade")
+def grade_feedback(body: FairIn):
+    return assess.grade_feedback(body.kind, body.id, body.verdict, body.comment)
 
 
 @app.get("/api/skills/areas")

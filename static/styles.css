@@ -302,3 +302,25 @@ details.alert-paste summary { cursor: pointer; color: var(--accent); }
 .paste-box img { max-height: 40px; }
 #tracker { min-width: 980px; }
 #tracker select { min-width: 120px; }
+
+/* Rubric grades */
+.section-row { align-items: center; margin-top: 18px; }
+.section-row .section-title { margin: 0; }
+.rubric-help { margin: 6px 0 12px; }
+.rubric-help summary { cursor: pointer; color: var(--accent); }
+.rubric { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--border); }
+.rubric-rows { display: grid; gap: 6px; margin: 8px 0; }
+.rubric-row { display: grid; grid-template-columns: 150px 52px 1fr; gap: 8px; align-items: start; font-size: 13px; }
+.rubric-label { font-weight: 600; }
+.dots { letter-spacing: 1px; font-size: 12px; }
+.dots.s1 { color: var(--bad); } .dots.s2 { color: var(--warn); } .dots.s3, .dots.s4 { color: var(--ok); }
+.quote { font-style: italic; color: var(--muted); margin-top: 2px; }
+.top-fix { font-size: 13px; background: var(--accent-soft); padding: 6px 10px; border-radius: 8px; }
+.fair { gap: 6px; align-items: center; margin-top: 6px; }
+.fair button.on { background: var(--accent-soft); color: var(--accent); }
+.tests { margin: 8px 0; padding: 8px 10px; border-radius: 8px; font-size: 13px; }
+.tests.good { background: color-mix(in srgb, var(--ok) 12%, transparent); }
+.tests.bad { background: color-mix(in srgb, var(--warn) 12%, transparent); }
+.tests pre.fail { margin: 6px 0; font-size: 12px; white-space: pre-wrap; font-family: ui-monospace, Menlo, monospace; }
+@media (max-width: 640px) { .rubric-row { grid-template-columns: 1fr auto; } .rubric-why { grid-column: 1 / -1; } }
+.row .spacer { flex: 1; }

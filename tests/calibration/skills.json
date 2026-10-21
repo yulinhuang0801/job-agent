@@ -1,0 +1,47 @@
+{
+  "_about": "Technical answers with the 0-4 score a careful reviewer would give, as [min, max]. Coding items with a slug also run against the LeetCode test cases.",
+  "items": [
+    {"id": "k_tuple_good", "area": "Python", "question": "What is the difference between a list and a tuple in Python, and when would you use each?",
+     "rubric": "Lists are mutable, tuples immutable; tuples are hashable (if their items are) so they can be dict keys or set members; tuples suit fixed records, lists suit collections that change; small performance/memory advantage for tuples.",
+     "answer": "A list can be changed after it's created (append, remove, assign by index); a tuple can't. Because tuples are immutable they're hashable when everything inside is hashable, so you can use them as dictionary keys or put them in a set, which you can't do with lists. I use a tuple for a fixed record, like (lat, lon) or returning two values from a function, and a list for a collection I'll add to or sort. Tuples are also a bit smaller and faster to create.",
+     "expect": [3, 4]},
+
+    {"id": "k_tuple_wrong", "area": "Python", "question": "What is the difference between a list and a tuple in Python, and when would you use each?",
+     "rubric": "Lists are mutable, tuples immutable; tuples are hashable (if their items are) so they can be dict keys or set members; tuples suit fixed records, lists suit collections that change; small performance/memory advantage for tuples.",
+     "answer": "Tuples are like lists but you can change them more easily, and lists can't be used in loops. I would always use tuples because they are newer.",
+     "expect": [0, 0]},
+
+    {"id": "k_depr_good", "area": "Accounting", "question": "Walk me through how a $10 increase in depreciation flows through the three financial statements (assume a 25% tax rate).",
+     "rubric": "IS: operating income down $10, net income down $7.50. CFS: start with -$7.50, add back $10 depreciation, cash up $2.50. BS: cash +$2.50, PP&E -$10, assets -$7.50; retained earnings -$7.50, so both sides balance.",
+     "answer": "On the income statement, pre-tax income falls by $10; at 25% tax, net income falls by $7.50. On the cash flow statement, net income is down $7.50 but you add back the $10 of depreciation because it's non-cash, so cash from operations is up $2.50. On the balance sheet, cash is up $2.50 and PP&E is down $10, so assets fall $7.50; on the other side retained earnings fall $7.50 with the lower net income, so it balances.",
+     "expect": [4, 4]},
+
+    {"id": "k_depr_partial", "area": "Accounting", "question": "Walk me through how a $10 increase in depreciation flows through the three financial statements (assume a 25% tax rate).",
+     "rubric": "IS: operating income down $10, net income down $7.50. CFS: start with -$7.50, add back $10 depreciation, cash up $2.50. BS: cash +$2.50, PP&E -$10, assets -$7.50; retained earnings -$7.50, so both sides balance.",
+     "answer": "Net income goes down by $10 because depreciation is an expense. Then on the cash flow statement you add it back, so cash doesn't change.",
+     "expect": [1, 1]},
+
+    {"id": "k_twosum_optimal", "area": "LeetCode · Array", "slug": "two-sum", "type": "practical",
+     "question": "Two Sum (Easy): given an array of integers nums and an integer target, return indices of the two numbers that add up to target. Exactly one solution exists; you may not use the same element twice; return the answer in any order.",
+     "rubric": "Correct one-pass or two-pass hash map, O(n) time and O(n) space; handles duplicates like [3,3].",
+     "answer": "class Solution:\n    def twoSum(self, nums, target):\n        seen = {}  # value -> index\n        for i, x in enumerate(nums):\n            if target - x in seen:\n                return [seen[target - x], i]\n            seen[x] = i\n        # O(n) time, O(n) space: one pass with a hash map\n",
+     "expect": [4, 4]},
+
+    {"id": "k_twosum_brute", "area": "LeetCode · Array", "slug": "two-sum", "type": "practical",
+     "question": "Two Sum (Easy): given an array of integers nums and an integer target, return indices of the two numbers that add up to target. Exactly one solution exists; you may not use the same element twice; return the answer in any order.",
+     "rubric": "Correct one-pass or two-pass hash map, O(n) time and O(n) space; handles duplicates like [3,3].",
+     "answer": "class Solution:\n    def twoSum(self, nums, target):\n        for i in range(len(nums)):\n            for j in range(i + 1, len(nums)):\n                if nums[i] + nums[j] == target:\n                    return [i, j]\n",
+     "expect": [2, 3]},
+
+    {"id": "k_twosum_wrong", "area": "LeetCode · Array", "slug": "two-sum", "type": "practical",
+     "question": "Two Sum (Easy): given an array of integers nums and an integer target, return indices of the two numbers that add up to target. Exactly one solution exists; you may not use the same element twice; return the answer in any order.",
+     "rubric": "Correct one-pass or two-pass hash map, O(n) time and O(n) space; handles duplicates like [3,3].",
+     "answer": "class Solution:\n    def twoSum(self, nums, target):\n        nums.sort()\n        i, j = 0, len(nums) - 1\n        while i < j:\n            s = nums[i] + nums[j]\n            if s == target:\n                return [i, j]\n            if s < target:\n                i += 1\n            else:\n                j -= 1\n",
+     "expect": [0, 1]},
+
+    {"id": "k_sql_good", "area": "SQL", "question": "What's the difference between WHERE and HAVING?",
+     "rubric": "WHERE filters rows before grouping/aggregation and can't use aggregates; HAVING filters groups after GROUP BY and can use aggregates; example.",
+     "answer": "WHERE filters individual rows before GROUP BY runs, so it can't use aggregates like COUNT. HAVING filters the groups after aggregation, so it can. For example: SELECT dept, COUNT(*) FROM employees WHERE active = 1 GROUP BY dept HAVING COUNT(*) > 10 keeps active employees first, then only departments with more than ten of them.",
+     "expect": [4, 4]}
+  ]
+}
