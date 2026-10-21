@@ -26,7 +26,7 @@ from urllib.parse import unquote, urlparse
 import httpx
 from bs4 import BeautifulSoup
 
-from . import db, llm, store, taxonomy
+from . import official, db, llm, store, taxonomy
 
 ADV_PAGE = "https://www.sec.gov/data-research/sec-markets-data/information-about-registered-investment-advisers-exempt-reporting-advisers"
 FORM_D_PAGE = "https://www.sec.gov/data-research/sec-markets-data/form-d-data-sets"
@@ -282,14 +282,18 @@ BOARD_PATTERNS = {
     "greenhouse": r"(?:boards|job-boards)\.greenhouse\.io/(?:embed/job_app\?for=)?([A-Za-z0-9_-]+)",
     "lever": r"jobs\.lever\.co/([A-Za-z0-9_.-]+)",
     "ashby": r"jobs\.ashbyhq\.com/([A-Za-z0-9_.%-]+)",
+    "recruitee": r"([a-z0-9-]+)\.recruitee\.com",
+    # Workday tokens are "tenant|wdN|site", e.g. nvidia|wd5|NVIDIAExternalCareerSite
+    "workday": r"([a-z0-9-]+)\.(wd\d+)\.myworkdayjobs\.com/(?:[a-z]{2}-[A-Z]{2}/)?([A-Za-z0-9_-]+)",
 }
+WORKDAY_MAX = 200  # newest postings per Workday board, to stay polite
 
 
 def board_from_url(url):
     for board, pattern in BOARD_PATTERNS.items():
         m = re.search(pattern, url or "")
-        if m and m.group(1) not in ("embed", "v1", "jobs"):
-            return board, m.group(1)
+        if m and m.group(1) not in ("embed", "v1", "jobs", "www", "app"):
+            return board, "|".join(m.groups()) if board == "workday" else m.group(1)
     return None, None
 
 
@@ -334,6 +338,39 @@ def _fetch_board(board, token):
             out.append({"id": f"ashby:{token}:{j['id']}", "title": j["title"], "department": " / ".join(x for x in (j.get("department"), j.get("team")) if x),
                         "location": loc, "url": j.get("jobUrl", ""), "posted": (j.get("publishedAt") or "")[:10],
                         "description": (j.get("descriptionPlain") or "")[:3000], "commitment": j.get("employmentType", "")})
+    elif board == "recruitee":
+        url = f"https://{token}.recruitee.com/api/offers/"
+        if not official.allowed(url):
+            raise ValueError("robots.txt blocks this board")
+        r = httpx.get(url, timeout=40)
+        r.raise_for_status()
+        for j in r.json().get("offers", []):
+            loc = j.get("location") or ""
+            if j.get("remote") and "remote" not in loc.lower():
+                loc = f"Remote; {loc}" if loc else "Remote"
+            name = j.get("company_name") or name
+            out.append({"id": f"recruitee:{token}:{j['id']}", "title": j.get("title", ""), "department": j.get("department") or "",
+                        "location": loc, "url": j.get("careers_url", ""), "posted": (j.get("published_at") or "")[:10],
+                        "description": _text(j.get("description") or ""), "commitment": j.get("employment_type_code") or ""})
+    elif board == "workday":
+        tenant, wd, site = token.split("|")
+        host = f"https://{tenant}.{wd}.myworkdayjobs.com"
+        api = f"{host}/wday/cxs/{tenant}/{site}/jobs"
+        if not official.allowed(api):
+            raise ValueError("robots.txt blocks this board")
+        name = tenant.replace("-", " ").title()
+        for offset in range(0, WORKDAY_MAX, 20):
+            r = httpx.post(api, json={"appliedFacets": {}, "limit": 20, "offset": offset, "searchText": ""}, timeout=40)
+            r.raise_for_status()
+            posts = r.json().get("jobPostings") or []
+            for j in posts:
+                path = j.get("externalPath") or ""
+                out.append({"id": f"workday:{tenant}:{path.rsplit('_', 1)[-1] or path}", "title": j.get("title", ""), "department": "",
+                            "location": j.get("locationsText") or "", "url": f"{host}/en-US/{site}{path}", "posted": "",
+                            "description": "", "commitment": ""})
+            if len(posts) < 20:
+                break
+            time.sleep(1)  # polite paging
     return name, out
 
 
@@ -355,7 +392,10 @@ def _simplify_postings():
         r = httpx.get(SIMPLIFY + filename, timeout=httpx.Timeout(20, read=90))
         r.raise_for_status()
         for board, pattern in BOARD_PATTERNS.items():
-            tokens |= {(board, t) for t in re.findall(pattern, r.text) if t not in ("embed", "v1", "jobs")}
+            for t in re.findall(pattern, r.text):
+                t = "|".join(t) if isinstance(t, tuple) else t
+                if t not in ("embed", "v1", "jobs", "www", "app"):
+                    tokens.add((board, t))
         company = ""
         for part in re.split(r"\n(?=## )", r.text):
             if "<table" not in part:
@@ -449,7 +489,7 @@ def crawl_jobs():
 def add_board(url):
     board, token = board_from_url(url)
     if not board:
-        raise CrawlError("Paste a Greenhouse, Lever or Ashby job board link (e.g. https://jobs.lever.co/company).")
+        raise CrawlError("Paste a Greenhouse, Lever, Ashby, Recruitee or Workday job board link (e.g. https://jobs.lever.co/company).")
     company, posts = _fetch_board(board, token)
     with db.connect() as con:
         db.upsert(con, "companies", [{"board": board, "token": token, "name": company, "industry": "", "website": "", "jobs": len(posts),
