@@ -29,6 +29,7 @@ NAME = "Board discovery"
 SEARCH_DOMAINS = ["jobs.ashbyhq.com", "job-boards.greenhouse.io", "jobs.lever.co", "myworkdayjobs.com", "boards.greenhouse.io", "recruitee.com"]
 MAX_PROBES = 40  # company names tried per run (up to 6 small API requests each)
 MAX_FIRMS = 15  # SEC firm websites scanned per run (2 pages each)
+SHARED_SEARCHES = 2  # daily board searches when searching through a shared key
 READ_NOW = 80  # new boards read right away; the rest wait for the next job-board crawl
 CAREERS = re.compile(r"career|jobs|join (us|our team)|work (with|at) us|open (roles|positions)|hiring|internship", re.I)
 _SUFFIX = re.compile(r"\b(inc|llc|l\.?l\.?c|ltd|corp|corporation|co|company|holdings|group|technologies|technology|labs|lp|plc|gmbh|the)\b\.?", re.I)
@@ -299,7 +300,10 @@ def run(progress=None, searches=None, probes=MAX_PROBES, firms=MAX_FIRMS):
     say("Trying company names on Greenhouse, Lever and Ashby…")
     named, n_names = probe_names(probes, say)
     add(named, "company name")
-    budget = int(searches if searches is not None else (store.get_settings().get("discover_searches") or 8))
+    st = store.get_settings()
+    budget = int(searches if searches is not None else (st.get("discover_searches") or 8))
+    if searches is None and not (st.get("serper_key") or st.get("search_key")):
+        budget = min(budget, SHARED_SEARCHES)  # on a friend's shared key, leave searches for everyone else
     say("Searching job-board sites for your target roles…")
     searched, n_search = from_search(budget, profile)
     add(searched, "search")

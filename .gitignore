@@ -4,3 +4,8 @@ data/
 *.pyc
 .DS_Store
 *.tmp
+relay/node_modules/
+relay/.wrangler/
+relay/.dev.vars
+relay/.admin-token
+relay/.relay-url

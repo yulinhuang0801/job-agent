@@ -17,6 +17,7 @@ DEFAULT_SETTINGS = {
     "search_key": "",  # Tavily
     "hunter_key": "",  # Hunter.io email finder
     "serper_key": "",  # Serper.dev Google results for the Find tab
+    "relay_invite": "",  # a friend's shared-key invite (relay/worker.js); used for anything without your own key
     "sec_contact": "",  # SEC requires a contact email from automated downloads
     "dice_keywords": "",  # Find → Data sources → Dice: roles to search (blank = from your target roles)
     "dice_sponsor": "off",

@@ -134,7 +134,7 @@
         <h2>Welcome to Job Agent</h2>
         <p>Three steps to get going (about 10 minutes):</p>
         <ol>
-          <li><b>Get an AI key.</b> Sign up at <a href="https://platform.deepseek.com" target="_blank" rel="noopener">platform.deepseek.com</a>, add a few dollars of credit (that covers a lot of practice), create an API key, paste it below and press <b>Save settings</b>, then <b>Test</b>.</li>
+          <li><b>Get an AI key.</b> If a friend sent you an invite link, paste it under <b>Shared key</b> below and skip the rest of this step. Otherwise sign up at <a href="https://platform.deepseek.com" target="_blank" rel="noopener">platform.deepseek.com</a>, add a few dollars of credit (that covers a lot of practice), create an API key, paste it below and press <b>Save settings</b>, then <b>Test</b>.</li>
           <li><b>Tell it about you.</b> Go to <a href="#interview">Prepare → About you</a>: chat, or upload your resume, then press <b>Build my profile</b>.</li>
           <li><b>Let it work.</b> Home shows today's plan and, each morning, new postings scored against your profile with the best few prepared in My jobs. Practice stories and the skills check under Prepare.</li>
         </ol>
@@ -168,6 +168,17 @@
           <button class="ghost danger remove-secret" data-field="api_key" type="button">Remove key</button>
           <span class="msg test-msg" data-which="main"></span>
         </div>
+      </div>
+
+      <div class="card" id="shared-key-card">
+        <h2>Shared key <span class="muted small">(invite from a friend)</span></h2>
+        <p class="muted small">If someone invited you, paste their invite link here instead of getting your own keys. It covers the AI, web search, Google results and the email finder. Everyone on a shared key shares one daily budget set by the person who invited you, and it resets at midnight Beijing time. Any key of your own on this page is always used first. Your text passes through their relay to the AI; the relay keeps only counts of calls and cost.</p>
+        <label for="relay-invite">Invite link</label>
+        <div class="row">
+          <input id="relay-invite" type="password" placeholder="https://job-agent-relay….workers.dev/join/…" autocomplete="off" spellcheck="false">
+          <button class="ghost danger remove-secret" data-field="relay_invite" type="button">Remove</button>
+        </div>
+        <p id="relay-status" class="muted small"></p>
       </div>
 
       <div class="card">

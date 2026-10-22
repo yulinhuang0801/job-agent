@@ -15,10 +15,20 @@ Job Agent runs on your own computer: your profile, stories and jobs stay in the 
    - **Terminal (Mac/Linux):** `./run.sh`
 
    The first start installs what it needs (a minute or two), then opens http://127.0.0.1:8000 in your browser. Keep the window open while you use it; close it (or press Ctrl+C) to stop.
-3. **Add an AI key:** Settings shows the steps. Sign up at [platform.deepseek.com](https://platform.deepseek.com), add a few dollars of credit, create an API key, paste it and press **Save settings**. The key is saved only in `data/settings.json` on your computer.
+3. **Add an AI key:** if a friend sent you an invite link, paste it under **Settings → Shared key** and you're done (see the limits below). Otherwise Settings shows the steps: Sign up at [platform.deepseek.com](https://platform.deepseek.com), add a few dollars of credit, create an API key, paste it and press **Save settings**. The key is saved only in `data/settings.json` on your computer.
 4. **Start with Prepare → About you**: chat or upload your resume, then **Build my profile**.
 
 To update, download the new version and copy your old `data` folder into it. On Windows, coding answers in the skills check are graded by reading the code (running the tests needs macOS or Linux).
+
+### Using a friend's shared key
+
+An invite link (from `relay/invite.sh`) lets your copy use someone else's AI and search keys without seeing them. Everyone on the same invite list shares these limits, reset at midnight Beijing time:
+- **AI: ¥20 a day in total.** When it's used up, AI features pause with a message saying so until midnight Beijing time, or until you add your own DeepSeek key. Settings → Shared key shows what's left today.
+- **Web searches** 25 a day, **Google searches** 30 a day, **email lookups** 40 a month. On a shared key, daily matches use at most 2 board searches a day.
+- Your profile, stories and jobs stay on your computer. The text each step needs passes through the relay to the AI or search service; the relay keeps only counts and cost per person.
+- Any key of your own in Settings is used instead of the shared one.
+
+Setting up the relay and making invites: see [relay/README.md](relay/README.md).
 
 ### Show it to someone: the demo
 
@@ -136,6 +146,8 @@ Old links like `#tracker` or `#mentors` still work.
 | `app/memory.py` | Shared memory: facts, activity log, pinned profile fields |
 | `app/profile_merge.py` | Safe profile updates: AI proposes a patch, code applies it without deleting or overwriting edits |
 | `app/mentors.py` | Lead mentor (daily plan, progress snapshot) and the behavioral, technical and resume coaches |
+| `app/shared.py` | Shared key: invite links to the relay, used for any service without your own key |
+| `relay/` | The shared-key relay (Cloudflare Worker + D1): daily ¥ limit for AI, search limits inside free plans, invites |
 | `demo/` | The demo's sample student (`source.json`), the AI-written seed (`seed/`), and the scripts that build and start it |
 | `static/matches.js` | Home → Today's matches card |
 | `static/editor.js` | VS Code (Monaco) code editor for the Skills check, with a basic fallback |

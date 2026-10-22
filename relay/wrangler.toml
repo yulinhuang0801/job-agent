@@ -1,0 +1,18 @@
+# Cloudflare Worker for the shared-key relay. See relay/README.md for setup.
+name = "job-agent-relay"
+main = "worker.js"
+compatibility_date = "2026-09-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "job-agent-relay"
+database_id = "REPLACE_WITH_ID_FROM_wrangler_d1_create"
+
+# Limits for everyone together. Days and months are Beijing time.
+[vars]
+DAILY_CNY = "20"          # AI spend per day, yuan (hard limit)
+TAVILY_PER_DAY = "25"     # Tavily free plan: 1,000 searches a month
+TAVILY_PER_MONTH = "900"
+SERPER_PER_DAY = "30"     # Serper free credits: 2,500, one time
+SERPER_TOTAL = "2000"
+HUNTER_PER_MONTH = "40"   # Hunter free plan: 50 a month

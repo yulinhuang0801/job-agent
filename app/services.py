@@ -6,7 +6,7 @@ import wave
 
 import httpx
 
-from . import store
+from . import shared, store
 
 
 ASSEMBLYAI_URL = "https://api.assemblyai.com"
@@ -32,7 +32,7 @@ SEARCH_TOOL = {
 
 
 def search_enabled():
-    return bool(store.get_settings()["search_key"])
+    return bool(store.get_settings()["search_key"]) or bool(shared.active())
 
 
 def web_search(args):
@@ -42,13 +42,17 @@ def web_search(args):
     if not query:
         return {"error": "Empty query."}
     key = store.get_settings()["search_key"]
+    payload = {"query": query, "search_depth": "basic", "max_results": int(args.get("max_results") or 4),
+               "include_answer": True, **({"include_domains": list(args["include_domains"])} if args.get("include_domains") else {})}
     try:
-        resp = httpx.post("https://api.tavily.com/search", timeout=20,
-                          headers={"Authorization": f"Bearer {key}"},
-                          json={"query": query, "search_depth": "basic", "max_results": int(args.get("max_results") or 4),
-                                "include_answer": True, **({"include_domains": list(args["include_domains"])} if args.get("include_domains") else {})})
-        resp.raise_for_status()
-        data = resp.json()
+        if key:
+            resp = httpx.post("https://api.tavily.com/search", timeout=20, headers={"Authorization": f"Bearer {key}"}, json=payload)
+            resp.raise_for_status()
+            data = resp.json()
+        else:
+            data = shared.post("/tavily/search", payload)
+    except shared.SharedError as e:
+        return {"error": f"{e} Ask the candidate instead."}
     except httpx.HTTPError as e:
         return {"error": f"Search failed ({e.__class__.__name__}). Ask the candidate instead."}
     return {
@@ -119,12 +123,18 @@ def silent_wav(seconds=1):
 
 
 def hunter_enabled():
-    return bool(store.get_settings()["hunter_key"])
+    return bool(store.get_settings()["hunter_key"]) or bool(shared.active())
 
 
 def hunter_check():
     """Free account lookup (uses no credits). Returns searches left this month."""
     key = store.get_settings()["hunter_key"]
+    if not key and shared.active():
+        try:
+            left = (shared.status().get("email_finder") or {})
+        except shared.SharedError as e:
+            raise ServiceError(str(e))
+        return max(0, left.get("per_month", 0) - left.get("this_month", 0))
     if not key:
         raise ServiceError("No Hunter.io key saved.")
     try:
@@ -142,14 +152,17 @@ def hunter_check():
 def hunter_find(domain, first, last):
     """Hunter.io Email Finder: the most likely address for a person at a domain. Returns (email, score) or None."""
     key = store.get_settings()["hunter_key"]
-    if not (key and domain and first and last):
+    if not ((key or shared.active()) and domain and first and last):
         return None
     try:
-        r = httpx.get("https://api.hunter.io/v2/email-finder", timeout=20,
-                      params={"domain": domain, "first_name": first, "last_name": last, "api_key": key})
-        r.raise_for_status()
-        data = r.json().get("data") or {}
-    except (httpx.HTTPError, ValueError):
+        if key:
+            r = httpx.get("https://api.hunter.io/v2/email-finder", timeout=20,
+                          params={"domain": domain, "first_name": first, "last_name": last, "api_key": key})
+            r.raise_for_status()
+            data = r.json().get("data") or {}
+        else:
+            data = shared.get("/hunter/email-finder", {"domain": domain, "first_name": first, "last_name": last}).get("data") or {}
+    except (httpx.HTTPError, ValueError, shared.SharedError):
         return None
     return (data["email"], data.get("score")) if data.get("email") else None
 
@@ -165,19 +178,24 @@ def reader_text(url):
 
 
 def serper_enabled():
-    return bool(store.get_settings()["serper_key"])
+    return bool(store.get_settings()["serper_key"]) or bool(shared.active())
 
 
 def serper_search(args):
     """Google results through Serper.dev. Same return shape as web_search."""
     query = str(args.get("query") or "").strip()
     n = int(args.get("max_results") or 10)
+    key = store.get_settings()["serper_key"]
     try:
-        r = httpx.post("https://google.serper.dev/search", timeout=20,
-                       headers={"X-API-KEY": store.get_settings()["serper_key"], "Content-Type": "application/json"},
-                       json={"q": query, "num": n})
-        r.raise_for_status()
-        data = r.json()
+        if key:
+            r = httpx.post("https://google.serper.dev/search", timeout=20,
+                           headers={"X-API-KEY": key, "Content-Type": "application/json"}, json={"q": query, "num": n})
+            r.raise_for_status()
+            data = r.json()
+        else:
+            data = shared.post("/serper/search", {"q": query, "num": n})
+    except shared.SharedError as e:
+        return {"error": str(e)}
     except (httpx.HTTPError, ValueError) as e:
         return {"error": f"Google search failed ({e.__class__.__name__})."}
     return {"answer": "", "results": [{"title": o.get("title", ""), "url": o.get("link", ""), "content": (o.get("snippet") or "")[:500]}

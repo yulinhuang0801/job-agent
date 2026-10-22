@@ -257,7 +257,11 @@ function keyField(id, has, hint, emptyPlaceholder) {
 loaders.settings = async () => {
   settings = await api("/api/settings");
   $("#demo-banner").classList.toggle("hidden", !settings.demo);
-  $("#welcome-card").classList.toggle("hidden", settings.has_key);
+  $("#welcome-card").classList.toggle("hidden", settings.has_ai);
+  keyField("#relay-invite", settings.has_relay, settings.has_relay ? "saved" : "", "https://job-agent-relay….workers.dev/join/…");
+  if (settings.has_relay) $("#relay-invite").placeholder = `Saved (${settings.relay_host}). Paste a new invite to replace it`;
+  $("#relay-status").textContent = settings.has_relay ? "Checking today's shared budget…" : "Not using a shared key.";
+  if (settings.has_relay) loadSharedStatus();
   document.title = settings.demo ? "Job Agent · Demo" : "Job Agent";
   const known = KNOWN_MODELS.includes(settings.model);
   $("#model").value = known ? settings.model : "custom";
@@ -305,10 +309,25 @@ loaders.settings = async () => {
   $("#stt-model").value = settings.stt_model;
   $("#stt-model-wrap").classList.toggle("hidden", settings.stt_provider === "assemblyai");
 
-  const saved = { api_key: settings.has_key, backup_key: settings.has_backup, search_key: settings.has_search, stt_key: settings.has_stt,
+  const saved = { relay_invite: settings.has_relay, api_key: settings.has_key, backup_key: settings.has_backup, search_key: settings.has_search, stt_key: settings.has_stt,
     hunter_key: settings.has_hunter, serper_key: settings.has_serper, alert_password: settings.has_alert_password };
   document.querySelectorAll(".remove-secret").forEach((b) => b.classList.toggle("hidden", !saved[b.dataset.field]));
 };
+
+// Settings → Shared key: what's left of the shared budget today (numbers come from the relay).
+async function loadSharedStatus() {
+  try {
+    const st = await api("/api/shared/status");
+    const left = (used, cap) => Math.max(0, cap - used);
+    const bits = [`¥${st.ai.left_cny.toFixed(2)} of ¥${st.ai.cap_cny} AI budget left today`];
+    if (st.web_search) bits.push(`${left(st.web_search.today, st.web_search.per_day)} of ${st.web_search.per_day} web searches`);
+    if (st.google_search) bits.push(`${left(st.google_search.today, st.google_search.per_day)} of ${st.google_search.per_day} Google searches`);
+    if (st.email_finder) bits.push(`${left(st.email_finder.this_month, st.email_finder.per_month)} of ${st.email_finder.per_month} email lookups this month`);
+    $("#relay-status").textContent = `✓ Invited as ${st.name}: ${bits.join(" · ")}. Shared by everyone on this key; resets at midnight Beijing time.`;
+  } catch (err) {
+    $("#relay-status").textContent = `⚠ ${err.message}`;
+  }
+}
 
 $("#stt-provider").addEventListener("change", () => {
   const assembly = $("#stt-provider").value === "assemblyai";
@@ -334,7 +353,7 @@ function settingsBody() {
   return {
     api_key: val("#api-key"), model: model || null, base_url: val("#base-url"),
     backup_key: val("#backup-key"), backup_model: val("#backup-model"), backup_base_url: val("#backup-base-url"),
-    search_key: val("#search-key"), hunter_key: val("#hunter-key"), serper_key: val("#serper-key"), sec_contact: val("#sec-contact"),
+    relay_invite: val("#relay-invite"), search_key: val("#search-key"), hunter_key: val("#hunter-key"), serper_key: val("#serper-key"), sec_contact: val("#sec-contact"),
     stt_key: val("#stt-key"), stt_base_url: val("#stt-base-url"), stt_model: val("#stt-model"), stt_provider: $("#stt-provider").value,
     alert_host: $("#alert-host").value === "custom" ? val("#alert-host-custom") : $("#alert-host").value,
     alert_email: val("#alert-email"), alert_password: val("#alert-password"),
@@ -2288,6 +2307,6 @@ $("#coach-clear").addEventListener("click", async () => {
   const wanted = location.hash.slice(1);
   try { overview = await api("/api/overview"); } catch (e) { /* badges are optional */ }
   if (wanted) showTab(wanted);
-  else location.hash = settings && settings.has_key ? "#mentors" : "#settings";
+  else location.hash = settings && settings.has_ai ? "#mentors" : "#settings";
   addNextLinks();
 })();

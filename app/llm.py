@@ -7,7 +7,7 @@ import re
 
 import openai
 
-from . import store
+from . import shared, store
 
 log = logging.getLogger("uvicorn.error")
 
@@ -25,11 +25,23 @@ def _providers():
     providers = []
     if s["api_key"]:
         providers.append({"name": "DeepSeek", "key": s["api_key"], "base_url": s["base_url"], "model": s["model"]})
+    elif shared.active():
+        base, code = shared.active()
+        providers.append({"name": "Shared key", "key": code, "base_url": base + "/v1", "model": shared.MODEL, "deepseek": True})
     if s["backup_key"]:
         providers.append({"name": "Backup", "key": s["backup_key"], "base_url": s["backup_base_url"], "model": s["backup_model"]})
     if not providers:
-        raise LLMError("No API key yet. Add your DeepSeek API key on the Settings page.")
+        raise LLMError("No API key yet. Add your DeepSeek API key (or a friend's invite) on the Settings page.")
     return providers
+
+
+def _relay_message(e):
+    """The relay's own explanation (budget used up, invite turned off), from its JSON error body."""
+    body = getattr(e, "body", None)
+    if isinstance(body, dict):
+        err = body.get("error") if isinstance(body.get("error"), dict) else body
+        return str(err.get("message") or "")
+    return ""
 
 
 def _call_one(p, messages, max_tokens, json_mode, temperature, tools, think, timeout):
@@ -39,7 +51,7 @@ def _call_one(p, messages, max_tokens, json_mode, temperature, tools, think, tim
         kwargs["response_format"] = {"type": "json_object"}
     if tools:
         kwargs["tools"] = tools
-    if "deepseek" in p["base_url"]:
+    if "deepseek" in p["base_url"] or p.get("deepseek"):
         # DeepSeek thinks before answering by default; skip it for plain extraction work.
         kwargs["extra_body"] = {"thinking": {"type": "enabled" if think else "disabled"}}
     elif "googleapis" in p["base_url"]:
@@ -47,11 +59,15 @@ def _call_one(p, messages, max_tokens, json_mode, temperature, tools, think, tim
         kwargs["reasoning_effort"] = "low"
     try:
         resp = client.chat.completions.create(**kwargs)
-    except openai.AuthenticationError:
+    except openai.AuthenticationError as e:
+        if p["name"] == "Shared key":
+            raise LLMError(_relay_message(e) or "Your invite isn't active anymore. Ask the person who invited you for a new one.")
         raise LLMError(f"{p['name']} rejected the API key. Check it on the Settings page.")
     except (openai.RateLimitError, openai.APIConnectionError, openai.InternalServerError) as e:
         raise _TryNext(f"{p['name']}: {e.__class__.__name__}")
     except openai.APIStatusError as e:
+        if p["name"] == "Shared key" and e.status_code in (400, 402, 413):
+            raise LLMError(_relay_message(e) or f"The shared key refused this request ({e.status_code}).")  # e.g. today's budget is used up
         if e.status_code >= 500 or e.status_code == 429:
             raise _TryNext(f"{p['name']}: HTTP {e.status_code}")
         raise LLMError(f"{p['name']} API error ({e.status_code}): {e.message}")
@@ -80,7 +96,7 @@ def _call(messages, max_tokens, json_mode, temperature, tools=None, think=True, 
 
 def test_provider(which):
     """Send a tiny request to one provider ("main" or "backup"), with no fallback."""
-    providers = {("main" if p["name"] == "DeepSeek" else "backup"): p for p in _providers()}
+    providers = {("backup" if p["name"] == "Backup" else "main"): p for p in _providers()}
     p = providers.get(which)
     if not p:
         raise LLMError("No key saved for that model yet.")

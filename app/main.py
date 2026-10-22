@@ -17,7 +17,7 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import alerts, assess, automatch, coderun, crawlers, db, dice, discover, grading, llm, memory, mentors, official, onet, outreach, pdf, pipeline, prep, profile_merge, prompts, qlibrary, research, timelines, resume_text, services, sourcing, store
+from . import alerts, assess, automatch, shared, coderun, crawlers, db, dice, discover, grading, llm, memory, mentors, official, onet, outreach, pdf, pipeline, prep, profile_merge, prompts, qlibrary, research, timelines, resume_text, services, sourcing, store
 from .jobs_fetch import FetchError, fetch_job
 
 STATIC = Path(__file__).resolve().parent.parent / "static"
@@ -57,7 +57,7 @@ def index():
 
 # ---------- Settings ----------
 
-SECRET_FIELDS = ("api_key", "backup_key", "search_key", "stt_key", "hunter_key", "serper_key", "alert_password")
+SECRET_FIELDS = ("api_key", "backup_key", "search_key", "stt_key", "hunter_key", "serper_key", "alert_password", "relay_invite")
 
 
 class SettingsIn(BaseModel):
@@ -80,6 +80,7 @@ class SettingsIn(BaseModel):
     alert_password: Optional[str] = None
     alert_days: Optional[str] = None
     alert_auto: Optional[str] = None
+    relay_invite: Optional[str] = None
     automatch: Optional[str] = None
     automatch_prepare: Optional[str] = None
     automatch_depth: Optional[str] = None
@@ -130,6 +131,9 @@ def _public_settings():
         "serper_hint": _hint(s["serper_key"]),
         **{k: s[k] for k in ("automatch", "automatch_prepare", "automatch_depth", "automatch_min", "discover_searches")},
         "demo": DEMO,
+        "has_relay": bool(shared.active()),
+        "relay_host": shared.active()[0].split("//")[-1] if shared.active() else "",
+        "has_ai": bool(s["api_key"]) or bool(shared.active()),
     }
 
 
@@ -152,6 +156,11 @@ def put_settings(body: SettingsIn):
                 continue
             lo, hi = NUMBERS[field]
             value = str(max(lo, min(hi, int(value))))
+        if field == "relay_invite":
+            if not shared.parse(value):
+                raise HTTPException(400, "That doesn't look like an invite link. It should end in /join/ and a code, e.g. https://job-agent-relay.example.workers.dev/join/abc123xyz.")
+            s[field] = value.rstrip("/")
+            continue
         if field in SECRET_FIELDS and value.startswith("http"):
             # A whole example request was pasted (Hunter's dashboard shows these); keep only its key.
             value = (parse_qs(urlparse(value).query).get("api_key") or [value])[0]
@@ -193,6 +202,14 @@ def test_settings(which: str = "main"):
         return {"ok": True, "provider": "AssemblyAI" if s["stt_provider"] == "assemblyai" else "speech-to-text", "model": s["stt_model"]}
     name, model, reply = llm.test_provider(which)
     return {"ok": True, "provider": name, "model": model, "reply": reply}
+
+
+@app.get("/api/shared/status")
+def shared_status():
+    try:
+        return shared.status()
+    except shared.SharedError as e:
+        raise HTTPException(400, str(e))
 
 
 # ---------- Intake interview ----------
