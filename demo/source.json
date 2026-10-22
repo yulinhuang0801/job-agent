@@ -1,0 +1,319 @@
+{
+  "_note": "The demo's sample student. Everything here is made up: the student, the school and the employers. demo/build_seed.py turns this into demo/seed/ (grades and documents written by the app's own AI); demo/make_demo.py copies the seed into data/demo with dates moved to today.",
+  "profile": {
+    "name": "Jordan Rivera",
+    "email": "jordan.rivera@example.edu",
+    "phone": "555-0142",
+    "location": "Springfield, IL",
+    "links": [
+      {
+        "label": "GitHub",
+        "url": "https://github.com/example-jordan"
+      }
+    ],
+    "summary": "Sophomore in Information Science with a Statistics minor who likes turning messy data into decisions. Has cleaned and analyzed survey data for a psychology lab, supports 40+ students a week at the campus IT help desk, and built a course-planning web app used by classmates.",
+    "targets": {
+      "roles": [
+        "Data analyst or software engineering internship (data analytics, data science, backend/web)"
+      ],
+      "industries": [
+        "Technology",
+        "Healthcare",
+        "Logistics"
+      ],
+      "locations": [
+        "Remote",
+        "Chicago, IL",
+        "New York, NY"
+      ],
+      "seniority": "Internship (sophomore)",
+      "work_authorization": "F-1 student; CPT available for summer internships",
+      "start_date": "Summer 2027",
+      "salary": "Paid internship preferred"
+    },
+    "education": [
+      {
+        "school": "Springfield State University (sample school)",
+        "degree": "BS",
+        "field": "Information Science, minor in Statistics",
+        "start": "Aug 2025",
+        "end": "Expected May 2029",
+        "gpa": "3.7",
+        "courses": [
+          "Data Structures",
+          "Database Systems",
+          "Probability & Statistics",
+          "Intro to Machine Learning"
+        ]
+      }
+    ],
+    "experience": [
+      {
+        "company": "Springfield State University IT Help Desk",
+        "title": "Student Technician",
+        "location": "Springfield, IL",
+        "start": "Sep 2025",
+        "end": "Present",
+        "bullets": [
+          "Resolve 40+ walk-in and ticket requests a week (accounts, Wi-Fi, laptop setup) with a 95% first-contact resolution rate",
+          "Wrote 12 how-to articles for the help desk knowledge base, cutting repeat password-reset tickets by about a quarter in one semester"
+        ]
+      },
+      {
+        "company": "Springfield State University Social Cognition Lab",
+        "title": "Undergraduate Research Assistant",
+        "location": "Springfield, IL",
+        "start": "Jan 2026",
+        "end": "Present",
+        "bullets": [
+          "Cleaned and merged survey data from 1,200 participants in Python (pandas), documenting every exclusion rule",
+          "Built R scripts and charts for weekly lab meetings, replacing a manual Excel process that took about 3 hours a week"
+        ]
+      }
+    ],
+    "projects": [
+      {
+        "name": "ClassPath",
+        "tech": [
+          "Python",
+          "Flask",
+          "SQLite",
+          "JavaScript"
+        ],
+        "bullets": [
+          "Built a course-planning web app that checks prerequisites and degree requirements; about 150 classmates used it to plan Fall 2026",
+          "Scraped the public course catalog into SQLite and wrote tests for the prerequisite checker"
+        ]
+      },
+      {
+        "name": "Bike-share demand dashboard",
+        "tech": [
+          "Python",
+          "pandas",
+          "Tableau"
+        ],
+        "bullets": [
+          "Analyzed 2 years of public bike-share trips and built a Tableau dashboard showing demand by station, hour and weather"
+        ]
+      }
+    ],
+    "activities": [
+      {
+        "name": "Data Science Club",
+        "role": "Treasurer",
+        "bullets": [
+          "Manage a $3,000 budget and organized a 60-person beginner Python workshop"
+        ]
+      }
+    ],
+    "skills": {
+      "technical": [
+        {
+          "name": "Python",
+          "level": "intermediate"
+        },
+        {
+          "name": "SQL",
+          "level": "intermediate"
+        },
+        {
+          "name": "R",
+          "level": "beginner"
+        },
+        {
+          "name": "JavaScript",
+          "level": "beginner"
+        },
+        {
+          "name": "Tableau",
+          "level": "beginner"
+        }
+      ],
+      "tools": [
+        "Git",
+        "Excel",
+        "Jupyter",
+        "Flask"
+      ],
+      "spoken_languages": [
+        "English",
+        "Spanish"
+      ]
+    },
+    "evaluation": {
+      "readiness": "Ready for internship applications",
+      "strengths": [
+        "Real data-cleaning experience on a research team",
+        "A shipped project with users",
+        "Customer-facing support experience"
+      ],
+      "gaps": [
+        "No internship yet",
+        "Little experience with cloud tools or production code"
+      ],
+      "recommended_roles": [
+        "Data Analyst Intern",
+        "Business Intelligence Intern",
+        "Software Engineering Intern (backend/web)"
+      ],
+      "next_steps": [
+        "Finish 6 STAR stories",
+        "Take the SQL and Python skills check",
+        "Apply to 5 roles a week and reach out to 2 alumni a week"
+      ]
+    }
+  },
+  "interview": {
+    "messages": [
+      {
+        "role": "assistant",
+        "content": "Hi! I'm going to ask you some questions to build your profile. What are you studying, and what kind of internship are you hoping for?"
+      },
+      {
+        "role": "user",
+        "content": "I'm a sophomore in Information Science with a stats minor. I'd love a data analyst internship next summer, or software engineering if it's backend or web."
+      },
+      {
+        "role": "assistant",
+        "content": "Great. Tell me about any work or research you've done so far."
+      },
+      {
+        "role": "user",
+        "content": "I work at the campus IT help desk and I'm a research assistant in a psychology lab, where I clean survey data in Python and make charts in R."
+      }
+    ],
+    "section": "done",
+    "progress": 100,
+    "complete": true,
+    "resume_name": "",
+    "resume_text": "",
+    "research": []
+  },
+  "stories": {
+    "about_me": {
+      "answer": "I'm a sophomore in Information Science with a Statistics minor at Springfield State. I got into data through my research job: I clean and merge survey data for a psychology lab, about 1,200 participants so far, and I replaced a manual Excel report with R scripts that save the lab around three hours a week. I also work at the IT help desk, which taught me to explain technical things simply. Outside class I built ClassPath, a course-planning app about 150 classmates used. I'm looking for a data analyst internship where I can work on real business questions."
+    },
+    "why_field": {
+      "answer": "I like the moment when a messy dataset turns into a clear answer. In the lab, our weekly report used to take three hours of copying numbers into Excel; once I scripted it, the team spent that time discussing results instead. I want a role where that kind of work helps a business decide something, and analytics lets me use both my programming and my statistics."
+    },
+    "teamwork": {
+      "title": "Running the club's first Python workshop",
+      "situation": "Our Data Science Club had never run a beginner workshop, and 60 students signed up, far more than the 20 we planned for.",
+      "task": "As treasurer I was asked to make the budget work and help the three officers run it.",
+      "action": "I moved us to a bigger room the department lent for free, split the attendees into tables with one officer each, and wrote a one-page setup guide so we didn't lose the first half hour to installs. I also asked two senior members to float between tables.",
+      "result": "All 60 students finished the first notebook, we stayed $200 under budget, and 14 of them joined the club afterward.",
+      "reflection": "I learned to plan for the problem we'd actually have (installs), not the one on paper, and to ask for help early."
+    },
+    "conflict": {
+      "title": "Disagreeing about excluding survey responses",
+      "situation": "In the lab, a graduate student wanted to drop every participant who failed one attention check, which would have removed almost 20% of our data.",
+      "task": "I was preparing the cleaned dataset and thought the rule was too strict for our study.",
+      "action": "Instead of arguing in the meeting, I ran the analysis both ways and showed that results held with a two-check rule while keeping 150 more participants. I brought both versions to our PI and let the data make the case.",
+      "result": "The lab adopted the two-check rule and now uses my comparison script for every new study.",
+      "reflection": "Showing evidence worked better than debating opinions, and it kept the relationship good."
+    },
+    "failure": {
+      "title": "Breaking ClassPath the week before registration",
+      "situation": "Five days before Fall registration I pushed an update to ClassPath that broke the prerequisite checker for a third of the courses.",
+      "task": "About 150 classmates were relying on it, and I was the only developer.",
+      "action": "I rolled back within an hour, posted a note to users, then wrote tests for every prerequisite pattern in the catalog before re-releasing the fix two days later.",
+      "result": "The fixed version had no further errors through registration.",
+      "reflection": "I now write tests before changing anything people depend on, and I release small changes instead of big ones."
+    },
+    "success": {
+      "title": "Automating the lab's weekly report",
+      "situation": "Our lab built its weekly progress report by copying numbers from several spreadsheets into Excel charts, which took about three hours every week.",
+      "task": "My PI asked if I could make it less painful.",
+      "action": "I wrote R scripts that pull the raw survey exports, apply our cleaning rules and produce the same charts, and documented how to run them.",
+      "result": "The report now takes about 10 minutes, and two other students use the scripts for their own projects.",
+      "reflection": "Small automation can free a whole team's time; I look for repetitive steps first now."
+    },
+    "weakness": {
+      "title": "Saying yes to too much",
+      "situation": "In my first semester I said yes to every request: extra help desk shifts, club tasks and lab work.",
+      "task": "By midterms I was behind in Data Structures.",
+      "action": "I started blocking study time on my calendar first, and now I check my week before agreeing to new work and offer a later date when I'm full.",
+      "result": "I finished the semester with an A- in Data Structures and kept all three commitments.",
+      "reflection": "I still feel the pull to say yes, so I review my calendar every Sunday."
+    }
+  },
+  "jobs": [
+    {
+      "company": "Harborline Logistics (sample employer)",
+      "title": "Data Analyst Intern, Summer 2027",
+      "location": "Chicago, IL (hybrid)",
+      "url": "",
+      "description": "Harborline Logistics (a sample employer for this demo) moves goods for regional retailers. Our analytics team is hiring a Data Analyst Intern for Summer 2027 in Chicago (hybrid, 3 days in office).\n\nWhat you'll do: build SQL queries and dashboards that track on-time delivery and warehouse throughput; clean shipment data from several systems; present findings to operations managers every two weeks.\n\nWhat we're looking for: currently pursuing a degree in data science, statistics, information science, business analytics or similar; SQL and Python or R; experience with Tableau or Power BI is a plus; clear communicator. Open to students on F-1 with CPT. Paid: $25/hour.",
+      "status": "Interviewing",
+      "events": [
+        {
+          "type": "oa",
+          "title": "SQL assessment (HackerRank)",
+          "date": "-6",
+          "platform": "hackerrank",
+          "done": true
+        },
+        {
+          "type": "interview",
+          "title": "Interview with the analytics manager",
+          "date": "+3",
+          "time": "14:00",
+          "people": "Dana Lee, Analytics Manager"
+        }
+      ],
+      "applied": "-14"
+    },
+    {
+      "company": "Brightquill Learning (sample employer)",
+      "title": "Software Engineering Intern (Remote)",
+      "location": "Remote, US",
+      "url": "",
+      "description": "Brightquill Learning (a sample employer for this demo) builds study tools for community colleges. We're hiring remote Software Engineering Interns for Summer 2027.\n\nYou'll work on our Python/Flask backend and React front end, write tests, and ship features used by 30,000 students.\n\nRequirements: data structures and one programming language (Python preferred); a project you built and can talk about; comfortable with Git. Nice to have: SQL, JavaScript. Interns are paid $28/hour. We do not sponsor H-1B visas but welcome students with CPT.",
+      "status": "Applied",
+      "applied": "-9",
+      "deadline": "+12"
+    },
+    {
+      "company": "Northmere Health Analytics (sample employer)",
+      "title": "Data Science Intern",
+      "location": "New York, NY",
+      "url": "",
+      "description": "Northmere Health Analytics (a sample employer for this demo) helps hospitals predict patient no-shows and staffing needs. Summer 2027 Data Science Intern, New York, NY (on-site).\n\nResponsibilities: explore appointment data, build and evaluate simple predictive models (logistic regression, gradient boosting), and write clear summaries for clinical partners.\n\nQualifications: coursework in statistics and machine learning; Python (pandas, scikit-learn); SQL; interest in healthcare. Must be authorized to work in the US; CPT accepted.",
+      "status": "Saved",
+      "deadline": "+20"
+    }
+  ],
+  "network": [
+    {
+      "name": "Priya Shah (sample)",
+      "title": "Data Analyst",
+      "company": "Harborline Logistics (sample employer)",
+      "how": "Alumni",
+      "status": "Chatted",
+      "notes": "Springfield State '24. Said the team cares most about SQL and explaining results simply.",
+      "chat": "-10",
+      "followup": "+4"
+    },
+    {
+      "name": "Marcus Bell (sample)",
+      "title": "Software Engineer",
+      "company": "Brightquill Learning (sample employer)",
+      "how": "Met at an event",
+      "status": "Messaged",
+      "notes": "Met at the fall career fair; offered to answer questions about the internship.",
+      "followup": "+1"
+    }
+  ],
+  "facts": [
+    "Prefers paid internships; can work up to 15 hours a week during the semester",
+    "On F-1; the international office approves CPT for summer internships",
+    "Most excited about analytics roles in logistics and healthcare"
+  ],
+  "outreach": {
+    "intro": "I'm Jordan Rivera, a sophomore studying Information Science and Statistics at Springfield State University.",
+    "hours_per_week": "15 during the semester, full time in summer",
+    "start": "May 2027",
+    "signature": "Jordan Rivera\nInformation Science '29, Springfield State University\njordan.rivera@example.edu",
+    "examples": "Subject: Information Science sophomore interested in your analytics team\n\nHi Ms. Shah,\n\nI'm Jordan, a sophomore at Springfield State studying Information Science and Statistics. I saw that you joined the analytics team after graduating in 2024. I clean and analyze survey data for a psychology lab, and I'm curious how you use SQL day to day. Would you have 15 minutes for a call in the next couple of weeks?\n\nThank you,\nJordan"
+  }
+}

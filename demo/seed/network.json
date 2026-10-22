@@ -1,0 +1,35 @@
+[
+  {
+    "id": "3310f898",
+    "created_at": "2026-10-21T20:11:38",
+    "status": "Messaged",
+    "chats": [],
+    "last_contact": "",
+    "next_followup": "2026-10-22",
+    "how": "Met at an event",
+    "name": "Marcus Bell (sample)",
+    "title": "Software Engineer",
+    "company": "Brightquill Learning (sample employer)",
+    "notes": "Met at the fall career fair; offered to answer questions about the internship.",
+    "job_id": "5560f0d5c5"
+  },
+  {
+    "id": "24ab3c2c",
+    "created_at": "2026-10-21T20:11:38",
+    "status": "Chatted",
+    "chats": [
+      {
+        "date": "2026-10-11",
+        "notes": "Springfield State '24. Said the team cares most about SQL and explaining results simply."
+      }
+    ],
+    "last_contact": "2026-10-11",
+    "next_followup": "2026-10-12",
+    "how": "Alumni",
+    "name": "Priya Shah (sample)",
+    "title": "Data Analyst",
+    "company": "Harborline Logistics (sample employer)",
+    "notes": "Springfield State '24. Said the team cares most about SQL and explaining results simply.",
+    "job_id": "91b8476f3a"
+  }
+]

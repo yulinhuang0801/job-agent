@@ -20,6 +20,9 @@
       <a href="#settings" data-tab="settings" title="Settings"><span aria-hidden="true">⚙</span><span class="label"> Settings</span></a>
     </nav>
   </header>
+  <div id="demo-banner" class="demo-banner hidden" role="note">
+    <b>Demo</b> · Jordan Rivera is a made-up sample student. The school, the three employers in My jobs and the contacts are fictional; postings in Find and Today's matches are real. Changes here are thrown away the next time the demo starts.
+  </div>
   <nav id="subnav" class="subnav hidden" aria-label="Steps"></nav>
 
   <main>
@@ -126,6 +129,17 @@
     <section id="view-settings" class="view">
       <h1>Settings</h1>
       <p class="muted">Keys are stored only on this computer, in <code>data/settings.json</code>. Paste a key, then press <b>Save settings</b> at the bottom.</p>
+
+      <div id="welcome-card" class="card welcome hidden">
+        <h2>Welcome to Job Agent</h2>
+        <p>Three steps to get going (about 10 minutes):</p>
+        <ol>
+          <li><b>Get an AI key.</b> Sign up at <a href="https://platform.deepseek.com" target="_blank" rel="noopener">platform.deepseek.com</a>, add a few dollars of credit (that covers a lot of practice), create an API key, paste it below and press <b>Save settings</b>, then <b>Test</b>.</li>
+          <li><b>Tell it about you.</b> Go to <a href="#interview">Prepare → About you</a>: chat, or upload your resume, then press <b>Build my profile</b>.</li>
+          <li><b>Let it work.</b> Home shows today's plan and, each morning, new postings scored against your profile with the best few prepared in My jobs. Practice stories and the skills check under Prepare.</li>
+        </ol>
+        <p class="muted small">Your profile, stories and jobs are saved only on this computer, in the <code>data</code> folder. The text each step needs is sent to the AI service you choose (DeepSeek by default). Job Agent never logs into LinkedIn or Handshake and never sends email for you.</p>
+      </div>
 
       <div class="card">
         <h2>Main AI: DeepSeek</h2>

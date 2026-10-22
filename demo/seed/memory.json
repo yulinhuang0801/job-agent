@@ -1,0 +1,79 @@
+{
+  "facts": [
+    {
+      "id": "c1a76574",
+      "text": "Prefers paid internships; can work up to 15 hours a week during the semester",
+      "source": "you",
+      "at": "2026-10-21T20:10:25"
+    },
+    {
+      "id": "4f5820f6",
+      "text": "On F-1; the international office approves CPT for summer internships",
+      "source": "you",
+      "at": "2026-10-21T20:10:25"
+    },
+    {
+      "id": "48af51dc",
+      "text": "Most excited about analytics roles in logistics and healthcare",
+      "source": "you",
+      "at": "2026-10-21T20:10:25"
+    }
+  ],
+  "events": [
+    {
+      "at": "2026-10-21T20:10:37",
+      "kind": "story",
+      "text": "Graded Tell me about yourself (4/5), Why this field / role (4/5), Teamwork or leadership (5/5), Disagreement or conflict (5/5), Failure or mistake (5/5), Success story (4/5), A real weakness (5/5)",
+      "ref": ""
+    },
+    {
+      "at": "2026-10-21T20:11:03",
+      "kind": "job",
+      "text": "Harborline Logistics (sample employer): Ready → Interviewing",
+      "ref": "91b8476f3a"
+    },
+    {
+      "at": "2026-10-21T20:11:03",
+      "kind": "event",
+      "text": "Harborline Logistics (sample employer): Online assessment (SQL assessment (HackerRank)) on 2026-10-15",
+      "ref": "91b8476f3a"
+    },
+    {
+      "at": "2026-10-21T20:11:03",
+      "kind": "event",
+      "text": "Harborline Logistics (sample employer): Interview (Interview with the analytics manager) on 2026-10-24",
+      "ref": "91b8476f3a"
+    },
+    {
+      "at": "2026-10-21T20:11:19",
+      "kind": "job",
+      "text": "Brightquill Learning (sample employer): Ready → Applied",
+      "ref": "5560f0d5c5"
+    },
+    {
+      "at": "2026-10-21T20:11:38",
+      "kind": "job",
+      "text": "Northmere Health Analytics (sample employer): Ready → Saved",
+      "ref": "0d5a2e599a"
+    },
+    {
+      "at": "2026-10-21T20:11:38",
+      "kind": "network",
+      "text": "Added Priya Shah (sample) (Harborline Logistics (sample employer)) to your network list",
+      "ref": ""
+    },
+    {
+      "at": "2026-10-21T20:11:38",
+      "kind": "network",
+      "text": "Had a chat with Priya Shah (sample) (Harborline Logistics (sample employer))",
+      "ref": ""
+    },
+    {
+      "at": "2026-10-21T20:11:38",
+      "kind": "network",
+      "text": "Added Marcus Bell (sample) (Brightquill Learning (sample employer)) to your network list",
+      "ref": ""
+    }
+  ],
+  "pins": []
+}

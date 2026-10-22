@@ -1,0 +1,652 @@
+[
+  {
+    "id": "0d5a2e599a",
+    "created_at": "2026-10-21T20:11:19",
+    "url": "",
+    "title": "Data Science Intern",
+    "company": "Northmere Health Analytics (sample employer)",
+    "location": "New York, NY",
+    "description": "Northmere Health Analytics (a sample employer for this demo) helps hospitals predict patient no-shows and staffing needs. Summer 2027 Data Science Intern, New York, NY (on-site).\n\nResponsibilities: explore appointment data, build and evaluate simple predictive models (logistic regression, gradient boosting), and write clear summaries for clinical partners.\n\nQualifications: coursework in statistics and machine learning; Python (pandas, scikit-learn); SQL; interest in healthcare. Must be authorized to work in the US; CPT accepted.",
+    "status": "Saved",
+    "applied_date": "",
+    "notes": "",
+    "fit": {
+      "title": "Data Science Intern",
+      "company": "Northmere Health Analytics (sample employer)",
+      "location": "New York, NY (on-site)",
+      "score": 78,
+      "verdict": "Good fit",
+      "summary": "Jordan matches the core academic and technical requirements: statistics and intro ML coursework, Python/pandas experience, SQL, and a stated interest in healthcare analytics. CPT is explicitly accepted, which clears the main authorization hurdle. The clearest gap is lack of evidence with scikit-learn or building/evaluating predictive models, so this is a good but not slam-dunk application.",
+      "matched": [
+        {
+          "requirement": "Coursework in statistics and machine learning",
+          "evidence": "Courses include Probability & Statistics and Intro to Machine Learning."
+        },
+        {
+          "requirement": "Python (pandas)",
+          "evidence": "Cleaned and merged survey data from 1,200 participants in Python (pandas); analyzed 2 years of bike-share trips with pandas."
+        },
+        {
+          "requirement": "SQL",
+          "evidence": "Database Systems course and SQL listed as an intermediate technical skill."
+        },
+        {
+          "requirement": "Interest in healthcare",
+          "evidence": "Target industries include Healthcare; recent note says most excited about analytics roles in logistics and healthcare."
+        },
+        {
+          "requirement": "Must be authorized to work in the US; CPT accepted",
+          "evidence": "Candidate is on F-1 with CPT available for summer internships; posting states CPT accepted."
+        }
+      ],
+      "gaps": [
+        {
+          "requirement": "Python (scikit-learn)",
+          "severity": "medium",
+          "advice": "Add a small scikit-learn project (e.g., logistic regression on the bike-share or survey data) and mention it in the resume and interview."
+        },
+        {
+          "requirement": "Build and evaluate simple predictive models (logistic regression, gradient boosting)",
+          "severity": "medium",
+          "advice": "Frame Intro to Machine Learning coursework and any model-building exercises; consider building and documenting one end-to-end model with evaluation metrics before applying."
+        }
+      ],
+      "missing_keywords": [
+        "scikit-learn",
+        "logistic regression",
+        "gradient boosting",
+        "predictive modeling",
+        "model evaluation",
+        "healthcare analytics"
+      ],
+      "worth_applying": true,
+      "deadline": "",
+      "work_authorization": {
+        "requirement": "CPT/OPT welcome",
+        "evidence": "Must be authorized to work in the US; CPT accepted.",
+        "ok_for_candidate": true,
+        "note": "Your F-1 CPT eligibility fits the posting, which explicitly accepts CPT."
+      }
+    },
+    "documents": {
+      "summary": "Information Science sophomore with a Statistics minor and coursework in Probability & Statistics and Intro to Machine Learning. Has cleaned and merged survey data from 1,200 participants in Python (pandas) for a research lab, built Tableau and R reporting for weekly meetings, and works SQL into coursework and a course-planning web app. Most excited about analytics work in healthcare; available for Summer 2027 on CPT.",
+      "experience": [
+        {
+          "company": "Springfield State University Social Cognition Lab",
+          "title": "Undergraduate Research Assistant",
+          "location": "Springfield, IL",
+          "start": "Jan 2026",
+          "end": "Present",
+          "bullets": [
+            "Cleaned and merged survey data from 1,200 participants in Python (pandas), documenting every exclusion rule",
+            "Built R scripts and charts for weekly lab meetings, replacing a manual Excel process that took about 3 hours a week",
+            "Present results to lab members weekly, turning cleaned data into summaries non-technical readers can follow"
+          ]
+        },
+        {
+          "company": "Springfield State University IT Help Desk",
+          "title": "Student Technician",
+          "location": "Springfield, IL",
+          "start": "Sep 2025",
+          "end": "Present",
+          "bullets": [
+            "Resolve 40+ walk-in and ticket requests a week (accounts, Wi-Fi, laptop setup) with a 95% first-contact resolution rate",
+            "Wrote 12 how-to articles for the help desk knowledge base, cutting repeat password-reset tickets by about a quarter in one semester"
+          ]
+        }
+      ],
+      "projects": [
+        {
+          "name": "Bike-share demand dashboard",
+          "tech": [
+            "Python",
+            "pandas",
+            "Tableau"
+          ],
+          "bullets": [
+            "Analyzed 2 years of public bike-share trips and built a Tableau dashboard showing demand by station, hour and weather"
+          ]
+        },
+        {
+          "name": "ClassPath",
+          "tech": [
+            "Python",
+            "Flask",
+            "SQLite",
+            "JavaScript"
+          ],
+          "bullets": [
+            "Built a course-planning web app that checks prerequisites and degree requirements; about 150 classmates used it to plan Fall 2026",
+            "Scraped the public course catalog into SQLite and wrote tests for the prerequisite checker"
+          ]
+        }
+      ],
+      "education": [
+        {
+          "school": "Springfield State University (sample school)",
+          "degree": "BS",
+          "field": "Information Science, minor in Statistics",
+          "start": "Aug 2025",
+          "end": "Expected May 2029",
+          "gpa": "3.7",
+          "highlights": [
+            "Relevant coursework: Probability & Statistics, Intro to Machine Learning, Database Systems, Data Structures"
+          ]
+        }
+      ],
+      "skills": [
+        {
+          "label": "Languages",
+          "items": [
+            "Python",
+            "SQL",
+            "R",
+            "JavaScript"
+          ]
+        },
+        {
+          "label": "Tools",
+          "items": [
+            "pandas",
+            "Tableau",
+            "Jupyter",
+            "Git",
+            "Excel",
+            "Flask"
+          ]
+        },
+        {
+          "label": "Spoken Languages",
+          "items": [
+            "English",
+            "Spanish"
+          ]
+        }
+      ],
+      "cover_letter": {
+        "greeting": "Dear Hiring Manager,",
+        "paragraphs": [
+          "The Data Science Intern role at Northmere Health Analytics asks for someone who can explore appointment data and then explain what it means to clinical partners — that combination of messy-data cleanup and plain-language reporting is what I've spent the past year doing. Healthcare analytics is where I most want to apply it, and predicting patient no-shows and staffing needs is a problem I'd like to work on.",
+          "In the Springfield State University Social Cognition Lab, I cleaned and merged survey data from 1,200 participants in Python (pandas), documenting every exclusion rule along the way. I also built R scripts and charts for weekly lab meetings, replacing a manual Excel process that took about 3 hours a week — the same move from raw data to a summary someone else can act on.",
+          "Probability & Statistics and Intro to Machine Learning are on my transcript, and I use SQL in Database Systems and in ClassPath, a course-planning app I built on SQLite where about 150 classmates planned their Fall 2026 schedules. A separate project had me analyzing 2 years of public bike-share trips into a Tableau dashboard of demand by station, hour and weather.",
+          "I'm available for Summer 2027 and can work on CPT through my international office, which the posting notes is accepted. I'd welcome the chance to interview."
+        ],
+        "closing": "Sincerely,"
+      },
+      "notes": [
+        "Put the Social Cognition Lab first: cleaning/merging 1,200-participant survey data in pandas and producing weekly charts map directly to the posting's data-exploration and clear-summary responsibilities.",
+        "Left scikit-learn, logistic regression and gradient boosting out of skills and bullets — the profile doesn't show them; Model building is covered honestly through the Intro to Machine Learning coursework.",
+        "Kept the IT Help Desk role but shortened it; the 12 knowledge-base articles and 95% first-contact resolution support the 'communicating with partners' need.",
+        "Ordered projects by relevance: the Tableau dashboard (data exploration and reporting) before ClassPath (SQL, testing).",
+        "Stated work authorization exactly as the profile has it (F-1, CPT available) rather than claiming general US work authorization.",
+        "Did not claim relocation to New York or semester availability, since neither is in the candidate record.",
+        "Education highlights list only the courses in the profile."
+      ]
+    },
+    "deadline": "2026-11-10"
+  },
+  {
+    "id": "5560f0d5c5",
+    "created_at": "2026-10-21T20:11:03",
+    "url": "",
+    "title": "Software Engineering Intern (Remote)",
+    "company": "Brightquill Learning (sample employer)",
+    "location": "Remote, US",
+    "description": "Brightquill Learning (a sample employer for this demo) builds study tools for community colleges. We're hiring remote Software Engineering Interns for Summer 2027.\n\nYou'll work on our Python/Flask backend and React front end, write tests, and ship features used by 30,000 students.\n\nRequirements: data structures and one programming language (Python preferred); a project you built and can talk about; comfortable with Git. Nice to have: SQL, JavaScript. Interns are paid $28/hour. We do not sponsor H-1B visas but welcome students with CPT.",
+    "status": "Applied",
+    "applied_date": "2026-10-12",
+    "notes": "",
+    "fit": {
+      "title": "Software Engineering Intern (Remote)",
+      "company": "Brightquill Learning (sample employer)",
+      "location": "Remote",
+      "score": 80,
+      "verdict": "Good fit",
+      "summary": "Jordan's profile lines up well with this posting: hands-on Python/Flask and SQLite work in ClassPath, a Data Structures course, Git use, and tests written for a real project. The main stretch is the React front end — JavaScript is listed only at beginner level and React doesn't appear anywhere in the profile. It's a good internship to send, though it leans more software-engineering than the logistics/healthcare analytics work Jordan is most excited about.",
+      "matched": [
+        {
+          "requirement": "Data structures coursework",
+          "evidence": "Courses include \"Data Structures\"; majoring in Information Science with a Statistics minor (GPA 3.7)"
+        },
+        {
+          "requirement": "One programming language, Python preferred",
+          "evidence": "Python listed as intermediate; used pandas to clean and merge survey data from 1,200 participants and built ClassPath in Python"
+        },
+        {
+          "requirement": "Python/Flask backend experience",
+          "evidence": "ClassPath built with Python, Flask, SQLite, JavaScript — a course-planning web app used by about 150 classmates"
+        },
+        {
+          "requirement": "A project you built and can talk about",
+          "evidence": "ClassPath (prerequisite/degree checker) and a bike-share demand dashboard in Python, pandas and Tableau"
+        },
+        {
+          "requirement": "Comfortable with Git",
+          "evidence": "Git listed in tools; GitHub link provided on the profile"
+        },
+        {
+          "requirement": "Write tests",
+          "evidence": "Wrote tests for the ClassPath prerequisite checker"
+        },
+        {
+          "requirement": "Nice to have: SQL",
+          "evidence": "SQL intermediate, Database Systems course, scraped the public course catalog into SQLite"
+        },
+        {
+          "requirement": "Nice to have: JavaScript",
+          "evidence": "JavaScript (beginner) used in ClassPath; also wrote how-to articles and built a Flask-backed app end to end"
+        }
+      ],
+      "gaps": [
+        {
+          "requirement": "React front end",
+          "severity": "medium",
+          "advice": "React isn't in the profile. Rebuild one ClassPath view in React (or add a small React component) before applying, and be ready to say you know vanilla JS and are ramping quickly on React."
+        },
+        {
+          "requirement": "Depth in JavaScript beyond beginner",
+          "severity": "medium",
+          "advice": "List the specific JS work done in ClassPath (DOM, fetch calls, form validation) rather than the self-rated 'beginner', so the front-end gap reads as smaller."
+        },
+        {
+          "requirement": "Professional software engineering experience",
+          "severity": "low",
+          "advice": "Frame the IT help desk and lab RA roles as engineering-adjacent: debugging, documentation, scripted automation that saved ~3 hours a week."
+        },
+        {
+          "requirement": "Role alignment with stated interests",
+          "severity": "low",
+          "advice": "This is edtech SWE, not logistics/healthcare analytics. Note the transferable SQL/Python/backend skills and keep it as a parallel track alongside the Harborline analytics process."
+        }
+      ],
+      "missing_keywords": [
+        "React",
+        "REST API",
+        "CI/CD",
+        "Docker",
+        "agile"
+      ],
+      "worth_applying": true,
+      "deadline": "",
+      "work_authorization": {
+        "requirement": "CPT/OPT welcome",
+        "evidence": "We do not sponsor H-1B visas but welcome students with CPT.",
+        "ok_for_candidate": true,
+        "note": "Your international office approves CPT for summer internships, so this posting's CPT welcome fits — but confirm with them before accepting, and expect no long-term H-1B path with this employer."
+      }
+    },
+    "documents": {
+      "summary": "Sophomore in Information Science (Statistics minor) who builds with Python and Flask and has shipped a course-planning app used by about 150 classmates. Comfortable with Git, SQL and JavaScript, and used to explaining technical fixes to 40+ people a week.",
+      "experience": [
+        {
+          "company": "Springfield State University Social Cognition Lab",
+          "title": "Undergraduate Research Assistant",
+          "location": "Springfield, IL",
+          "start": "Jan 2026",
+          "end": "Present",
+          "bullets": [
+            "Cleaned and merged survey data from 1,200 participants in Python (pandas), documenting every exclusion rule",
+            "Built R scripts and charts for weekly lab meetings, replacing a manual Excel process that took about 3 hours a week"
+          ]
+        },
+        {
+          "company": "Springfield State University IT Help Desk",
+          "title": "Student Technician",
+          "location": "Springfield, IL",
+          "start": "Sep 2025",
+          "end": "Present",
+          "bullets": [
+            "Resolve 40+ walk-in and ticket requests a week (accounts, Wi-Fi, laptop setup) with a 95% first-contact resolution rate",
+            "Wrote 12 how-to articles for the help desk knowledge base, cutting repeat password-reset tickets by about a quarter in one semester"
+          ]
+        }
+      ],
+      "projects": [
+        {
+          "name": "ClassPath",
+          "tech": [
+            "Python",
+            "Flask",
+            "SQLite",
+            "JavaScript"
+          ],
+          "bullets": [
+            "Built a course-planning web app that checks prerequisites and degree requirements; about 150 classmates used it to plan Fall 2026",
+            "Scraped the public course catalog into SQLite and wrote tests for the prerequisite checker"
+          ],
+          "link": ""
+        },
+        {
+          "name": "Bike-share demand dashboard",
+          "tech": [
+            "Python",
+            "pandas",
+            "Tableau"
+          ],
+          "bullets": [
+            "Analyzed 2 years of public bike-share trips and built a Tableau dashboard showing demand by station, hour and weather"
+          ],
+          "link": ""
+        }
+      ],
+      "education": [
+        {
+          "school": "Springfield State University (sample school)",
+          "degree": "BS",
+          "field": "Information Science, minor in Statistics",
+          "start": "Aug 2025",
+          "end": "Expected May 2029",
+          "gpa": "3.7",
+          "highlights": [
+            "Coursework: Data Structures, Database Systems, Probability & Statistics, Intro to Machine Learning"
+          ]
+        }
+      ],
+      "skills": [
+        {
+          "label": "Languages",
+          "items": [
+            "Python",
+            "SQL",
+            "JavaScript",
+            "R"
+          ]
+        },
+        {
+          "label": "Frameworks & Tools",
+          "items": [
+            "Flask",
+            "Git",
+            "SQLite",
+            "Jupyter",
+            "Excel",
+            "Tableau"
+          ]
+        },
+        {
+          "label": "Spoken Languages",
+          "items": [
+            "English",
+            "Spanish"
+          ]
+        }
+      ],
+      "cover_letter": {
+        "greeting": "Dear Hiring Manager,",
+        "paragraphs": [
+          "I'd like to intern on Brightquill Learning's engineering team for Summer 2027. The stack in your posting is one I already work in: I built ClassPath, a course-planning web app, on Python and Flask, and about 150 classmates used it to plan Fall 2026.",
+          "ClassPath is also where I learned to write tests that matter. I scraped the public course catalog into SQLite and wrote tests for the prerequisite checker, so a wrong prerequisite rule would fail loudly instead of quietly misleading a student. On the data side, I cleaned and merged survey data from 1,200 participants in Python (pandas) as an undergraduate research assistant, documenting every exclusion rule so the lab could retrace the numbers. Between that and two semesters on the IT help desk resolving 40+ requests a week, I'm used to debugging in public and explaining the fix in plain language.",
+          "SQL and JavaScript are both on my list — SQLite queries back ClassPath's catalog and I wrote its front end in JavaScript — and I work in Git for all of it. Your posting mentions shipping features used by 30,000 students, which is exactly the jump in scale I want from an internship.",
+          "I'm on an F-1 visa, and my international office approves CPT for summer internships. I'd be glad to walk through ClassPath or the bike-share dashboard in an interview."
+        ],
+        "closing": "Sincerely,"
+      },
+      "notes": [
+        "Led with ClassPath because the posting's core stack is Python/Flask plus tests, and it is the candidate's only shipped-for-others project.",
+        "Reordered experience so the research assistant role (Python/pandas, documented process) comes before the help desk, since it maps better to backend/data work; kept both help desk bullets because they show debugging and writing for users.",
+        "Included the bike-share dashboard as a second project for the SQL/data angle but gave it one bullet to keep the resume to one page; dropped the Data Science Club activity (no schema slot, least relevant to a backend role).",
+        "Restated only facts from the profile in the cover letter; mentioned CPT because the posting says it welcomes CPT and does not sponsor H-1B.",
+        "Skills list uses only tools named in the profile; no levels shown so the resume reads cleaner."
+      ]
+    },
+    "deadline": "2026-11-02"
+  },
+  {
+    "id": "91b8476f3a",
+    "created_at": "2026-10-21T20:10:37",
+    "url": "",
+    "title": "Data Analyst Intern, Summer 2027",
+    "company": "Harborline Logistics (sample employer)",
+    "location": "Chicago, IL (hybrid)",
+    "description": "Harborline Logistics (a sample employer for this demo) moves goods for regional retailers. Our analytics team is hiring a Data Analyst Intern for Summer 2027 in Chicago (hybrid, 3 days in office).\n\nWhat you'll do: build SQL queries and dashboards that track on-time delivery and warehouse throughput; clean shipment data from several systems; present findings to operations managers every two weeks.\n\nWhat we're looking for: currently pursuing a degree in data science, statistics, information science, business analytics or similar; SQL and Python or R; experience with Tableau or Power BI is a plus; clear communicator. Open to students on F-1 with CPT. Paid: $25/hour.",
+    "status": "Interviewing",
+    "applied_date": "2026-10-07",
+    "notes": "",
+    "fit": {
+      "title": "Data Analyst Intern, Summer 2027",
+      "company": "Harborline Logistics (sample employer)",
+      "location": "Chicago (hybrid, 3 days in office)",
+      "score": 84,
+      "verdict": "Strong fit",
+      "summary": "Jordan matches the posting's core ask almost line for line: an Information Science major with a Statistics minor, SQL and Python, Tableau dashboard experience, and a track record of cleaning messy multi-source data (1,200-participant survey merges) and presenting results weekly. The role is paid, Chicago-based, Summer 2027, and explicitly CPT-friendly, which lines up with all of Jordan's stated targets. The main soft spot is domain context — no logistics/warehouse or business-stakeholder experience yet — but that's a framing problem, not a disqualifier for an internship.",
+      "matched": [
+        {
+          "requirement": "Pursuing a degree in data science, statistics, information science, business analytics or similar",
+          "evidence": "BS in Information Science, minor in Statistics, Springfield State University, expected May 2029, GPA 3.7"
+        },
+        {
+          "requirement": "SQL",
+          "evidence": "SQL listed at intermediate level; coursework in Database Systems; ClassPath project scraped the public course catalog into SQLite and wrote tests for the prerequisite checker"
+        },
+        {
+          "requirement": "Python or R",
+          "evidence": "Python at intermediate level; cleaned and merged survey data from 1,200 participants in Python (pandas), documenting every exclusion rule; also built R scripts for weekly lab meetings"
+        },
+        {
+          "requirement": "Experience with Tableau or Power BI is a plus",
+          "evidence": "Built a Tableau dashboard analyzing 2 years of public bike-share trips showing demand by station, hour and weather"
+        },
+        {
+          "requirement": "Clean shipment data from several systems",
+          "evidence": "Merged survey data from multiple sources in pandas and documented every exclusion rule; also wrote 12 help-desk knowledge base articles standardizing repeat processes"
+        },
+        {
+          "requirement": "Build SQL queries and dashboards",
+          "evidence": "ClassPath: Flask + SQLite backend with prerequisite-checking queries; Bike-share demand dashboard in pandas and Tableau"
+        },
+        {
+          "requirement": "Present findings to stakeholders",
+          "evidence": "Built R scripts and charts for weekly lab meetings, replacing a manual Excel process that took about 3 hours a week; organized a 60-person beginner Python workshop as Data Science Club treasurer"
+        },
+        {
+          "requirement": "Clear communicator",
+          "evidence": "Resolves 40+ walk-in and ticket requests a week with a 95% first-contact resolution rate; wrote 12 how-to knowledge base articles that cut repeat password-reset tickets by about a quarter"
+        },
+        {
+          "requirement": "Summer 2027 internship timing",
+          "evidence": "Candidate's target start date is Summer 2027"
+        },
+        {
+          "requirement": "Open to students on F-1 with CPT",
+          "evidence": "Candidate is on F-1 and the international office approves CPT for summer internships"
+        },
+        {
+          "requirement": "Paid internship",
+          "evidence": "$25/hour; candidate prefers paid internships"
+        }
+      ],
+      "gaps": [
+        {
+          "requirement": "Logistics / supply-chain domain familiarity (on-time delivery, warehouse throughput, shipment data)",
+          "severity": "medium",
+          "advice": "No logistics experience in the profile. Before applying, do a short self-directed project on a public shipment or delivery dataset (e.g., build an on-time-delivery rate view by carrier/region) and mention it in the cover letter so the gap reads as initiative rather than absence."
+        },
+        {
+          "requirement": "Business-stakeholder dashboarding (dashboards operations managers actually use)",
+          "severity": "low",
+          "advice": "Frame the bike-share dashboard and the lab charting work in stakeholder terms: who used it, what decision it informed, how often it refreshed. That translates academic work into the operations-manager audience."
+        },
+        {
+          "requirement": "Tableau or Power BI depth",
+          "severity": "low",
+          "advice": "Tableau is listed as beginner and Power BI is absent. Given Tableau is only 'a plus' here, a few hours sharpening one dashboard (calculated fields, filters, a clean layout) is enough to speak credibly about it."
+        },
+        {
+          "requirement": "R proficiency",
+          "severity": "low",
+          "advice": "R is beginner level, but the posting accepts 'Python or R' and Python is the stronger of the two — lead with Python and mention R as a secondary tool."
+        },
+        {
+          "requirement": "Hybrid 3 days in office in Chicago",
+          "severity": "low",
+          "advice": "Candidate is based in Springfield, IL, so confirm summer housing and commute logistics before the interview; Chicago is already a stated target location, so this is planning rather than a mismatch."
+        }
+      ],
+      "missing_keywords": [
+        "Power BI",
+        "logistics",
+        "supply chain",
+        "warehouse throughput",
+        "on-time delivery",
+        "shipment data",
+        "operations stakeholders",
+        "business analytics"
+      ],
+      "worth_applying": true,
+      "deadline": "",
+      "work_authorization": {
+        "requirement": "CPT/OPT welcome",
+        "evidence": "Open to students on F-1 with CPT.",
+        "ok_for_candidate": true,
+        "note": "The posting explicitly welcomes F-1 students on CPT, which matches your situation — confirm with your international office that the summer dates and CPT paperwork line up once you have an offer."
+      }
+    },
+    "documents": {
+      "summary": "Information Science sophomore with a Statistics minor (3.7 GPA) who cleans and merges messy multi-source data in Python and SQL, then turns it into dashboards and charts that others use to decide. Built a Tableau dashboard of two years of bike-share trips and produces R charts and analysis for a weekly research lab meeting; supports 40+ users a week at a campus IT help desk.",
+      "experience": [
+        {
+          "company": "Springfield State University Social Cognition Lab",
+          "title": "Undergraduate Research Assistant",
+          "location": "Springfield, IL",
+          "start": "Jan 2026",
+          "end": "Present",
+          "bullets": [
+            "Clean and merge survey data from 1,200 participants in Python (pandas), documenting every exclusion rule",
+            "Built R scripts and charts for weekly lab meetings, replacing a manual Excel process that took about 3 hours a week",
+            "Present analysis and data-quality notes to the lab each week, flagging exclusions and data issues before results are discussed"
+          ]
+        },
+        {
+          "company": "Springfield State University IT Help Desk",
+          "title": "Student Technician",
+          "location": "Springfield, IL",
+          "start": "Sep 2025",
+          "end": "Present",
+          "bullets": [
+            "Wrote 12 how-to articles for the help desk knowledge base, cutting repeat password-reset tickets by about a quarter in one semester",
+            "Resolve 40+ walk-in and ticket requests a week (accounts, Wi-Fi, laptop setup) with a 95% first-contact resolution rate"
+          ]
+        }
+      ],
+      "projects": [
+        {
+          "name": "Bike-share demand dashboard",
+          "tech": [
+            "Python",
+            "pandas",
+            "Tableau"
+          ],
+          "bullets": [
+            "Analyzed 2 years of public bike-share trips and built a Tableau dashboard showing demand by station, hour and weather"
+          ],
+          "link": ""
+        },
+        {
+          "name": "ClassPath",
+          "tech": [
+            "Python",
+            "Flask",
+            "SQLite",
+            "JavaScript"
+          ],
+          "bullets": [
+            "Built a course-planning web app that checks prerequisites and degree requirements; about 150 classmates used it to plan Fall 2026",
+            "Scraped the public course catalog into SQLite and wrote tests for the prerequisite checker"
+          ],
+          "link": ""
+        }
+      ],
+      "education": [
+        {
+          "school": "Springfield State University (sample school)",
+          "degree": "BS",
+          "field": "Information Science, minor in Statistics",
+          "start": "Aug 2025",
+          "end": "Expected May 2029",
+          "gpa": "3.7",
+          "highlights": [
+            "Coursework: Data Structures, Database Systems, Probability & Statistics, Intro to Machine Learning"
+          ]
+        }
+      ],
+      "skills": [
+        {
+          "label": "Languages",
+          "items": [
+            "Python",
+            "SQL",
+            "R",
+            "JavaScript"
+          ]
+        },
+        {
+          "label": "Data & Visualization",
+          "items": [
+            "Tableau",
+            "pandas",
+            "Excel",
+            "Jupyter"
+          ]
+        },
+        {
+          "label": "Tools",
+          "items": [
+            "Git",
+            "Flask",
+            "SQLite"
+          ]
+        },
+        {
+          "label": "Spoken Languages",
+          "items": [
+            "English",
+            "Spanish"
+          ]
+        }
+      ],
+      "cover_letter": {
+        "greeting": "Dear Hiring Manager,",
+        "paragraphs": [
+          "On-time delivery and warehouse throughput are the numbers your operations managers run on, and the Summer 2027 Data Analyst Intern role is about making them visible and trustworthy. I'm an Information Science sophomore at Springfield State University with a Statistics minor, and most of what I do is take raw data from more than one source, clean it, and turn it into charts and dashboards people actually use.",
+          "Two pieces of evidence map onto what you've described. At the Social Cognition Lab I cleaned and merged survey data from 1,200 participants in Python (pandas), documenting every exclusion rule, then built R scripts and charts for weekly lab meetings, replacing a manual Excel process that took about 3 hours a week. That is the same clean-then-visualize cycle you'd apply to shipment data coming out of several systems. Separately, I analyzed 2 years of public bike-share trips and built a Tableau dashboard showing demand by station, hour and weather, which is close to the time-of-day and throughput questions your dashboards track.",
+          "On the communication side, I wrote 12 help desk knowledge-base articles that cut repeat password-reset tickets by about a quarter in one semester, and I resolve 40+ requests a week with a 95% first-contact resolution rate. The biweekly operations review you describe is a format I already work in, since I present at a weekly lab meeting.",
+          "I'm available for the hybrid Chicago schedule, and on my F-1 visa the international office approves CPT for summer internships. I'd welcome the chance to talk about helping Harborline's retail customers see their delivery performance clearly."
+        ],
+        "closing": "Sincerely,"
+      },
+      "notes": [
+        "Led with the Social Cognition Lab role because its data cleaning, Python/pandas and chart-building work matches the posting's shipment-data and dashboard duties; the help desk follows as evidence of clear written and verbal communication.",
+        "Put the bike-share Tableau dashboard first among projects since Tableau and demand-by-hour analysis map directly to on-time delivery and throughput dashboards; ClassPath kept to two bullets as supporting SQL/backend evidence.",
+        "Dropped the Data Science Club treasurer activity and the GitHub link label styling to keep the resume to one page; the schema has no activities section.",
+        "Included F-1/CPT eligibility in the close because the posting explicitly welcomes CPT students, and noted availability for the Chicago hybrid schedule.",
+        "No numbers, tools or achievements were added beyond the candidate profile."
+      ]
+    },
+    "events": [
+      {
+        "id": "c022be77",
+        "type": "oa",
+        "title": "SQL assessment (HackerRank)",
+        "date": "2026-10-15",
+        "time": "",
+        "notes": "",
+        "platform": "hackerrank",
+        "people": "",
+        "done": true,
+        "created_at": "2026-10-21T20:11:03"
+      },
+      {
+        "id": "e2a2e9c8",
+        "type": "interview",
+        "title": "Interview with the analytics manager",
+        "date": "2026-10-24",
+        "time": "14:00",
+        "notes": "",
+        "platform": "",
+        "people": "Dana Lee, Analytics Manager",
+        "done": false,
+        "created_at": "2026-10-21T20:11:03"
+      }
+    ]
+  }
+]

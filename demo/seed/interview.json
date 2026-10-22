@@ -1,0 +1,26 @@
+{
+  "messages": [
+    {
+      "role": "assistant",
+      "content": "Hi! I'm going to ask you some questions to build your profile. What are you studying, and what kind of internship are you hoping for?"
+    },
+    {
+      "role": "user",
+      "content": "I'm a sophomore in Information Science with a stats minor. I'd love a data analyst internship next summer, or software engineering if it's backend or web."
+    },
+    {
+      "role": "assistant",
+      "content": "Great. Tell me about any work or research you've done so far."
+    },
+    {
+      "role": "user",
+      "content": "I work at the campus IT help desk and I'm a research assistant in a psychology lab, where I clean survey data in Python and make charts in R."
+    }
+  ],
+  "section": "done",
+  "progress": 100,
+  "complete": true,
+  "resume_name": "",
+  "resume_text": "",
+  "research": []
+}

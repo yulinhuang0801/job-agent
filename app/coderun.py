@@ -220,6 +220,8 @@ def run(slug, code, max_tests=40):
         return {"ran": False, "reason": "No code yet."}
     if not looks_like_python(code):
         return {"ran": False, "reason": "Tests run only for Python answers. Other languages are graded by reading the code."}
+    if os.name == "nt":  # the test harness needs Unix time and memory limits
+        return {"ran": False, "reason": "Running tests needs macOS or Linux; on Windows your code is graded by reading it."}
     if _load() is None:
         ensure()
         return {"ran": False, "reason": "Downloading the LeetCode test cases (about 100 MB, once). Try again in a minute.", "downloading": True}

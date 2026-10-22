@@ -1,0 +1,163 @@
+{
+  "name": "Jordan Rivera",
+  "email": "jordan.rivera@example.edu",
+  "phone": "555-0142",
+  "location": "Springfield, IL",
+  "links": [
+    {
+      "label": "GitHub",
+      "url": "https://github.com/example-jordan"
+    }
+  ],
+  "summary": "Sophomore in Information Science with a Statistics minor who likes turning messy data into decisions. Has cleaned and analyzed survey data for a psychology lab, supports 40+ students a week at the campus IT help desk, and built a course-planning web app used by classmates.",
+  "targets": {
+    "roles": [
+      "Data analyst or software engineering internship (data analytics, data science, backend/web)"
+    ],
+    "industries": [
+      "Technology",
+      "Healthcare",
+      "Logistics"
+    ],
+    "locations": [
+      "Remote",
+      "Chicago, IL",
+      "New York, NY"
+    ],
+    "seniority": "Internship (sophomore)",
+    "work_authorization": "F-1 student; CPT available for summer internships",
+    "start_date": "Summer 2027",
+    "salary": "Paid internship preferred"
+  },
+  "education": [
+    {
+      "school": "Springfield State University (sample school)",
+      "degree": "BS",
+      "field": "Information Science, minor in Statistics",
+      "start": "Aug 2025",
+      "end": "Expected May 2029",
+      "gpa": "3.7",
+      "courses": [
+        "Data Structures",
+        "Database Systems",
+        "Probability & Statistics",
+        "Intro to Machine Learning"
+      ]
+    }
+  ],
+  "experience": [
+    {
+      "company": "Springfield State University IT Help Desk",
+      "title": "Student Technician",
+      "location": "Springfield, IL",
+      "start": "Sep 2025",
+      "end": "Present",
+      "bullets": [
+        "Resolve 40+ walk-in and ticket requests a week (accounts, Wi-Fi, laptop setup) with a 95% first-contact resolution rate",
+        "Wrote 12 how-to articles for the help desk knowledge base, cutting repeat password-reset tickets by about a quarter in one semester"
+      ]
+    },
+    {
+      "company": "Springfield State University Social Cognition Lab",
+      "title": "Undergraduate Research Assistant",
+      "location": "Springfield, IL",
+      "start": "Jan 2026",
+      "end": "Present",
+      "bullets": [
+        "Cleaned and merged survey data from 1,200 participants in Python (pandas), documenting every exclusion rule",
+        "Built R scripts and charts for weekly lab meetings, replacing a manual Excel process that took about 3 hours a week"
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "name": "ClassPath",
+      "tech": [
+        "Python",
+        "Flask",
+        "SQLite",
+        "JavaScript"
+      ],
+      "bullets": [
+        "Built a course-planning web app that checks prerequisites and degree requirements; about 150 classmates used it to plan Fall 2026",
+        "Scraped the public course catalog into SQLite and wrote tests for the prerequisite checker"
+      ]
+    },
+    {
+      "name": "Bike-share demand dashboard",
+      "tech": [
+        "Python",
+        "pandas",
+        "Tableau"
+      ],
+      "bullets": [
+        "Analyzed 2 years of public bike-share trips and built a Tableau dashboard showing demand by station, hour and weather"
+      ]
+    }
+  ],
+  "activities": [
+    {
+      "name": "Data Science Club",
+      "role": "Treasurer",
+      "bullets": [
+        "Manage a $3,000 budget and organized a 60-person beginner Python workshop"
+      ]
+    }
+  ],
+  "skills": {
+    "technical": [
+      {
+        "name": "Python",
+        "level": "intermediate"
+      },
+      {
+        "name": "SQL",
+        "level": "intermediate"
+      },
+      {
+        "name": "R",
+        "level": "beginner"
+      },
+      {
+        "name": "JavaScript",
+        "level": "beginner"
+      },
+      {
+        "name": "Tableau",
+        "level": "beginner"
+      }
+    ],
+    "tools": [
+      "Git",
+      "Excel",
+      "Jupyter",
+      "Flask"
+    ],
+    "spoken_languages": [
+      "English",
+      "Spanish"
+    ]
+  },
+  "evaluation": {
+    "readiness": "Ready for internship applications",
+    "strengths": [
+      "Real data-cleaning experience on a research team",
+      "A shipped project with users",
+      "Customer-facing support experience"
+    ],
+    "gaps": [
+      "No internship yet",
+      "Little experience with cloud tools or production code"
+    ],
+    "recommended_roles": [
+      "Data Analyst Intern",
+      "Business Intelligence Intern",
+      "Software Engineering Intern (backend/web)"
+    ],
+    "next_steps": [
+      "Finish 6 STAR stories",
+      "Take the SQL and Python skills check",
+      "Apply to 5 roles a week and reach out to 2 alumni a week"
+    ]
+  }
+}

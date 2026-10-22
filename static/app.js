@@ -256,6 +256,9 @@ function keyField(id, has, hint, emptyPlaceholder) {
 
 loaders.settings = async () => {
   settings = await api("/api/settings");
+  $("#demo-banner").classList.toggle("hidden", !settings.demo);
+  $("#welcome-card").classList.toggle("hidden", settings.has_key);
+  document.title = settings.demo ? "Job Agent · Demo" : "Job Agent";
   const known = KNOWN_MODELS.includes(settings.model);
   $("#model").value = known ? settings.model : "custom";
   $("#model-custom").value = known ? "" : settings.model;

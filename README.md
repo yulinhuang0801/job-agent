@@ -6,11 +6,23 @@ The AI runs on DeepSeek (OpenAI-compatible API), so it works from both the US an
 
 ## Run it
 
-```bash
-./run.sh
-```
+Job Agent runs on your own computer: your profile, stories and jobs stay in the `data` folder there. You need **Python 3.9 or newer** ([python.org/downloads](https://www.python.org/downloads/); on Windows tick "Add python.exe to PATH") and an AI key (step 3).
 
-Then open http://127.0.0.1:8000, go to **Settings** and paste your DeepSeek API key. The key is saved only in `data/settings.json` on this computer.
+1. **Download it:** on GitHub, **Code → Download ZIP**, then unzip it (or `git clone https://github.com/yulinhuang0801/job-agent.git`).
+2. **Start it:**
+   - **Mac:** double-click **Start Job Agent.command**. The first time, macOS may say it's from an unidentified developer: right-click it → **Open** → **Open**.
+   - **Windows:** double-click **Start Job Agent.bat**.
+   - **Terminal (Mac/Linux):** `./run.sh`
+
+   The first start installs what it needs (a minute or two), then opens http://127.0.0.1:8000 in your browser. Keep the window open while you use it; close it (or press Ctrl+C) to stop.
+3. **Add an AI key:** Settings shows the steps. Sign up at [platform.deepseek.com](https://platform.deepseek.com), add a few dollars of credit, create an API key, paste it and press **Save settings**. The key is saved only in `data/settings.json` on your computer.
+4. **Start with Prepare → About you**: chat or upload your resume, then **Build my profile**.
+
+To update, download the new version and copy your old `data` folder into it. On Windows, coding answers in the skills check are graded by reading the code (running the tests needs macOS or Linux).
+
+### Show it to someone: the demo
+
+`./demo.sh` (or double-click **Start Demo.command**) starts a second copy at http://127.0.0.1:8001 with **Jordan Rivera**, a made-up sample student: a profile, seven graded stories, three sample employers with fit checks, tailored resumes and cover letters, an interview on the calendar and two contacts. A banner says it's a demo. Your own data isn't shown or changed, and only your DeepSeek key (and backup AI key) is borrowed so the AI works. The job database is copied without your alert emails. On start it scores real postings for Jordan (Today's matches) and writes the lead mentor's plan, so give it a minute or two. Every start is fresh. To change the sample student, edit `demo/source.json` and run `.venv/bin/python demo/build_seed.py` (uses your key to write the grades and documents).
 
 Tests:
 - `bash tests/run_smoke.sh` runs every smoke test with a fake model, so it needs no key.
@@ -124,6 +136,7 @@ Old links like `#tracker` or `#mentors` still work.
 | `app/memory.py` | Shared memory: facts, activity log, pinned profile fields |
 | `app/profile_merge.py` | Safe profile updates: AI proposes a patch, code applies it without deleting or overwriting edits |
 | `app/mentors.py` | Lead mentor (daily plan, progress snapshot) and the behavioral, technical and resume coaches |
+| `demo/` | The demo's sample student (`source.json`), the AI-written seed (`seed/`), and the scripts that build and start it |
 | `static/matches.js` | Home → Today's matches card |
 | `static/editor.js` | VS Code (Monaco) code editor for the Skills check, with a basic fallback |
 | `app/db.py` | Local firm and job database (SQLite): schema, search with filters and counts |

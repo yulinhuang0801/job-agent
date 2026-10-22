@@ -1,0 +1,558 @@
+{
+  "plan": [
+    "about_me",
+    "why_field",
+    "teamwork",
+    "conflict",
+    "failure",
+    "success",
+    "weakness"
+  ],
+  "messages": [
+    {
+      "role": "assistant",
+      "content": "Let's prepare your behavioral answers. Tell me about yourself.",
+      "competency": "about_me"
+    }
+  ],
+  "stories": {
+    "about_me": {
+      "competency": "about_me",
+      "question": "Tell me about yourself.",
+      "followups": 0,
+      "status": "done",
+      "title": "",
+      "situation": "",
+      "task": "",
+      "action": "",
+      "result": "",
+      "reflection": "",
+      "answer": "I'm a sophomore in Information Science with a Statistics minor at Springfield State. I got into data through my research job: I clean and merge survey data for a psychology lab, about 1,200 participants so far, and I replaced a manual Excel report with R scripts that save the lab around three hours a week. I also work at the IT help desk, which taught me to explain technical things simply. Outside class I built ClassPath, a course-planning app about 150 classmates used. I'm looking for a data analyst internship where I can work on real business questions.",
+      "missing": [],
+      "quality": 4,
+      "notes": "",
+      "grade": {
+        "version": "stories-v2",
+        "dims": [
+          {
+            "key": "relevance",
+            "label": "Answers the question",
+            "score": 4,
+            "quote": "I'm a sophomore in Information Science with a Statistics minor at Springfield State.",
+            "why": "Opens directly with who they are and what they study."
+          },
+          {
+            "key": "specifics",
+            "label": "Specific evidence",
+            "score": 4,
+            "quote": "about 1,200 participants so far, and I replaced a manual Excel report with R scripts that save the lab around three hours a week",
+            "why": "Concrete numbers and named tools back each claim."
+          },
+          {
+            "key": "structure",
+            "label": "Clear structure",
+            "score": 3,
+            "quote": "I got into data through my research job",
+            "why": "Clear background-to-spark-to-skills flow, but the spark is thin and the close is brief."
+          },
+          {
+            "key": "tailoring",
+            "label": "Personal and tailored",
+            "score": 3,
+            "quote": "I'm looking for a data analyst internship where I can work on real business questions.",
+            "why": "Clearly theirs and points at the target role, though the link to business analytics stays general."
+          }
+        ],
+        "stars": 4,
+        "total": 18,
+        "max": 20,
+        "top_fix": "Make the spark concrete: name the specific person or moment that drew you to data, then tie it to the analyst internship.",
+        "words": 102,
+        "hash": "640629b9ed19",
+        "competencies": [
+          {
+            "name": "Technology",
+            "level": 4,
+            "level_name": "Advanced",
+            "quote": "I replaced a manual Excel report with R scripts that save the lab around three hours a week"
+          },
+          {
+            "name": "Communication",
+            "level": 3,
+            "level_name": "Intermediate",
+            "quote": "I also work at the IT help desk, which taught me to explain technical things simply."
+          }
+        ]
+      }
+    },
+    "why_field": {
+      "competency": "why_field",
+      "question": "Why do you want to work in this field, and in this kind of role?",
+      "followups": 0,
+      "status": "done",
+      "title": "",
+      "situation": "",
+      "task": "",
+      "action": "",
+      "result": "",
+      "reflection": "",
+      "answer": "I like the moment when a messy dataset turns into a clear answer. In the lab, our weekly report used to take three hours of copying numbers into Excel; once I scripted it, the team spent that time discussing results instead. I want a role where that kind of work helps a business decide something, and analytics lets me use both my programming and my statistics.",
+      "missing": [],
+      "quality": 4,
+      "notes": "",
+      "grade": {
+        "version": "stories-v2",
+        "dims": [
+          {
+            "key": "relevance",
+            "label": "Answers the question",
+            "score": 4,
+            "quote": "I like the moment when a messy dataset turns into a clear answer.",
+            "why": "Answers the why directly in the first sentence."
+          },
+          {
+            "key": "specifics",
+            "label": "Specific evidence",
+            "score": 3,
+            "quote": "our weekly report used to take three hours of copying numbers into Excel; once I scripted it",
+            "why": "One specific lab example with a time figure, but only one."
+          },
+          {
+            "key": "structure",
+            "label": "Clear structure",
+            "score": 3,
+            "quote": "I want a role where that kind of work helps a business decide something",
+            "why": "A clear reason with support, but only one reason rather than two or three."
+          },
+          {
+            "key": "tailoring",
+            "label": "Personal and tailored",
+            "score": 3,
+            "quote": "analytics lets me use both my programming and my statistics",
+            "why": "Clearly theirs and linked to analytics, though not to a specific employer or role."
+          }
+        ],
+        "stars": 4,
+        "total": 16,
+        "max": 20,
+        "top_fix": "Add a second and third distinct reason, each anchored in a different real experience (e.g., the help desk or ClassPath).",
+        "words": 66,
+        "hash": "45543b78350f",
+        "competencies": [
+          {
+            "name": "Critical thinking",
+            "level": 3,
+            "level_name": "Intermediate",
+            "quote": "I like the moment when a messy dataset turns into a clear answer."
+          },
+          {
+            "name": "Technology",
+            "level": 3,
+            "level_name": "Intermediate",
+            "quote": "once I scripted it, the team spent that time discussing results instead"
+          }
+        ]
+      }
+    },
+    "teamwork": {
+      "competency": "teamwork",
+      "question": "Tell me about a time you worked well in a team or took on a leadership role.",
+      "followups": 0,
+      "status": "done",
+      "title": "Running the club's first Python workshop",
+      "situation": "Our Data Science Club had never run a beginner workshop, and 60 students signed up, far more than the 20 we planned for.",
+      "task": "As treasurer I was asked to make the budget work and help the three officers run it.",
+      "action": "I moved us to a bigger room the department lent for free, split the attendees into tables with one officer each, and wrote a one-page setup guide so we didn't lose the first half hour to installs. I also asked two senior members to float between tables.",
+      "result": "All 60 students finished the first notebook, we stayed $200 under budget, and 14 of them joined the club afterward.",
+      "reflection": "I learned to plan for the problem we'd actually have (installs), not the one on paper, and to ask for help early.",
+      "answer": "",
+      "missing": [],
+      "quality": 5,
+      "notes": "",
+      "grade": {
+        "version": "stories-v2",
+        "dims": [
+          {
+            "key": "situation",
+            "label": "Situation & stakes",
+            "score": 4,
+            "quote": "60 students signed up, far more than the 20 we planned for",
+            "why": "Specific setting with concrete stakes (60 vs. 20)."
+          },
+          {
+            "key": "action",
+            "label": "Your actions",
+            "score": 4,
+            "quote": "I moved us to a bigger room the department lent for free, split the attendees into tables with one officer each",
+            "why": "Multiple specific personal steps including a decision and its reason."
+          },
+          {
+            "key": "result",
+            "label": "Result",
+            "score": 4,
+            "quote": "All 60 students finished the first notebook, we stayed $200 under budget, and 14 of them joined the club afterward.",
+            "why": "Measurable outcomes tied back to the goal."
+          },
+          {
+            "key": "reflection",
+            "label": "Reflection",
+            "score": 3,
+            "quote": "I learned to plan for the problem we'd actually have (installs), not the one on paper",
+            "why": "A specific lesson, but no later application or what they'd change."
+          },
+          {
+            "key": "fit",
+            "label": "Answers the question",
+            "score": 4,
+            "quote": "As treasurer I was asked to make the budget work and help the three officers run it.",
+            "why": "Shows both their specific role and coordination, exactly what the question tests."
+          }
+        ],
+        "stars": 5,
+        "total": 27,
+        "max": 28,
+        "top_fix": "Add how you used the 'plan for the real problem' lesson on a later project to lift reflection to a 4.",
+        "words": 137,
+        "hash": "893fe70e7b4a",
+        "competencies": [
+          {
+            "name": "Leadership",
+            "level": 4,
+            "level_name": "Advanced",
+            "quote": "I moved us to a bigger room the department lent for free, split the attendees into tables with one officer each"
+          },
+          {
+            "name": "Teamwork",
+            "level": 4,
+            "level_name": "Advanced",
+            "quote": "I also asked two senior members to float between tables."
+          },
+          {
+            "name": "Professionalism",
+            "level": 3,
+            "level_name": "Intermediate",
+            "quote": "we stayed $200 under budget"
+          }
+        ]
+      }
+    },
+    "conflict": {
+      "competency": "conflict",
+      "question": "Tell me about a time you disagreed with a teammate, manager or professor. How did you handle it?",
+      "followups": 0,
+      "status": "done",
+      "title": "Disagreeing about excluding survey responses",
+      "situation": "In the lab, a graduate student wanted to drop every participant who failed one attention check, which would have removed almost 20% of our data.",
+      "task": "I was preparing the cleaned dataset and thought the rule was too strict for our study.",
+      "action": "Instead of arguing in the meeting, I ran the analysis both ways and showed that results held with a two-check rule while keeping 150 more participants. I brought both versions to our PI and let the data make the case.",
+      "result": "The lab adopted the two-check rule and now uses my comparison script for every new study.",
+      "reflection": "Showing evidence worked better than debating opinions, and it kept the relationship good.",
+      "answer": "",
+      "missing": [],
+      "quality": 5,
+      "notes": "",
+      "grade": {
+        "version": "stories-v2",
+        "dims": [
+          {
+            "key": "situation",
+            "label": "Situation & stakes",
+            "score": 4,
+            "quote": "a graduate student wanted to drop every participant who failed one attention check, which would have removed almost 20% of our data",
+            "why": "Specific disagreement with concrete stakes (20% of data)."
+          },
+          {
+            "key": "action",
+            "label": "Your actions",
+            "score": 4,
+            "quote": "I ran the analysis both ways and showed that results held with a two-check rule while keeping 150 more participants.",
+            "why": "Specific steps with a deliberate decision and reason."
+          },
+          {
+            "key": "result",
+            "label": "Result",
+            "score": 4,
+            "quote": "The lab adopted the two-check rule and now uses my comparison script for every new study.",
+            "why": "Concrete outcome plus lasting adoption by others."
+          },
+          {
+            "key": "reflection",
+            "label": "Reflection",
+            "score": 3,
+            "quote": "Showing evidence worked better than debating opinions, and it kept the relationship good.",
+            "why": "A specific lesson, but no later application or what they'd change."
+          },
+          {
+            "key": "fit",
+            "label": "Answers the question",
+            "score": 4,
+            "quote": "Instead of arguing in the meeting, I ran the analysis both ways",
+            "why": "Shows exactly how they raised it, listened to data, and preserved the relationship."
+          }
+        ],
+        "stars": 5,
+        "total": 27,
+        "max": 28,
+        "top_fix": "Add a later moment where you used the 'bring evidence, not opinions' approach to push reflection to a 4.",
+        "words": 117,
+        "hash": "ca2fc36f63e8",
+        "competencies": [
+          {
+            "name": "Critical thinking",
+            "level": 4,
+            "level_name": "Advanced",
+            "quote": "I ran the analysis both ways and showed that results held with a two-check rule while keeping 150 more participants."
+          },
+          {
+            "name": "Communication",
+            "level": 4,
+            "level_name": "Advanced",
+            "quote": "I brought both versions to our PI and let the data make the case."
+          },
+          {
+            "name": "Teamwork",
+            "level": 3,
+            "level_name": "Intermediate",
+            "quote": "it kept the relationship good"
+          }
+        ]
+      }
+    },
+    "failure": {
+      "competency": "failure",
+      "question": "Tell me about a time you failed or made a mistake. What happened?",
+      "followups": 0,
+      "status": "done",
+      "title": "Breaking ClassPath the week before registration",
+      "situation": "Five days before Fall registration I pushed an update to ClassPath that broke the prerequisite checker for a third of the courses.",
+      "task": "About 150 classmates were relying on it, and I was the only developer.",
+      "action": "I rolled back within an hour, posted a note to users, then wrote tests for every prerequisite pattern in the catalog before re-releasing the fix two days later.",
+      "result": "The fixed version had no further errors through registration.",
+      "reflection": "I now write tests before changing anything people depend on, and I release small changes instead of big ones.",
+      "answer": "",
+      "missing": [],
+      "quality": 5,
+      "notes": "",
+      "grade": {
+        "version": "stories-v2",
+        "dims": [
+          {
+            "key": "situation",
+            "label": "Situation & stakes",
+            "score": 4,
+            "quote": "Five days before Fall registration I pushed an update to ClassPath that broke the prerequisite checker for a third of the courses.",
+            "why": "Specific setting with concrete stakes and timing."
+          },
+          {
+            "key": "action",
+            "label": "Your actions",
+            "score": 4,
+            "quote": "I rolled back within an hour, posted a note to users, then wrote tests for every prerequisite pattern",
+            "why": "Specific personal steps including a decision and reason."
+          },
+          {
+            "key": "result",
+            "label": "Result",
+            "score": 3,
+            "quote": "The fixed version had no further errors through registration.",
+            "why": "Concrete outcome, but no number or before/after measure."
+          },
+          {
+            "key": "reflection",
+            "label": "Reflection",
+            "score": 4,
+            "quote": "I now write tests before changing anything people depend on, and I release small changes instead of big ones.",
+            "why": "Specific lesson plus the concrete change they now make."
+          },
+          {
+            "key": "fit",
+            "label": "Answers the question",
+            "score": 4,
+            "quote": "I rolled back within an hour, posted a note to users",
+            "why": "A real failure owned without blame, with the response shown."
+          }
+        ],
+        "stars": 5,
+        "total": 26,
+        "max": 28,
+        "top_fix": "Quantify the result, e.g., how many users were affected and how many errors remained after the fix.",
+        "words": 97,
+        "hash": "b12922d0ab56",
+        "competencies": [
+          {
+            "name": "Professionalism",
+            "level": 4,
+            "level_name": "Advanced",
+            "quote": "I rolled back within an hour, posted a note to users"
+          },
+          {
+            "name": "Technology",
+            "level": 4,
+            "level_name": "Advanced",
+            "quote": "wrote tests for every prerequisite pattern in the catalog before re-releasing the fix"
+          },
+          {
+            "name": "Career & self-development",
+            "level": 4,
+            "level_name": "Advanced",
+            "quote": "I now write tests before changing anything people depend on"
+          }
+        ]
+      }
+    },
+    "success": {
+      "competency": "success",
+      "question": "Tell me about an accomplishment you're proud of. What made it succeed?",
+      "followups": 0,
+      "status": "done",
+      "title": "Automating the lab's weekly report",
+      "situation": "Our lab built its weekly progress report by copying numbers from several spreadsheets into Excel charts, which took about three hours every week.",
+      "task": "My PI asked if I could make it less painful.",
+      "action": "I wrote R scripts that pull the raw survey exports, apply our cleaning rules and produce the same charts, and documented how to run them.",
+      "result": "The report now takes about 10 minutes, and two other students use the scripts for their own projects.",
+      "reflection": "Small automation can free a whole team's time; I look for repetitive steps first now.",
+      "answer": "",
+      "missing": [],
+      "quality": 4,
+      "notes": "",
+      "grade": {
+        "version": "stories-v2",
+        "dims": [
+          {
+            "key": "situation",
+            "label": "Situation & stakes",
+            "score": 4,
+            "quote": "copying numbers from several spreadsheets into Excel charts, which took about three hours every week",
+            "why": "Specific setting with a concrete time cost."
+          },
+          {
+            "key": "action",
+            "label": "Your actions",
+            "score": 3,
+            "quote": "I wrote R scripts that pull the raw survey exports, apply our cleaning rules and produce the same charts, and documented how to run them.",
+            "why": "Specific steps, but no decision or trade-off explained."
+          },
+          {
+            "key": "result",
+            "label": "Result",
+            "score": 4,
+            "quote": "The report now takes about 10 minutes, and two other students use the scripts for their own projects.",
+            "why": "Measurable before/after plus adoption by others."
+          },
+          {
+            "key": "reflection",
+            "label": "Reflection",
+            "score": 3,
+            "quote": "Small automation can free a whole team's time; I look for repetitive steps first now.",
+            "why": "A specific lesson with a stated habit, but no concrete later example."
+          },
+          {
+            "key": "fit",
+            "label": "Answers the question",
+            "score": 3,
+            "quote": "My PI asked if I could make it less painful.",
+            "why": "Answers the question, but credits the task to the PI rather than showing what they judged made it succeed."
+          }
+        ],
+        "stars": 4,
+        "total": 24,
+        "max": 28,
+        "top_fix": "State explicitly what made it succeed (e.g., documenting the scripts so others could run them) to fully answer the 'what made it succeed' part.",
+        "words": 97,
+        "hash": "e5eeae983385",
+        "competencies": [
+          {
+            "name": "Technology",
+            "level": 4,
+            "level_name": "Advanced",
+            "quote": "I wrote R scripts that pull the raw survey exports, apply our cleaning rules and produce the same charts"
+          },
+          {
+            "name": "Critical thinking",
+            "level": 3,
+            "level_name": "Intermediate",
+            "quote": "I look for repetitive steps first now"
+          }
+        ]
+      }
+    },
+    "weakness": {
+      "competency": "weakness",
+      "question": "What is a real weakness of yours? When did it show up, and what are you doing about it?",
+      "followups": 0,
+      "status": "done",
+      "title": "Saying yes to too much",
+      "situation": "In my first semester I said yes to every request: extra help desk shifts, club tasks and lab work.",
+      "task": "By midterms I was behind in Data Structures.",
+      "action": "I started blocking study time on my calendar first, and now I check my week before agreeing to new work and offer a later date when I'm full.",
+      "result": "I finished the semester with an A- in Data Structures and kept all three commitments.",
+      "reflection": "I still feel the pull to say yes, so I review my calendar every Sunday.",
+      "answer": "",
+      "missing": [],
+      "quality": 5,
+      "notes": "",
+      "grade": {
+        "version": "stories-v2",
+        "dims": [
+          {
+            "key": "situation",
+            "label": "Situation & stakes",
+            "score": 2,
+            "quote": "",
+            "why": "Specific setting with concrete stakes (falling behind in a course) told briefly. (Capped at 2: the grader's quote wasn't found in your answer.)"
+          },
+          {
+            "key": "action",
+            "label": "Your actions",
+            "score": 4,
+            "quote": "I started blocking study time on my calendar first, and now I check my week before agreeing to new work and offer a later date when I'm full.",
+            "why": "Specific personal steps including a decision (protect study time first) and a trade-off (offer a later date)."
+          },
+          {
+            "key": "result",
+            "label": "Result",
+            "score": 4,
+            "quote": "I finished the semester with an A- in Data Structures and kept all three commitments.",
+            "why": "Measurable outcome (A-) tied back to the goal of not dropping commitments."
+          },
+          {
+            "key": "reflection",
+            "label": "Reflection",
+            "score": 4,
+            "quote": "I still feel the pull to say yes, so I review my calendar every Sunday.",
+            "why": "Names the ongoing risk and a concrete habit used later, so it doesn't end on the weakness."
+          },
+          {
+            "key": "fit",
+            "label": "Answers the question",
+            "score": 4,
+            "quote": "I started blocking study time on my calendar first",
+            "why": "Gives a genuine, non-disqualifying weakness, a moment it showed up, and concrete fixes."
+          }
+        ],
+        "stars": 5,
+        "total": 26,
+        "max": 28,
+        "top_fix": "Name the weakness explicitly in one phrase (e.g. 'overcommitting because I struggle to say no') before the situation, so the story is framed as a weakness rather than only a time-management fix.",
+        "words": 91,
+        "hash": "c5a49e036c2b",
+        "competencies": [
+          {
+            "name": "Professionalism",
+            "level": 4,
+            "level_name": "Advanced",
+            "quote": "I check my week before agreeing to new work and offer a later date when I'm full"
+          },
+          {
+            "name": "Career & self-development",
+            "level": 4,
+            "level_name": "Advanced",
+            "quote": "I still feel the pull to say yes, so I review my calendar every Sunday."
+          }
+        ]
+      }
+    }
+  },
+  "sources": [],
+  "done": false
+}

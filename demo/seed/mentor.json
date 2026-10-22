@@ -1,0 +1,81 @@
+{
+  "goal_per_day": 5,
+  "plan": {
+    "headline": "Your 7 stories are done and one interview is booked — but you haven't contacted a single firm this week.",
+    "stage": "Preparing",
+    "status": "You finished all 7 STAR stories with strong grades (mostly 4–5/5) and you're interviewing at Harborline Logistics on Saturday, with Northmere's deadline still three weeks out. What's missing is everything that turns prep into applications: your outreach details (signature, hours, start date) aren't set, you haven't taken the SQL/Python skills check, and you've made zero contacts this week against a goal of 5 a day. This week is about unblocking email — fill in outreach details, clear the two overdue/due network notes, and get your first real outbound batch out the door before Saturday.",
+    "tasks": [
+      {
+        "title": "Send the overdue thank-you note to Priya Shah at Harborline Logistics",
+        "why": "It was due 2026-10-12 and it's your warmest link into the company you interview with on Saturday.",
+        "minutes": 10,
+        "action": {
+          "type": "open",
+          "tab": "network",
+          "label": "Open Network"
+        }
+      },
+      {
+        "title": "Follow up with Marcus Bell at Brightquill Learning",
+        "why": "Due tomorrow (2026-10-22) — Brightquill is your only live application besides Harborline.",
+        "minutes": 10,
+        "action": {
+          "type": "open",
+          "tab": "network",
+          "label": "Open Network"
+        }
+      },
+      {
+        "title": "Fill in your outreach details: signature, weekly hours, start date",
+        "why": "Every cold email, follow-up and thank-you the app writes pulls from this card — nothing sends properly until it's set.",
+        "minutes": 10,
+        "action": {
+          "type": "open",
+          "tab": "jobs",
+          "label": "Open outreach details",
+          "section": "outreach"
+        }
+      },
+      {
+        "title": "Prep for the Harborline analytics manager interview on 2026-10-24",
+        "why": "Three days out and no company prep exists yet — build tailored questions around logistics analytics.",
+        "minutes": 45,
+        "action": {
+          "type": "open",
+          "tab": "skills",
+          "label": "Prepare for Harborline",
+          "section": "company_prep"
+        }
+      },
+      {
+        "title": "Take the SQL and Python skills check",
+        "why": "You're applying to data analyst roles with no graded technical baseline yet — this shows where you'd fail a screen.",
+        "minutes": 30,
+        "action": {
+          "type": "skills_check",
+          "areas": [
+            "SQL",
+            "Python"
+          ],
+          "count": 10,
+          "label": "Start SQL & Python check"
+        }
+      },
+      {
+        "title": "Contact 5 new analytics/BI internship targets",
+        "why": "You're at 0 of your 5-a-day goal this week, and your profile is strong enough to start sending.",
+        "minutes": 40,
+        "action": {
+          "type": "open",
+          "tab": "find",
+          "label": "Find firms and postings"
+        }
+      }
+    ],
+    "encouragement": "Your prep is genuinely ahead of most sophomores — the only thing standing between you and offers now is hitting send."
+  },
+  "plan_date": "2026-10-21",
+  "done": [],
+  "notes": {},
+  "chats": {}
+}

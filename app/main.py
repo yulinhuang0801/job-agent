@@ -3,6 +3,7 @@ import csv
 import io
 import json
 import re
+import os
 import uuid
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -90,7 +91,12 @@ CHOICES = {"alert_auto": ("on", "off"), "automatch": ("on", "off"), "automatch_d
 NUMBERS = {"automatch_prepare": (0, 10), "automatch_min": (0, 100), "discover_searches": (0, 30)}
 
 
+DEMO = os.environ.get("JOB_AGENT_DEMO") == "1"  # demo.sh: a sample student in data/demo
+
+
 def _hint(key):
+    if DEMO:
+        return "saved" if key else ""  # don't show even part of a key on a shared screen
     return f"{key[:4]}…{key[-4:]}" if len(key) > 10 else ""
 
 
@@ -123,6 +129,7 @@ def _public_settings():
         "alert_auto": s["alert_auto"],
         "serper_hint": _hint(s["serper_key"]),
         **{k: s[k] for k in ("automatch", "automatch_prepare", "automatch_depth", "automatch_min", "discover_searches")},
+        "demo": DEMO,
     }
 
 
