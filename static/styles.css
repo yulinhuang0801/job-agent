@@ -373,3 +373,15 @@ details.alert-paste summary { cursor: pointer; color: var(--accent); }
 .chip.lvl4, .chip.lvl5 { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); }
 .chip.empty { background: transparent; border: 1px dashed var(--border); color: var(--muted); }
 .onet-credit { margin-top: 8px; font-size: 11px; }
+
+/* Home → Today's matches */
+.match { display: flex; gap: 12px; align-items: flex-start; padding: 10px 0; border-top: 1px solid var(--border); }
+.match .grow { min-width: 0; }
+.match .task-title a { color: inherit; }
+.score-badge { flex: none; min-width: 36px; text-align: center; font-weight: 700; font-size: 13px; padding: 4px 6px; border-radius: 8px;
+  background: var(--border); color: var(--text); }
+.score-badge.ok { background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok); }
+.score-badge.warn { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+.ok-text { color: var(--ok); }
+.warn-text { color: var(--warn); }
+#matches-card .view-head { margin-bottom: 4px; }

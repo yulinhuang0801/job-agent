@@ -30,6 +30,9 @@ CREATE INDEX IF NOT EXISTS postings_function ON postings(function);
 CREATE INDEX IF NOT EXISTS postings_company ON postings(company);
 CREATE TABLE IF NOT EXISTS companies (board TEXT, token TEXT, name TEXT, industry TEXT, website TEXT, jobs INTEGER,
   status TEXT, checked TEXT, PRIMARY KEY (board, token));
+-- Boards found by app/discover.py, and the company names / websites already tried (so each is probed once).
+CREATE TABLE IF NOT EXISTS board_finds (board TEXT, token TEXT, via TEXT, found TEXT, PRIMARY KEY (board, token));
+CREATE TABLE IF NOT EXISTS probes (name TEXT PRIMARY KEY, kind TEXT, result TEXT, checked TEXT);
 CREATE TABLE IF NOT EXISTS sources (name TEXT PRIMARY KEY, status TEXT, message TEXT, rows INTEGER, updated TEXT);
 """
 

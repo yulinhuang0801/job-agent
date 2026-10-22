@@ -4,7 +4,7 @@ import io
 import json
 import re
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
 from urllib.parse import parse_qs, urlparse
@@ -16,7 +16,7 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import alerts, assess, coderun, crawlers, db, dice, grading, llm, memory, mentors, official, onet, outreach, pdf, pipeline, prep, profile_merge, prompts, qlibrary, research, timelines, resume_text, services, sourcing, store
+from . import alerts, assess, automatch, coderun, crawlers, db, dice, discover, grading, llm, memory, mentors, official, onet, outreach, pdf, pipeline, prep, profile_merge, prompts, qlibrary, research, timelines, resume_text, services, sourcing, store
 from .jobs_fetch import FetchError, fetch_job
 
 STATIC = Path(__file__).resolve().parent.parent / "static"
@@ -79,6 +79,15 @@ class SettingsIn(BaseModel):
     alert_password: Optional[str] = None
     alert_days: Optional[str] = None
     alert_auto: Optional[str] = None
+    automatch: Optional[str] = None
+    automatch_prepare: Optional[str] = None
+    automatch_depth: Optional[str] = None
+    automatch_min: Optional[str] = None
+    discover_searches: Optional[str] = None
+
+
+CHOICES = {"alert_auto": ("on", "off"), "automatch": ("on", "off"), "automatch_depth": tuple(automatch.DEPTHS)}
+NUMBERS = {"automatch_prepare": (0, 10), "automatch_min": (0, 100), "discover_searches": (0, 30)}
 
 
 def _hint(key):
@@ -113,6 +122,7 @@ def _public_settings():
         "alert_days": s["alert_days"],
         "alert_auto": s["alert_auto"],
         "serper_hint": _hint(s["serper_key"]),
+        **{k: s[k] for k in ("automatch", "automatch_prepare", "automatch_depth", "automatch_min", "discover_searches")},
     }
 
 
@@ -128,8 +138,13 @@ def put_settings(body: SettingsIn):
         value = value.strip()
         if not value:  # blank secret box means "keep the saved one"
             continue
-        if field == "alert_auto" and value not in ("on", "off"):
+        if field in CHOICES and value not in CHOICES[field]:
             continue
+        if field in NUMBERS:
+            if not value.isdigit():
+                continue
+            lo, hi = NUMBERS[field]
+            value = str(max(lo, min(hi, int(value))))
         if field in SECRET_FIELDS and value.startswith("http"):
             # A whole example request was pasted (Hunter's dashboard shows these); keep only its key.
             value = (parse_qs(urlparse(value).query).get("api_key") or [value])[0]
@@ -1069,7 +1084,135 @@ def _alert_loop():
 @app.on_event("startup")
 def _start_alert_loop():
     import threading
+    for name, row in db.sources().items():  # a restart stops background imports; say so instead of "running" forever
+        if row["status"] == "running":
+            db.set_source(name, "error", "Stopped when Job Agent restarted. Run it again.")
     threading.Thread(target=_alert_loop, daemon=True).start()
+    threading.Thread(target=_daily_loop, daemon=True).start()
+
+
+# ---------- Daily matches: find boards, refresh postings, score them, prepare the best ----------
+
+def _discover_boards():
+    return discover.run(progress=lambda m: crawlers._progress(discover.NAME, m))
+
+
+def _auto_prepare(m, depth):
+    """Add one match to My jobs and prepare it: fit check, then documents, then (full) contact research."""
+    with db.connect() as con:
+        row = con.execute("SELECT description FROM postings WHERE id=?", (m["id"],)).fetchone()
+    description = (row["description"] if row else "") or m.get("description") or ""
+    if len(description) < 300 and m.get("url"):
+        try:
+            description = fetch_job(m["url"])["description"] or description
+        except FetchError:
+            pass
+    job = {"id": uuid.uuid4().hex[:10], "created_at": datetime.now().isoformat(timespec="seconds"), "kind": "posting",
+           "url": m.get("url", ""), "title": m.get("title", ""), "company": m.get("company", ""), "location": m.get("location", ""),
+           "description": description[:MAX_JD_CHARS], "status": "Saved", "applied_date": "", "channel": "form",
+           "notes": f"Daily match ({m['score']}): {m['why']}" + (f" ⚠ {m['concerns']}" if m.get("concerns") else ""),
+           "fit": None, "documents": None, "auto_match": {"score": m["score"], "why": m["why"], "date": m["date"]}}
+    jobs = _jobs()
+    jobs.insert(0, job)
+    store.save("jobs", jobs)
+    steps = [("fit", analyze_job)] + ([("documents", generate_documents)] if depth in ("docs", "full") else []) \
+        + ([("contacts", research_job)] if depth == "full" else [])
+    done = []
+    for name, fn in steps:
+        try:
+            fn(job["id"])
+            done.append(name)
+        except (llm.LLMError, HTTPException) as e:
+            return {"job_id": job["id"], "done": done, "error": f"{name}: {getattr(e, 'detail', None) or e}"[:200]}
+        except Exception as e:  # one bad posting shouldn't stop the others
+            return {"job_id": job["id"], "done": done, "error": f"{name}: {e.__class__.__name__}"}
+    return {"job_id": job["id"], "done": done, "error": ""}
+
+
+def _match_now(force=True):
+    return automatch.run(prepare=_auto_prepare, progress=lambda m: crawlers._progress(automatch.NAME, m), force=force)
+
+
+def _daily_run():
+    """The morning run: new boards, fresh postings (if the last crawl is a day old), then matches."""
+    notes = []
+    for name, fn, due in ((discover.NAME, _discover_boards, True), ("Job boards", crawlers.crawl_jobs, _stale("Job boards", 20))):
+        if not due or name in crawlers.running():
+            continue
+        crawlers._progress(automatch.NAME, f"{name}…")
+        db.set_source(name, "running", "Part of the daily run…")
+        try:
+            rows, msg = fn()
+            db.set_source(name, "done", msg, rows)
+        except Exception as e:
+            db.set_source(name, "error", f"{e.__class__.__name__}: {e}"[:300])
+            notes.append(f"{name} failed")
+    n, msg = _match_now(force=False)
+    return n, msg + (f" ({'; '.join(notes)})" if notes else "")
+
+
+def _stale(source, hours):
+    row = db.sources().get(source)
+    return not row or not row.get("updated") or datetime.fromisoformat(row["updated"]) < datetime.now() - timedelta(hours=hours)
+
+
+def _daily_loop():
+    """Once a day (from 6am, while the app runs): the daily run, if matches are on and a profile exists."""
+    import time
+    time.sleep(90)
+    while True:
+        try:
+            if (automatch.settings()["on"] and store.load("profile", {}) and automatch.load().get("date") != datetime.now().date().isoformat()
+                    and datetime.now().hour >= 6 and automatch.NAME not in crawlers.running()):
+                crawlers.run_in_background(automatch.NAME, _daily_run)
+        except Exception:
+            pass
+        time.sleep(1800)
+
+
+class MatchRunIn(BaseModel):
+    full: bool = False  # also look for new boards and refresh postings first
+
+
+@app.get("/api/matches")
+def get_matches():
+    return {**automatch.public(), "running": automatch.NAME in crawlers.running(),
+            "progress": (db.sources().get(automatch.NAME) or {}).get("message", ""), "boards": discover.summary()}
+
+
+@app.post("/api/matches/run")
+def run_matches(body: Optional[MatchRunIn] = None):
+    _require_profile()
+    try:
+        crawlers.run_in_background(automatch.NAME, _daily_run if body and body.full else _match_now)
+    except crawlers.CrawlError as e:
+        raise HTTPException(400, str(e))
+    return get_matches()
+
+
+def _match_item(pid):
+    m = next((m for m in automatch.load().get("items", []) if m["id"] == pid), None)
+    if not m:
+        raise HTTPException(404, "That match is gone. Refresh the page.")
+    return m
+
+
+@app.post("/api/matches/{pid}/add")
+def add_match(pid: str):
+    m = _match_item(pid)
+    if m.get("job_id") and any(j["id"] == m["job_id"] for j in _jobs()):
+        return {"job_id": m["job_id"], "matches": get_matches()}
+    res = _auto_prepare(m, "fit")
+    automatch.set_status(pid, "added", res["job_id"])
+    memory.log("job", f"Added daily match {m['company']} ({m['title']}) to My jobs")
+    return {"job_id": res["job_id"], "error": res["error"], "matches": get_matches()}
+
+
+@app.post("/api/matches/{pid}/dismiss")
+def dismiss_match(pid: str):
+    _match_item(pid)
+    automatch.set_status(pid, "dismissed")
+    return get_matches()
 
 
 class AlertIn(BaseModel):
@@ -1105,7 +1248,8 @@ async def upload_alert(file: UploadFile = File(...)):
 def db_refresh(body: RefreshIn):
     jobs = {"adv": ("SEC Form ADV", crawlers.import_adv, ()), "formd": ("SEC Form D", crawlers.import_form_d, (max(1, min(12, body.quarters)),)),
             "jobs": ("Job boards", crawlers.crawl_jobs, ()), "alerts": (ALERTS_SOURCE, _check_alerts, ()),
-            "onet": (ONET_SOURCE, _download_onet, ()), "dice": (dice.NAME, dice.run, ())}
+            "onet": (ONET_SOURCE, _download_onet, ()), "dice": (dice.NAME, dice.run, ()),
+            "discover": (discover.NAME, _discover_boards, ())}
     if body.source not in jobs:
         raise HTTPException(400, "Unknown source.")
     name, fn, args = jobs[body.source]

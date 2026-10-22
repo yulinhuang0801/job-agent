@@ -19,7 +19,12 @@ DEFAULT_SETTINGS = {
     "serper_key": "",  # Serper.dev Google results for the Find tab
     "sec_contact": "",  # SEC requires a contact email from automated downloads
     "dice_keywords": "",  # Find → Data sources → Dice: roles to search (blank = from your target roles)
-    "dice_sponsor": "off",  # only Dice employers willing to sponsor work authorization
+    "dice_sponsor": "off",
+    "automatch": "on",  # each morning: score new postings against the profile and prepare the best
+    "automatch_prepare": "3",  # how many top matches to prepare each day (0-10)
+    "automatch_depth": "docs",  # fit | docs (fit + tailored resume and cover letter) | full (also contact research)
+    "automatch_min": "70",  # score a match needs to be prepared
+    "discover_searches": "8",  # web searches per day for new company job boards (Serper or Tavily)  # only Dice employers willing to sponsor work authorization
     "alert_host": "imap.gmail.com",  # job-alert emails (LinkedIn, Handshake, Indeed...) read over IMAP, read-only
     "alert_email": "",
     "alert_password": "",  # an app password / authorization code, never the normal password

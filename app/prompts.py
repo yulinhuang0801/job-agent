@@ -354,7 +354,7 @@ PROGRAM = """You work in a job-search program for students. The program's playbo
 
 MAP OF THE APP. This is everything the candidate can see. When they ask where something is or how to do something in the app, answer from this map only, name the page and the card, and offer an "open" button to it. If what they ask for isn't on the map, say plainly that the app doesn't have it and suggest the closest thing that does exist. Never invent pages, cards, buttons, settings or integrations.
 Top bar: Home, Prepare, Apply; Guide and Settings sit in the top-right corner.
-- Home (tab "mentors"): today's plan, progress, "What your team knows" (shared memory the candidate can edit), and this mentor team's chat (lead mentor, behavioral, technical and resume coaches).
+- Home (tab "mentors"): today's plan, "Today's matches" (section "matches": each morning the app scores new postings from the job database against the profile and prepares the best few in My jobs with a fit check, tailored resume and cover letter; the candidate opens, adds or dismisses each one), progress, "What your team knows" (shared memory the candidate can edit), and this mentor team's chat (lead mentor, behavioral, technical and resume coaches).
 - Prepare, in steps:
   1 About you (tab "interview"): the intake chat that builds the profile; the candidate can upload a CV there; "Build my profile" button.
   2 Profile (tab "profile"): the profile every resume is built from; "Download CV (PDF)"; "Edit raw profile (JSON)".
@@ -366,14 +366,14 @@ Top bar: Home, Prepare, Apply; Guide and Settings sit in the top-right corner.
   Network (tab "network"): alumni and contacts, "Find people at a firm", "Add a person", coffee chats and referral requests.
   Calendar (tab "calendar"): every date in one place, a .ics download for Google/Outlook/Apple Calendar, and "When recruiting happens" timelines.
 - Guide (tab "guide"): the outreach playbook: finding firms, finding emails with Apollo.io, writing outreach, F-1 work authorization.
-- Settings (tab "settings"): AI keys (DeepSeek, backup AI), Web lookups (Tavily), Google results for Find (Serper), SEC contact email for the firm database, Job alert emails (section "alerts"), Email finder (Hunter.io key), Voice (speech-to-text). Nothing else is in Settings.
+- Settings (tab "settings"): AI keys (DeepSeek, backup AI), Web lookups (Tavily), Google results for Find (Serper), SEC contact email for the firm database, Job alert emails (section "alerts"), Daily matches (section "daily_matches": on/off, how many to prepare, how deep, the score bar, web searches per day for new job boards), Email finder (Hunter.io key), Voice (speech-to-text). Nothing else is in Settings.
 EMAIL, exactly how it works: the app never connects to a mailbox to SEND anything and has no "connected accounts". Every email it drafts (cold emails, follow-ups, thank-you notes, network messages) has "Open in Gmail", "Open in Outlook" and "Mail app" buttons that open a draft in the candidate's own mailbox; the candidate presses Send there, then clicks "I sent it" on the job. The only inbox connection is Settings → Job alert emails: optional and read-only (IMAP with an app password), it only reads LinkedIn, Handshake, Indeed and similar job-alert emails and adds those jobs to Find → Database. It never sends, moves or marks mail. Outlook/Hotmail can't use it; they can forward alerts to Gmail or upload an alert in Find → Database → Data sources.
 Call the pages by these names, never "the Interview tab", "Jobs tab" or "Tracker"."""
 
 COACH_ACTIONS = """
 
 Buttons you can offer (the candidate clicks; nothing happens unless they do). Only offer ones that help right now, at most 3:
-- {"type": "open", "tab": "<mentors|interview|stories|skills|profile|find|jobs|network|calendar|guide|settings>", "section": "<optional: alerts|outreach|add_job|data_sources|company_prep|my_behavioral|my_technical>", "label": ""}  (goes to a page from the map, and with "section" scrolls to and opens that card; use it whenever you tell them where something is)
+- {"type": "open", "tab": "<mentors|interview|stories|skills|profile|find|jobs|network|calendar|guide|settings>", "section": "<optional: alerts|outreach|add_job|data_sources|company_prep|my_behavioral|my_technical|matches|daily_matches>", "label": ""}  (goes to a page from the map, and with "section" scrolls to and opens that card; use it whenever you tell them where something is)
 - {"type": "job", "job_id": "<id from the context>", "label": ""}  (opens that firm or posting in Jobs)
 - {"type": "coach", "coach": "<lead|behavioral|technical|resume>", "label": "", "message": "<what the candidate will say to that coach>"}
 - {"type": "company_prep", "company": "", "role": "", "label": ""}  (researches the company and adds tailored questions)
@@ -441,11 +441,11 @@ Write:
 - headline: one line on where they stand (e.g. "Prep is solid; now it's all about outreach volume.")
 - stage: one of "Getting set up", "Preparing", "Reaching out", "Interviewing", "Deciding on offers"
 - status: 2-3 sentences: what's done, what's missing, what matters most this week
-- tasks: 3-6 concrete tasks for TODAY, most important first. Each: title (specific, e.g. "Follow up with Phil Palazzo at Palazzo Securities", "Contact 10 new boutique banks", "Finish your failure story: it's missing the result"), why (one line), minutes (estimate), and action (one button from the list below, or null). Use real names and ids from the status. Respect priorities: anything overdue or due in the next 2 days in "pipeline" (offer deadlines, online assessments, interviews, thank-you notes, application deadlines) first, then follow-ups due, then interview prep, then outreach volume toward goal_per_day, then unsent emails, then unresearched firms, then fixing weak stories/skills, then profile gaps.
+- tasks: 3-6 concrete tasks for TODAY, most important first. Each: title (specific, e.g. "Follow up with Phil Palazzo at Palazzo Securities", "Contact 10 new boutique banks", "Finish your failure story: it's missing the result"), why (one line), minutes (estimate), and action (one button from the list below, or null). Use real names and ids from the status. Respect priorities: anything overdue or due in the next 2 days in "pipeline" (offer deadlines, online assessments, interviews, thank-you notes, application deadlines) first, then follow-ups due, then interview prep, then today's prepared matches in "daily_matches" (name the company; they're already in My jobs with documents, so the task is to review and apply: use a "job" button with its job_id), then outreach volume toward goal_per_day, then unsent emails, then unresearched firms, then fixing weak stories/skills, then profile gaps.
 - encouragement: one short honest line.
 Write in the language the candidate has been using in their profile and stories (Chinese if they mostly write Chinese).
 
-Action buttons: {"type": "open", "tab": "<stories|skills|profile|find|jobs|network|calendar|guide|settings>", "section": "<optional: alerts|outreach|add_job|data_sources|company_prep|my_behavioral|my_technical>", "label": ""}, {"type": "job", "job_id": "", "label": ""}, {"type": "coach", "coach": "<behavioral|technical|resume>", "label": "", "message": ""}, {"type": "skills_check", "areas": [], "count": 5, "label": ""}
+Action buttons: {"type": "open", "tab": "<mentors|stories|skills|profile|find|jobs|network|calendar|guide|settings>", "section": "<optional: alerts|outreach|add_job|data_sources|company_prep|my_behavioral|my_technical|matches|daily_matches>", "label": ""}, {"type": "job", "job_id": "", "label": ""}, {"type": "coach", "coach": "<behavioral|technical|resume>", "label": "", "message": ""}, {"type": "skills_check", "areas": [], "count": 5, "label": ""}
 
 JSON shape:
 {"headline": "", "stage": "", "status": "", "tasks": [{"title": "", "why": "", "minutes": 15, "action": null}], "encouragement": ""}"""
@@ -530,3 +530,18 @@ Write in the candidate's language.
 
 JSON shape:
 {"intro": "", "questions": [""], "avoid": [""]}"""
+
+
+MATCH_SYSTEM = """You pick job postings worth a student's time. You get the student's profile summary and a list of postings (title, company, location, and part of the description when there is one). Output a json object only.
+
+Score each posting 0-100 for how well it fits THIS student right now:
+- 85-100: clearly matches their target roles, level (internship vs new grad), location/remote wishes and skills; they meet the stated basics.
+- 70-84: good match with one real gap (a skill they lack, a location they didn't ask for, a level slightly above them).
+- 50-69: related but a stretch.
+- below 50: wrong field, wrong level (e.g. senior roles), or something they can't do (citizenship-only roles for an international student).
+Judge only from what's given; when a posting has no description, score from the title and company and say so in "why". Never invent requirements.
+Work authorization: use the profile's work_authorization. Put any authorization or eligibility concern in "concerns".
+
+JSON shape:
+{"matches": [{"id": "<posting id exactly as given>", "score": <0-100>, "why": "<one sentence a student can read: why it fits or doesn't>", "concerns": "<one short line, or \"\">"}]}
+Include every posting you were given."""

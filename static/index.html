@@ -251,6 +251,25 @@
         </div>
       </div>
 
+      <div class="card" id="match-settings">
+        <h2>Daily matches</h2>
+        <p class="muted small">Each morning (from 6am, while Job Agent is running) it looks for new company job boards, refreshes postings, scores the new ones against your profile, and prepares the best few in My jobs, so they're ready when you open the app. It never applies or sends anything for you.</p>
+        <div class="row">
+          <label class="toggle small"><input id="automatch-on" type="checkbox"> Run every morning</label>
+        </div>
+        <div class="grid2">
+          <div><label for="automatch-prepare">Prepare this many each day</label>
+            <select id="automatch-prepare"><option value="0">None (just score them)</option><option value="1">1</option><option value="3">3</option><option value="5">5</option><option value="10">10</option></select></div>
+          <div><label for="automatch-depth">How far to prepare them</label>
+            <select id="automatch-depth"><option value="fit">Fit check only (cheapest)</option><option value="docs">Fit check, tailored resume and cover letter</option><option value="full">Also research the company and find a contact (uses Tavily/Hunter)</option></select></div>
+          <div><label for="automatch-min">Only prepare matches scoring at least</label>
+            <select id="automatch-min"><option value="60">60</option><option value="70">70</option><option value="80">80</option><option value="90">90</option></select></div>
+          <div><label for="discover-searches">Web searches a day for new job boards</label>
+            <select id="discover-searches"><option value="0">0 (only free sources)</option><option value="4">4</option><option value="8">8</option><option value="15">15</option><option value="30">30</option></select></div>
+        </div>
+        <p class="muted small">Cost per day: about 3 AI calls to score 30 postings, plus 1–3 per prepared match. Searches use Serper (or Tavily) credits. New boards also come free from your jobs, alert emails, the SimplifyJobs lists, Hacker News and company names.</p>
+      </div>
+
       <div class="card">
         <h2>Email finder <span class="muted small">(optional)</span></h2>
         <p class="muted small">When a firm's website doesn't list the contact's email, Job Agent asks <a href="https://hunter.io/api-keys" target="_blank" rel="noopener">Hunter.io</a> (free plan: about 50 lookups a month). Without it, use Apollo.io by hand (see the Guide tab).</p>
@@ -310,6 +329,7 @@
             <button id="today-refresh" class="ghost small" type="button">New plan</button>
           </div>
           <div id="today-card" class="card"><p class="muted">Your lead mentor is planning your day…</p></div>
+          <div id="matches-card" class="card"></div>
           <div id="progress-card" class="card"></div>
           <details id="memory-card" class="card">
             <summary>What your team knows <span id="memory-count" class="muted small"></span></summary>
@@ -752,5 +772,6 @@
   <script src="/static/editor.js"></script>
   <script src="/static/app.js"></script>
   <script src="/static/pipeline.js"></script>
+  <script src="/static/matches.js"></script>
 </body>
 </html>

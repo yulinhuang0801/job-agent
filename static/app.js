@@ -289,6 +289,12 @@ loaders.settings = async () => {
   if (settings.has_alert_password) $("#alert-password").placeholder = "Saved. Paste a new one to replace it";
   $("#alert-auto").checked = settings.alert_auto === "on";
   $("#alert-days").value = settings.alert_days || "30";
+  $("#automatch-on").checked = settings.automatch === "on";
+  const pick = (id, v) => { const el = $(id); if (![...el.options].some((o) => o.value === v)) el.append(h("option", { value: v }, v)); el.value = v; };
+  pick("#automatch-prepare", settings.automatch_prepare);
+  pick("#automatch-depth", settings.automatch_depth);
+  pick("#automatch-min", settings.automatch_min);
+  pick("#discover-searches", settings.discover_searches);
   $("#alert-status").textContent = settings.has_alert_password && settings.alert_email
     ? `✓ Reading job alerts sent to ${settings.alert_email}.` : "Off: paste or upload alert emails in Find → Database instead.";
   $("#stt-provider").value = settings.stt_provider;
@@ -330,6 +336,8 @@ function settingsBody() {
     alert_host: $("#alert-host").value === "custom" ? val("#alert-host-custom") : $("#alert-host").value,
     alert_email: val("#alert-email"), alert_password: val("#alert-password"),
     alert_auto: $("#alert-auto").checked ? "on" : "off", alert_days: $("#alert-days").value,
+    automatch: $("#automatch-on").checked ? "on" : "off", automatch_prepare: $("#automatch-prepare").value,
+    automatch_depth: $("#automatch-depth").value, automatch_min: $("#automatch-min").value, discover_searches: $("#discover-searches").value,
   };
 }
 
@@ -1269,11 +1277,12 @@ let dbFilters = { postings: { job_type: "Internship" }, firms: { small: "1" } };
 let dbPage = 1;
 let dbResult = null;
 let dbPoll = null;
-const SOURCE_KEYS = { "SEC Form ADV": "adv", "SEC Form D": "formd", "Job boards": "jobs", "Dice": "dice", "Job alert emails": "alerts", "O*NET occupations": "onet" };
+const SOURCE_KEYS = { "SEC Form ADV": "adv", "SEC Form D": "formd", "Job boards": "jobs", "Board discovery": "discover", "Dice": "dice", "Job alert emails": "alerts", "O*NET occupations": "onet" };
 const SOURCE_TEXT = {
   "SEC Form ADV": "Investment advisers (PE, VC, hedge, real estate, wealth managers), monthly",
   "SEC Form D": "New funds and startups that just raised money, with people on the filing, quarterly",
-  "Job boards": "Company job boards (Greenhouse, Lever, Ashby) and SimplifyJobs internship lists",
+  "Job boards": "Company job boards (Greenhouse, Lever, Ashby, Recruitee, Workday) and the SimplifyJobs internship and new-grad lists",
+  "Board discovery": "Finds more company job boards: links in your jobs and alerts, Hacker News hiring threads, company names, a few web searches for your target roles. Runs every morning with Daily matches",
   "Dice": "Tech jobs from Dice's official job-search service, searched for your target roles (a few searches per run). Listings are found with AI-assisted search; check details with the employer before applying",
   "Job alert emails": "Jobs LinkedIn, Handshake, Indeed and others emailed you (set up in Settings → Job alert emails)",
   "O*NET occupations": "U.S. Department of Labor data on 1,000+ occupations (tasks, tools, knowledge) for questions by occupation; about 20 MB, once",
@@ -1299,7 +1308,7 @@ async function loadDbStatus() {
     const isAlerts = key === "alerts";
     const isDice = key === "dice";
     const btn = h("button", { class: "small secondary", type: "button", disabled: running },
-      running ? "Updating…" : isAlerts ? (st.alerts_configured ? "Check inbox" : "Set up") : isDice ? "Search Dice" : s.updated ? "Update" : "Download");
+      running ? "Updating…" : isAlerts ? (st.alerts_configured ? "Check inbox" : "Set up") : isDice ? "Search Dice" : key === "discover" ? "Find boards" : s.updated ? "Update" : "Download");
     // Dice: which roles to search and whether to keep only employers that sponsor visas.
     const diceRoles = isDice ? h("input", { class: "small", value: st.dice.keywords.join(", "), placeholder: "Roles, comma-separated (from your target roles)",
       "aria-label": "Roles to search on Dice" }) : null;
@@ -2047,7 +2056,7 @@ let today = null;
 
 // Cards an "open" button can scroll to (the server's mentors.SECTIONS lists the same names).
 const SECTIONS = { alerts: "alert-settings", outreach: "outreach-card", add_job: "add-job-card", data_sources: "db-sources",
-  company_prep: "prep-card", my_behavioral: "my-beh", my_technical: "my-tech" };
+  company_prep: "prep-card", my_behavioral: "my-beh", my_technical: "my-tech", matches: "matches-card", daily_matches: "match-settings" };
 
 let pendingSection = null;
 
@@ -2229,6 +2238,7 @@ loaders.mentors = async () => {
   renderCoachTabs();
   switchCoach(coach);
   loadMemory();
+  if (typeof loadMatches === "function") loadMatches();
   try {
     today = await api("/api/mentor/today");
     renderToday();

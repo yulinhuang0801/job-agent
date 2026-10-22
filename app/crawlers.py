@@ -6,7 +6,8 @@ progress in the `sources` table.
   assets and websites. Exempt reporting advisers are mostly small private fund managers.
 - SEC Form D (quarterly): new private funds and startups that just raised money, with the people
   named on the filing (executive officers, directors, promoters).
-- Company job boards (Greenhouse, Lever, Ashby public APIs) and the SimplifyJobs internship lists.
+- Company job boards (Greenhouse, Lever, Ashby, Recruitee and Workday public APIs) and the SimplifyJobs
+  internship and new-grad lists. More boards are found by app/discover.py.
 
 SEC asks automated tools to identify themselves with a contact email (Settings → SEC contact email).
 """
@@ -20,7 +21,7 @@ import threading
 import time
 import zipfile
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
+from datetime import datetime, timedelta
 from urllib.parse import unquote, urlparse
 
 import httpx
@@ -31,6 +32,7 @@ from . import official, db, llm, store, taxonomy
 ADV_PAGE = "https://www.sec.gov/data-research/sec-markets-data/information-about-registered-investment-advisers-exempt-reporting-advisers"
 FORM_D_PAGE = "https://www.sec.gov/data-research/sec-markets-data/form-d-data-sets"
 SIMPLIFY = "https://raw.githubusercontent.com/SimplifyJobs/Summer2027-Internships/dev/"
+SIMPLIFY_NEW_GRAD = "https://raw.githubusercontent.com/SimplifyJobs/New-Grad-Positions/dev/"
 SKIP_SITES = ("facebook.", "linkedin.", "twitter.", "x.com", "instagram.", "youtube.")
 _running = set()
 _lock = threading.Lock()
@@ -45,9 +47,9 @@ def run_in_background(name, fn, *args):
         if name in _running:
             raise CrawlError(f"{name} is already updating.")
         _running.add(name)
+    db.set_source(name, "running", "Starting…")
 
     def work():
-        db.set_source(name, "running", "Starting…")
         try:
             rows, message = fn(*args)
             db.set_source(name, "done", message, rows)
@@ -286,7 +288,15 @@ BOARD_PATTERNS = {
     # Workday tokens are "tenant|wdN|site", e.g. nvidia|wd5|NVIDIAExternalCareerSite
     "workday": r"([a-z0-9-]+)\.(wd\d+)\.myworkdayjobs\.com/(?:[a-z]{2}-[A-Z]{2}/)?([A-Za-z0-9_-]+)",
 }
-WORKDAY_MAX = 200  # newest postings per Workday board, to stay polite
+WORKDAY_MAX = 100  # postings per Workday board, to stay polite
+
+
+def _workday_search():
+    """Workday boards are big (NVIDIA lists 2,000+ jobs), so only student roles are read: internships, or
+    graduate roles when the profile targets new-grad jobs."""
+    targets = store.load("profile", {}).get("targets") or {}
+    text = " ".join(str(v) for v in [targets.get("seniority", "")] + list(targets.get("roles") or []))
+    return "graduate" if re.search(r"new grad|graduate|entry.level|full.time", text, re.I) and not re.search(r"intern|co-?op", text, re.I) else "intern"
 
 
 def board_from_url(url):
@@ -359,8 +369,9 @@ def _fetch_board(board, token):
         if not official.allowed(api):
             raise ValueError("robots.txt blocks this board")
         name = tenant.replace("-", " ").title()
+        search = _workday_search()
         for offset in range(0, WORKDAY_MAX, 20):
-            r = httpx.post(api, json={"appliedFacets": {}, "limit": 20, "offset": offset, "searchText": ""}, timeout=40)
+            r = httpx.post(api, json={"appliedFacets": {}, "limit": 20, "offset": offset, "searchText": search}, timeout=40)
             r.raise_for_status()
             posts = r.json().get("jobPostings") or []
             for j in posts:
@@ -386,10 +397,12 @@ def _posting_row(p, company, board, source, industry=""):
 
 
 def _simplify_postings():
-    """Every open role in SimplifyJobs' summer and off-season lists, plus the job-board tokens in their links."""
+    """Every open role in SimplifyJobs' summer, off-season and new-grad lists, plus the job-board tokens in their links."""
     rows, tokens = [], set()
-    for filename, season in (("README.md", "Summer 2027"), ("README-Off-Season.md", "")):
-        r = httpx.get(SIMPLIFY + filename, timeout=httpx.Timeout(20, read=90))
+    lists = ((SIMPLIFY + "README.md", "Summer 2027", "Internship"), (SIMPLIFY + "README-Off-Season.md", "", "Internship"),
+             (SIMPLIFY_NEW_GRAD + "README.md", "", "New grad"))
+    for url, season, commitment in lists:
+        r = httpx.get(url, timeout=httpx.Timeout(20, read=90))
         r.raise_for_status()
         for board, pattern in BOARD_PATTERNS.items():
             for t in re.findall(pattern, r.text):
@@ -413,10 +426,12 @@ def _simplify_postings():
                 flags = role + raw_company
                 sponsorship = "US citizens only" if "🇺🇸" in flags else "No sponsorship" if "🛂" in flags else ""
                 term = tds[3].get_text(" ", strip=True) if len(tds) >= 6 else season
+                age = re.fullmatch(r"(\d+)\s*(d|mo)", tds[-1].get_text(strip=True))
+                posted = (datetime.now().date() - timedelta(days=int(age.group(1)) * (30 if age.group(2) == "mo" else 1))).isoformat() if age else ""
                 loc = "; ".join(t.strip() for t in tds[2].get_text("\n", strip=True).split("\n") if t.strip() and not t.strip().endswith("locations"))
                 pid = "simplify:" + hashlib.sha1(apply.encode()).hexdigest()[:16]
                 rows.append({"id": pid, "title": re.sub(r"[^\w)\]]+$", "", role).strip(), "department": "", "location": loc, "url": apply,
-                             "posted": "", "description": "", "commitment": "Internship", "term": term, "sponsorship": sponsorship,
+                             "posted": posted, "description": "", "commitment": commitment, "term": term, "sponsorship": sponsorship,
                              "company": company})
     return rows, tokens
 

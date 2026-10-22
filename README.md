@@ -19,13 +19,14 @@ Tests:
 ## How it flows
 
 The app has three areas, plus Guide and Settings in the top corner:
-- **Home**: today's plan and your mentor team.
+- **Home**: today's plan, today's matches and your mentor team.
 - **Prepare**, in numbered steps with progress badges: 1 About you → 2 Profile → 3 Stories → 4 Skills check. **Prepare** opens the first step you haven't finished, and each step ends with a link to the next.
 - **Apply**: Find (database, web search, import) → My jobs (cards to work on each firm, or a table to track them all) → Network (alumni and contacts) → Calendar (every date, plus when recruiting happens).
 
 Old links like `#tracker` or `#mentors` still work.
 
-0. **Home** (mentors): your **lead mentor** reads all your progress (profile, stories, skills check, every firm and posting, follow-ups due, notes from the other coaches) and writes today's plan: where you stand, 3–6 concrete tasks with one-click buttons, progress stats against your daily outreach goal, and the program's milestones. Chat with the lead mentor or with three coaches:
+0. **Home → Today's matches**: every morning (from 6am, while the app is running) Job Agent finds new boards, refreshes postings if the last crawl is a day old, and picks postings that fit your level (internship or new grad), the job functions your target roles map to, remote if that's all you asked for, and no "US citizens only" roles if you're international. It ranks them by title words, skills and recency, has the AI score the top 30 (0–100, with a one-line reason and any concern), and **prepares the best few in My jobs**: a fit check, a tailored resume and a cover letter, and on "full" also company and contact research. Each match can be opened, added or dismissed; postings are never scored twice. Settings → Daily matches sets on/off, how many to prepare (default 3), how far, the score bar (default 70) and web searches a day. It never applies or sends anything. The lead mentor puts prepared matches in today's plan.
+   **Home** (mentors): your **lead mentor** reads all your progress (profile, stories, skills check, every firm and posting, follow-ups due, notes from the other coaches) and writes today's plan: where you stand, 3–6 concrete tasks with one-click buttons, progress stats against your daily outreach goal, and the program's milestones. Chat with the lead mentor or with three coaches:
    - **Behavioral coach**: mock interviews using your own stories, feedback (STAR, "I" vs "we", results, length), tightened versions you can save.
    - **Technical coach**: teaches your weakest areas and gives practice problems with hints before answers.
    - **Resume coach**: reviews your resume line by line and proposes rewrites you can apply with one click (never adds facts).
@@ -80,7 +81,8 @@ Old links like `#tracker` or `#mentors` still work.
 5. **Find → Database** (default): a local SQLite database (`data/jobs_db.sqlite`) built from public sources, with Handshake-style filters:
    - **SEC Form ADV** (monthly): ~24,000 investment advisers (PE, VC, hedge funds, real estate, wealth managers) with employee counts, private-fund types, fund assets and websites. Exempt reporting advisers are mostly small private fund managers.
    - **SEC Form D** (quarterly, last 4 quarters by default): ~55,000 new funds and startups that just raised money (VC, PE, hedge, biotech, software, healthcare, energy…), with ~166,000 people named on the filings (executive officers, directors, general partners).
-   - **Company job boards** (Greenhouse, Lever, Ashby public APIs; ~250 boards, add more by link) plus the SimplifyJobs internship lists: ~21,000 open postings.
+   - **Company job boards** (Greenhouse, Lever, Ashby, Recruitee and Workday public APIs; ~640 boards, add more by link) plus the SimplifyJobs internship and new-grad lists: ~27,000 open postings. Workday boards are large, so only student roles are read from them ("intern", or "graduate" if you target new-grad jobs), up to 100 per company, one request a second. Recruitee and Workday are only read where robots.txt allows; SmartRecruiters isn't used because its robots.txt allows only LinkedIn's crawler.
+   - **Board discovery** finds more company job boards, cheapest first: job-board links already in your jobs, alert emails and the lists; this month's Hacker News "Who is hiring?" thread; company names from your jobs and alerts tried on Greenhouse, Lever and Ashby (a hit only counts if the board names the company or its postings mention it); a few web searches a day like `site:jobs.ashbyhq.com "data" intern` that rotate through your target roles (Settings → Daily matches sets how many); and SEC firms in your target industries, whose own sites are checked for a careers page (robots.txt-checked). Each name and website is tried once. Up to 80 new boards are read right away; the rest on the next job-board crawl.
    - Filters: job type (internship, co-op, new grad, full-time, part-time), job function (~24), industry (~30), term, state, country, remote, visa hints ("No sponsorship", "US citizens only"); for firms: industry, category, employees, state, small firms only, has website, has named people.
    - **Dice** (tech jobs): searched live through Dice's official job-search MCP server (`https://mcp.dice.com/mcp`, no login). Find → Data sources → Dice → Search Dice runs up to 4 searches for your target roles (from About you; edit the list in the box), internships only if you're a student, remote if your target location is remote. Tick **Only employers willing to sponsor visas** to use Dice's sponsorship filter; those postings show "Willing to sponsor" in the Visa filter. Dice tags most internships "Full-time", so Job Agent searches "<role> intern" and reads the job type from the title. Each run replaces the previous Dice results, waits a second between requests, backs off when Dice rate-limits, and can't be rerun within 2 minutes. Listings come from AI-assisted search, so check details with the employer before applying.
    - **Job alert emails**: LinkedIn, Handshake, Indeed, Glassdoor, ZipRecruiter, Wellfound, Simplify, Jobright, Built In, WayUp, RippleMatch and Google send job recommendations by email. Job Agent reads **only those alerts** from your inbox over IMAP (read-only: nothing is marked read, moved or deleted; LinkedIn messages and other mail are skipped from the headers, before any body is downloaded), pulls out each job's title, company, location and link, and adds them to the database (source "LinkedIn alert", "Handshake alert"…). Set it up in Settings → Job alert emails with an app password (Gmail, iCloud, Yahoo) or authorization code (QQ, 163, 126); it checks every 3 hours while the app runs. Without that, paste an alert or upload it as an .eml file in Find → Data sources. This replaces logging into LinkedIn or Handshake, which their terms forbid (and unofficial "LinkedIn MCP" servers do exactly that with your session cookie, risking a ban).
@@ -122,9 +124,12 @@ Old links like `#tracker` or `#mentors` still work.
 | `app/memory.py` | Shared memory: facts, activity log, pinned profile fields |
 | `app/profile_merge.py` | Safe profile updates: AI proposes a patch, code applies it without deleting or overwriting edits |
 | `app/mentors.py` | Lead mentor (daily plan, progress snapshot) and the behavioral, technical and resume coaches |
+| `static/matches.js` | Home → Today's matches card |
 | `static/editor.js` | VS Code (Monaco) code editor for the Skills check, with a basic fallback |
 | `app/db.py` | Local firm and job database (SQLite): schema, search with filters and counts |
-| `app/crawlers.py` | Importers: SEC Form ADV, SEC Form D, company job boards, SimplifyJobs (background, with progress) |
+| `app/crawlers.py` | Importers: SEC Form ADV, SEC Form D, company job boards (Greenhouse, Lever, Ashby, Recruitee, Workday), SimplifyJobs (background, with progress) |
+| `app/discover.py` | Board discovery: links you already have, Hacker News, company-name probes, targeted search, firm careers pages |
+| `app/automatch.py` | Daily matches: prefilter, AI scoring, preparing the top matches, what Home and the lead mentor see |
 | `app/taxonomy.py` | Handshake-style categories and the rules that assign them |
 | `app/dice.py` | Dice job search: a small MCP client (JSON-RPC over HTTP, SSE replies) → postings |
 | `app/alerts.py` | Job-alert emails (IMAP read-only, or pasted/uploaded) → postings |
@@ -153,6 +158,7 @@ Old links like `#tracker` or `#mentors` still work.
 - **Frameworks:** competency names follow NACE's career readiness competencies, with our own short descriptions. Proficiency levels follow the style of OPM's structured-interview rating scales.
 - **Employer pages:** only fetched where robots.txt allows. They're used as prep material on your computer and are linked, not republished.
 - **Dice:** job listings from Dice's public MCP server, linked back to each posting on dice.com. Job Agent stores them only in your local database and doesn't use them to train any model.
+- **Job boards:** public job-board APIs (Greenhouse, Lever, Ashby, Recruitee, Workday), the SimplifyJobs lists and Hacker News (Algolia API). Postings link back to each employer's own page.
 - **Other sources:** SEC EDGAR, LeetCodeDataset (Apache-2.0), Tech Interview Handbook (MIT) and Open Interview (MIT); see above.
 
 ## Optional services (Settings)
@@ -175,4 +181,4 @@ Old links like `#tracker` or `#mentors` still work.
 - Chrome extension that fills application forms (the user clicks Submit)
 - Accounts and a real database for hosting many users
 - Crawling JavaScript-heavy sites at scale (Crawl4AI or Firecrawl would replace `app/research.py`'s fetcher; Jina Reader is used as a fallback today)
-- FINRA BrokerCheck for boutique investment banks, and discovering more company job boards automatically
+- FINRA BrokerCheck for boutique investment banks

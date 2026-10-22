@@ -4,7 +4,7 @@ changes until the user clicks one."""
 import json
 from datetime import date, datetime, timedelta
 
-from . import assess, db, llm, memory, pipeline, prep, profile_merge, prompts, store, timelines
+from . import assess, automatch, db, llm, memory, pipeline, prep, profile_merge, prompts, store, timelines
 
 COACHES = {
     "lead": {"name": "Lead mentor", "system": "LEAD_SYSTEM"},
@@ -15,7 +15,8 @@ COACHES = {
 TABS = {"mentors", "interview", "stories", "skills", "profile", "find", "jobs", "tracker", "network", "calendar", "guide", "settings"}
 # Cards an "open" button can scroll to, and the page each one is on (ids in static/app.js SECTIONS).
 SECTIONS = {"alerts": "settings", "outreach": "jobs", "add_job": "jobs", "data_sources": "find",
-            "company_prep": "skills", "my_behavioral": "stories", "my_technical": "skills"}
+            "company_prep": "skills", "my_behavioral": "stories", "my_technical": "skills",
+            "matches": "mentors", "daily_matches": "settings"}
 DEFAULT_GOAL = 10  # firms contacted per day, from the boutique internship guide
 HISTORY_TURNS = 30
 
@@ -91,6 +92,8 @@ def snapshot():
                                 for c in stories["plan"] if (stories["stories"][c].get("grade") or {}).get("stars", 5) <= 3][:8],
         "recruiting_windows": _windows(profile),
         "alert_postings_this_week": _alert_postings(week_ago),
+        # Each morning's scored postings; strong ones are already prepared in My jobs (job_id).
+        "daily_matches": automatch.summary_for_mentors(),
     }
 
 

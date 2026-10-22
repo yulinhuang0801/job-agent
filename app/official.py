@@ -158,6 +158,23 @@ def fetch(url):
     return d
 
 
+def get_html(url):
+    """Raw HTML of a page, robots.txt-checked and paused like fetch(); None if blocked or unreachable. Not cached."""
+    if not allowed(url):
+        return None
+    _pause(urlparse(url).netloc)
+    try:
+        r = httpx.get(url, headers={"User-Agent": USER_AGENT, "Accept": "text/html"}, timeout=20, follow_redirects=True)
+    except httpx.HTTPError:
+        return None
+    if r.status_code != 200 or "html" not in r.headers.get("content-type", "html"):
+        return None
+    final = str(r.url)
+    if final != url and not allowed(final):
+        return None
+    return {"url": final, "html": r.text[:600000]}
+
+
 # ---------- Which pages belong to a company ----------
 
 def _norm(s):
