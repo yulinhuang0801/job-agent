@@ -1,7 +1,7 @@
 """Cold emails and application-form help for one job or firm."""
 import json
 import re
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 import httpx
 from bs4 import BeautifulSoup
@@ -84,9 +84,114 @@ def _form_text_from_url(url):
     return text[:20000]
 
 
+# ---------- Exact questions from job-board APIs ----------
+# Greenhouse and Workable publish each job's application questions (types, options, required); Lever serves its form as
+# plain HTML. Ashby's robots.txt disallows its API, so Ashby forms are pasted by hand.
+
+GH_TYPES = {"input_text": "text", "textarea": "textarea", "input_file": "file", "multi_value_single_select": "select",
+            "multi_value_multi_select": "checkbox", "input_hidden": None}
+
+
+def _q_lines(label, kind, required, options):
+    lines = [label + (" *" if required else "")]
+    if kind:
+        lines.append(f"  [{kind} field{' required' if required else ''}]")
+    if options:
+        lines.append("  options: " + " | ".join(o for o in options if o)[:1500])
+    return lines
+
+
+def _greenhouse_form(token, job_id):
+    r = httpx.get(f"https://boards-api.greenhouse.io/v1/boards/{token}/jobs/{job_id}", params={"questions": "true"}, headers=HEADERS, timeout=20)
+    r.raise_for_status()
+    d = r.json()
+    lines = [d.get("title", "")]
+    for group in ("questions", "location_questions", "compliance", "demographic_questions"):
+        items = d.get(group) or []
+        if isinstance(items, dict):  # demographic_questions: {"header", "questions": [...]}
+            items = items.get("questions") or []
+        for q in items:
+            if group == "compliance":  # [{"type": "eeoc", "questions": [...]}]
+                for cq in q.get("questions") or []:
+                    for f in cq.get("fields") or []:
+                        lines += _q_lines(cq.get("label", ""), GH_TYPES.get(f.get("type"), "select"), cq.get("required"), [v.get("label", "") for v in f.get("values") or []])
+                continue
+            fields = q.get("fields") or [{"type": q.get("type"), "values": q.get("answer_options") or []}]
+            kinds = [GH_TYPES.get(f.get("type"), "text") for f in fields]
+            kinds = [k for k in kinds if k]
+            if not kinds:
+                continue
+            opts = [v.get("label", "") for f in fields for v in (f.get("values") or [])]
+            lines += _q_lines(q.get("label", ""), kinds[0], q.get("required"), opts)
+    return "\n".join(l for l in lines if l is not None)
+
+
+def _workable_form(shortcode):
+    r = httpx.get(f"https://apply.workable.com/api/v1/jobs/{shortcode}/form", headers=HEADERS, timeout=20)
+    r.raise_for_status()
+    lines = []
+    for section in r.json():
+        lines.append(section.get("name") or "")
+        for f in section.get("fields") or []:
+            if f.get("type") == "group":
+                continue  # education/experience blocks: filled from the resume
+            kind = {"paragraph": "textarea", "boolean": "radio", "multiple": "select", "dropdown": "select"}.get(f.get("type"), f.get("type"))
+            opts = [c.get("body") or c.get("label") or c.get("name") or "" for c in (f.get("choices") or f.get("options") or [])]
+            if f.get("type") == "boolean" and not opts:
+                opts = ["Yes", "No"]
+            lines += _q_lines(f.get("label", ""), kind, f.get("required"), opts)
+    return "\n".join(lines)
+
+
+def _form_text_from_ats(url):
+    """Exact form text from a supported job board, or "" to fall back to reading the page."""
+    try:
+        m = re.search(r"(?:job-boards|boards)\.greenhouse\.io/([A-Za-z0-9_-]+)/jobs/(\d+)", url)
+        if m:
+            return _greenhouse_form(m.group(1), m.group(2))
+        m = re.search(r"apply\.workable\.com/[A-Za-z0-9_-]+/j/([A-Z0-9]+)", url)
+        if m:
+            return _workable_form(m.group(1))
+        m = re.search(r"(jobs\.lever\.co/[A-Za-z0-9_.-]+/[0-9a-f-]{36})", url)
+        if m:
+            return _form_text_from_url(f"https://{m.group(1)}/apply")
+    except (httpx.HTTPError, ValueError, KeyError):
+        return ""
+    return ""
+
+
+# ---------- Your earlier answers ----------
+# Answers you type into a form (name, ZIP, LinkedIn, work authorization, availability...) are remembered and reused on
+# later forms with the same question. Essays aren't reused, and demographic (EEO) answers are never saved or filled.
+
+EEO = re.compile(r"gender|sex\b|race|ethnic|hispanic|latino|veteran|disab|sexual orientation|transgender|pronoun", re.I)
+
+
+def _qkey(question):
+    return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9 ]", " ", (question or "").lower())).strip()[:160]
+
+
+def load_answers():
+    return store.load("answers", [])
+
+
+def remember_answer(question, answer, category=""):
+    if not question or not (answer or "").strip() or category in ("essay", "eeo", "file") or EEO.search(question):
+        return
+    key = _qkey(question)
+    rows = [a for a in load_answers() if a["key"] != key]
+    rows.insert(0, {"key": key, "question": question[:300], "answer": answer.strip()[:600], "category": category,
+                    "at": datetime.now().isoformat(timespec="seconds")})
+    store.save("answers", rows[:300])
+
+
+def forget_answer(key):
+    store.save("answers", [a for a in load_answers() if a["key"] != key])
+
+
 def parse_form(job, text="", url=""):
     if not text and url:
-        text = _form_text_from_url(url)
+        text = _form_text_from_ats(url) or _form_text_from_url(url)
     if not text.strip():
         raise llm.LLMError("Paste the form's questions, or give the application link.")
     parsed = llm.chat_json([
@@ -98,14 +203,23 @@ def parse_form(job, text="", url=""):
         raise llm.LLMError("Couldn't find any questions in that text.")
     profile = store.load("profile", {})
     d = load_details()
+    earlier = [{"question": a["question"], "answer": a["answer"]} for a in load_answers()[:80]]
     drafts = llm.chat_json([
         {"role": "system", "content": prompts.FORM_ANSWER_SYSTEM},
         {"role": "user", "content": "QUESTIONS:\n" + json.dumps([{"index": i, **q} for i, q in enumerate(questions)], ensure_ascii=False)
+                                    + ("\n\nTHE CANDIDATE'S OWN ANSWERS FROM EARLIER APPLICATIONS (facts they gave; reuse them for the same question):\n"
+                                       + json.dumps(earlier, ensure_ascii=False)[:6000] if earlier else "")
                                     + "\n\nOUTREACH DETAILS:\n" + json.dumps(d, ensure_ascii=False)[:3000]
                                     + "\n\nCANDIDATE:\n" + _candidate(profile) + "\n\nFIRM / JOB:\n" + _firm(job)
                                     + (f"\n\nJOB POSTING:\n{job['description'][:5000]}" if job.get("description") else "")},
     ], max_tokens=16000, temperature=0.4, timeout=180)
     by_index = {int(a.get("index", -1)): a for a in drafts.get("answers") or [] if str(a.get("index", "")).lstrip("-").isdigit()}
+    remembered = {a["key"]: a for a in load_answers()}
+    for i, q in enumerate(questions):  # exact same question answered before: use the candidate's own answer
+        a = remembered.get(_qkey(q.get("question")))
+        d = by_index.setdefault(i, {})
+        if a and not str(d.get("answer") or "").strip() and q.get("category") not in ("essay", "eeo", "file") and not EEO.search(q.get("question", "")):
+            d["answer"], d["note"] = a["answer"], "Your answer from an earlier application."
     job["form"] = {
         "source": url or "pasted",
         "title": parsed.get("title") or "",

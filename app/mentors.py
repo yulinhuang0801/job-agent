@@ -283,7 +283,7 @@ def chat(coach):
     return {"coach": coach, "name": COACHES[coach]["name"], "messages": load_mentor()["chats"].get(coach, [])}
 
 
-def coach_turn(coach, text):
+def coach_turn(coach, text, context="", context_label=""):
     if coach not in COACHES:
         raise llm.LLMError("Unknown coach.")
     m = load_mentor()
@@ -292,13 +292,18 @@ def coach_turn(coach, text):
     shared = memory.shared_block(max_facts=60, max_events=15) if coach != "lead" else ""  # the lead's snapshot already has it
     system = getattr(prompts, COACHES[coach]["system"]) + prompts.COACH_ACTIONS + "\n\nCONTEXT (today is " + s["today"] + "):\n" \
         + json.dumps(_context(coach, s), ensure_ascii=False)[:30000] + ("\n\nSHARED MEMORY:\n" + shared if shared else "")
+    if context:  # sent from the side panel on another page: what the candidate is looking at right now
+        system += ("\n\nWHERE THE CANDIDATE IS RIGHT NOW (they opened you from the side panel; help with exactly this, briefly and "
+                   "concretely; for an application question, suggest the answer text they can paste, using only facts from the profile, "
+                   "stories and memory, and say plainly what only they can decide, like work authorization):\n" + context[:8000])
     msgs = [{"role": "system", "content": system}] + [_for_model(x) for x in history[-HISTORY_TURNS:]] + [{"role": "user", "content": text}]
     out = llm.chat_json(msgs, max_tokens=6000, temperature=0.6, timeout=120)
     reply = str(out.get("reply") or "").strip()
     if not reply:
         raise llm.LLMError("The coach returned an empty reply. Please send your message again.")
     remembered = memory.add_facts(out.get("memory") or [], COACHES[coach]["name"].lower())
-    history = history + [{"role": "user", "content": text, "at": datetime.now().isoformat(timespec="seconds")},
+    history = history + [{"role": "user", "content": text, "at": datetime.now().isoformat(timespec="seconds"),
+                          **({"context": context_label} if context_label else {})},
                          {"role": "assistant", "content": reply, "actions": _clean_actions(out.get("actions")),
                           "remembered": remembered, "at": datetime.now().isoformat(timespec="seconds")}]
     m = load_mentor()  # re-read: the user may have ticked tasks meanwhile

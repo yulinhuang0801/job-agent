@@ -1703,7 +1703,30 @@ function fitDetails(fit) {
 // Shown when there's no confirmed email: walks the user through finding it themselves.
 function needsEmailHelp(job) {
   const c = job.contact || {};
-  return !!job.research && (!c.email || /guess|general|not found|built from/.test(c.email_source || ""));
+  return !!job.research && (!c.name || !c.email || ["Low", "Not Found"].includes(c.email_confidence) || /guess|general|not found|built from/.test(c.email_source || ""));
+}
+
+// How sure we are about the contact: the Salt Creek labels (High / Medium / Low / Not Found), with the source and LinkedIn.
+const CONF_CLASS = { High: "ok", Medium: "warn", Low: "bad", "Not Found": "bad" };
+function contactFacts(job) {
+  const c = job.contact || {};
+  if (!job.research) return null;
+  if (!c.name) return h("p", { class: "missing-note small" }, "No owner, founder or partner was found on the website or in search results.");
+  const bits = [
+    c.contact_type ? h("span", { class: "chip" }, c.contact_type) : null,
+    c.verified ? h("span", { class: `badge ${c.verified === "Yes" ? "ok" : "warn"}`, title: "Does a source show this person leads this firm?" },
+      c.verified === "Yes" ? "Role verified" : c.verified === "No" ? "Role doubtful" : "Role not confirmed") : null,
+    c.source_url ? h("a", { href: c.source_url, target: "_blank", rel: "noopener" }, "Source ↗") : null,
+    c.linkedin ? h("a", { href: c.linkedin, target: "_blank", rel: "noopener", title: "Found through search results; open it yourself to check" }, "LinkedIn ↗") : null,
+    c.phone ? h("span", {}, `☎ ${c.phone} (${c.phone_type || "Main Office"})`) : null,
+  ].filter(Boolean);
+  return h("div", { class: "small", style: "display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:6px" }, bits,
+    c.notes ? h("div", { class: "muted", style: "flex-basis:100%" }, "Still unverified: ", c.notes) : null);
+}
+function emailConfidence(c) {
+  if (!c.email_confidence) return null;
+  return h("span", { class: `badge ${CONF_CLASS[c.email_confidence] || ""}`, title: "High: published or confirmed by two sources. Medium: a reliable database (Hunter.io). Low: guessed from the firm's email pattern or a general inbox." },
+    `Email confidence: ${c.email_confidence}`);
 }
 
 function findEmailHelper(job) {
@@ -1732,6 +1755,22 @@ function findEmailHelper(job) {
       setMsg(msg, err.message, "err");
     }
   }));
+  if (!name) {
+    const firm = job.company || "";
+    return h("div", { class: "notice" },
+      h("b", {}, "No decision-maker found yet. Find the person yourself (Job Agent doesn't log into LinkedIn or Apollo for you):"),
+      h("ol", { class: "tight" },
+        h("li", {}, "Read the firm's About, Team and Leadership pages for a founder, owner or managing partner."),
+        h("li", {}, "Google the firm with the word owner, founder or president, and check the person is at this firm (same city and field)."),
+        h("li", {}, "On LinkedIn, open the firm's company page → People, and look for Founder, Managing Partner or Principal."),
+        h("li", {}, "Small firms: state business records (OpenCorporates) list the officers."),
+        h("li", {}, "Type the name and title in Contact above, then Job Agent can help find the email.")),
+      h("div", { class: "row" },
+        job.website ? h("a", { class: "button small secondary", href: job.website, target: "_blank", rel: "noopener" }, "Firm website ↗") : null,
+        h("a", { class: "button small secondary", href: `https://www.google.com/search?q=${q(`"${firm}" founder OR owner OR "managing partner"`)}`, target: "_blank", rel: "noopener" }, "Google ↗"),
+        h("a", { class: "button small secondary", href: `https://www.linkedin.com/search/results/companies/?keywords=${q(firm)}`, target: "_blank", rel: "noopener" }, "LinkedIn company ↗"),
+        h("a", { class: "button small secondary", href: `https://opencorporates.com/companies?q=${q(firm)}`, target: "_blank", rel: "noopener" }, "OpenCorporates ↗")));
+  }
   return h("div", { class: "notice" },
     h("b", {}, c.email ? "This email isn't confirmed yet. Check it yourself:" : "No email found yet. Find it yourself:"),
     h("ol", { class: "tight" },
@@ -1772,8 +1811,9 @@ function researchSection(job, run) {
     h("div", { class: "grid2" },
       h("div", {}, h("label", {}, "Contact"), inp("contact_name", c.name, "Name")),
       h("div", {}, h("label", {}, "Title"), inp("contact_title", c.title, "Founder, MD, Partner…"))),
+    contactFacts(job),
     h("label", {}, "Email"), inp("contact_email", c.email, "name@firm.com"),
-    c.email_source ? h("p", { class: "small " + (/guess|not found|general/.test(c.email_source) ? "missing-note" : "muted") }, c.email_source) : null,
+    c.email_source ? h("p", { class: "small " + (/guess|not found|general/.test(c.email_source) ? "missing-note" : "muted") }, emailConfidence(c), " ", c.email_source) : null,
     needsEmailHelp(job) ? findEmailHelper(job) : null,
     h("label", {}, "How to apply"),
     (() => {
@@ -1811,10 +1851,34 @@ function emailSection(job, run) {
       : kind === "outlook" ? `https://outlook.office.com/mail/deeplink/compose?to=${to}&subject=${su}&body=${bo}`
       : `mailto:${to}?subject=${su}&body=${bo}`;
   };
+  // Web Gmail/Outlook links can't carry files, so opening one also downloads the resume and says how to attach it.
+  // On your own Mac, "Mail app" makes a real Apple Mail draft with the resume already attached.
+  const attachTip = h("p", { class: "notice small hidden" });
+  const downloadResume = () => {
+    const a = h("a", { href: resumeLink, download: "" });
+    document.body.append(a); a.click(); a.remove();
+  };
   const opener = (kind, label) => {
     const a = h("a", { class: "button small secondary", target: "_blank", rel: "noopener", href: "#" }, label);
-    a.addEventListener("click", () => (a.href = compose(kind)));
+    a.addEventListener("click", () => {
+      a.href = compose(kind);
+      downloadResume();
+      attachTip.textContent = `📎 Your ${job.documents ? "tailored resume" : "CV"} just downloaded. In ${kind === "gmail" ? "Gmail" : kind === "outlook" ? "Outlook" : "your email app"}, click the paperclip (Attach files) and pick it from Downloads, or drag it from the browser's download list into the email.`;
+      attachTip.classList.remove("hidden");
+    });
     return a;
+  };
+  const mailApp = () => {
+    if (!(settings && settings.mail_drafts)) return opener("mailto", "Mail app");
+    const b = h("button", { class: "small secondary", type: "button", title: "Opens a draft in Apple Mail with your resume attached. You press Send." }, "Mail app (resume attached)");
+    b.addEventListener("click", () => busy(b, "Opening Mail…", async () => {
+      try {
+        const r = await api(`/api/jobs/${job.id}/mail-draft`, { method: "POST", body: { to: c.email || "", subject: subject.value, body: body.value } });
+        attachTip.textContent = `📎 A draft is open in Mail with ${r.attached} attached. Check it, then press Send there, and come back to click "I sent it".`;
+      } catch (err) { attachTip.textContent = err.message; }
+      attachTip.classList.remove("hidden");
+    }));
+    return b;
   };
   const sent = h("button", { class: "small", type: "button" }, job.contacted_date ? `Sent ${job.contacted_date} ✓` : "I sent it");
   sent.addEventListener("click", async () => replaceJob(await api(`/api/jobs/${job.id}/sent`, { method: "POST" })));
@@ -1823,11 +1887,13 @@ function emailSection(job, run) {
     h("label", {}, "To"), h("p", {}, c.email || h("span", { class: "missing-note" }, "No email yet: add it in step 1 (Apollo.io).")),
     h("label", {}, "Subject"), subject,
     h("label", {}, "Email"), body,
-    h("p", { class: "small" }, "📎 Attach your resume: ", h("a", { href: resumeLink }, job.documents ? "tailored resume PDF" : "your CV PDF"),
-      job.documents ? null : h("span", { class: "muted" }, " (or write a tailored one below)")),
-    h("div", { class: "row actions" }, opener("gmail", "Open in Gmail"), opener("outlook", "Open in Outlook"), opener("mailto", "Mail app"),
+    h("p", { class: "small" }, "📎 Resume to attach: ", h("a", { href: resumeLink }, job.documents ? "tailored resume PDF" : "your CV PDF"),
+      job.documents ? null : h("span", { class: "muted" }, " (or write a tailored one in step 3)"),
+      h("span", { class: "muted" }, settings && settings.mail_drafts ? ". Mail app attaches it for you; Gmail and Outlook download it for you to attach." : ". The buttons below download it for you to attach.")),
+    h("div", { class: "row actions" }, opener("gmail", "Open in Gmail"), opener("outlook", "Open in Outlook"), mailApp(),
       copyButton(() => body.value, "Copy email"), sent,
       h("button", { class: "ghost small", onclick: run("Rewriting…", "email") }, "Rewrite")),
+    attachTip,
     h("p", { class: "muted small" }, "Opens a draft in your own mailbox. Nothing is sent until you press Send there."),
     h("details", {}, h("summary", {}, "LinkedIn connection note"), note, h("div", { class: "row" }, count, copyButton(() => note.value))),
     h("details", { open: !!job.followup_due || undefined }, h("summary", {}, "Follow-up" + (job.followup_due ? ` (send by ${job.followup_due})` : " (after 7 days)")),
@@ -1859,7 +1925,23 @@ function formSection(job) {
   const draw = () => {
     const q = qs[i];
     const answer = h("textarea", { rows: q.category === "essay" ? 8 : 2 }, q.answer);
-    answer.addEventListener("change", () => { q.answer = answer.value; api(`/api/jobs/${job.id}/form`, { method: "PATCH", body: { index: i, answer: answer.value } }); });
+    const remembers = !["essay", "eeo", "file"].includes(q.category) && !/gender|race|ethnic|hispanic|latino|veteran|disab/i.test(q.question);
+    const saved = h("span", { class: "small ok-text" });
+    answer.addEventListener("change", () => {
+      q.answer = answer.value;
+      api(`/api/jobs/${job.id}/form`, { method: "PATCH", body: { index: i, answer: answer.value } });
+      if (remembers && answer.value.trim()) saved.textContent = "✓ Saved; future applications with this question will use it.";
+    });
+    const ask = h("button", { class: "ghost small", type: "button", title: "Opens the lead mentor beside the form, with this question attached" }, "Ask the lead mentor");
+    ask.addEventListener("click", () => openDock({ coach: "lead", jobId: job.id, questionIndex: i,
+      label: `${job.company} application · question ${i + 1}`,
+      prefill: q.answer ? "Is my answer to this question good, or how should I change it?" : "How should I answer this question?" }));
+    const nextBlank = () => {
+      const order = [...qs.keys()].slice(i + 1).concat([...qs.keys()].slice(0, i + 1));
+      const j = order.find((k) => !(qs[k].answer || "").trim() && !qs[k].done && !["eeo", "file"].includes(qs[k].category));
+      if (j !== undefined) { i = j; draw(); }
+    };
+    const blanks = qs.filter((x) => !(x.answer || "").trim() && !x.done && !["eeo", "file"].includes(x.category)).length;
     const instr = h("input", { placeholder: "How should it change? (optional)" });
     const rewrite = h("button", { class: "ghost small", type: "button" }, "Rewrite");
     rewrite.addEventListener("click", () => busy(rewrite, "Rewriting…", async () => {
@@ -1878,12 +1960,14 @@ function formSection(job) {
       h("div", { class: "qmeta" }, `Question ${i + 1} of ${qs.length} · ${q.category}${q.required ? " · required" : ""} · ${finished} done`),
       h("p", {}, h("b", {}, q.question)),
       (q.options || []).length ? h("p", { class: "small muted" }, "Options: " + q.options.join(" | ")) : null,
-      answer,
-      q.note ? h("p", { class: "small missing-note" }, q.note) : null,
+      answer, saved,
+      q.note ? h("p", { class: "small " + (/earlier application/.test(q.note) ? "ok-text" : "missing-note") }, q.note) : null,
       h("div", { class: "row actions" },
         h("button", { class: "ghost small", type: "button", onclick: () => go(-1), disabled: i === 0 }, "← Back"),
         done, copyButton(() => answer.value),
-        h("button", { class: "ghost small", type: "button", onclick: () => go(1), disabled: i === qs.length - 1 }, "Skip →")),
+        h("button", { class: "ghost small", type: "button", onclick: () => go(1), disabled: i === qs.length - 1 }, "Skip →"),
+        blanks ? h("button", { class: "ghost small", type: "button", onclick: nextBlank }, `Next blank → (${blanks} left)`) : null,
+        ask),
       h("div", { class: "row" }, instr, rewrite));
   };
   draw();
@@ -1891,7 +1975,15 @@ function formSection(job) {
     h("div", { class: "row" },
       (job.apply_url || job.url) ? h("a", { class: "button small secondary", href: job.apply_url || job.url, target: "_blank", rel: "noopener" }, "Open application ↗") : null,
       h("a", { class: "button small secondary", href: `/api/jobs/${job.id}/form.txt` }, "Download all answers (.txt)"),
-      h("a", { class: "button small secondary", href: job.documents ? `/api/jobs/${job.id}/resume.pdf` : "/api/profile/resume.pdf" }, "Resume PDF")),
+      h("a", { class: "button small secondary", href: job.documents ? `/api/jobs/${job.id}/resume.pdf` : "/api/profile/resume.pdf" }, "Resume PDF"),
+      (() => {
+        const again = h("button", { class: "ghost small", type: "button", title: "Reads the form again, e.g. to get exact options. Answers you typed are reused." }, "Read the form again");
+        again.addEventListener("click", () => busy(again, "Reading… (up to a minute)", async () => {
+          try { replaceJob(await api(`/api/jobs/${job.id}/form`, { method: "POST", body: { url: f.source && f.source !== "pasted" ? f.source : (job.apply_url || job.url || ""), text: "" } })); }
+          catch (err) { setMsg(msg, err.message, "err"); }
+        }));
+        return f.source && f.source !== "pasted" || job.apply_url || job.url ? again : null;
+      })(), msg),
     panel);
   return box;
 }
@@ -1952,14 +2044,36 @@ function setJobsMode(mode) {
 $("#jobs-mode-cards").addEventListener("click", () => setJobsMode("cards"));
 $("#jobs-mode-table").addEventListener("click", () => setJobsMode("table"));
 
+let bulkResearch = null; // progress text while "Research all" runs
+
 function jobsSummary() {
   const today = new Date().toLocaleDateString("en-CA");
   const by = {};
   for (const j of jobs) by[j.status] = (by[j.status] || 0) + 1;
   const due = jobs.filter((j) => j.followup_due && j.followup_due <= today && j.status === "Contacted").length;
-  $("#jobs-summary").textContent = jobs.length
+  const text = jobs.length
     ? Object.entries(by).map(([k, v]) => `${v} ${k.toLowerCase()}`).join(" · ") + (due ? ` · ${due} follow-up${due === 1 ? "" : "s"} due` : "")
     : "";
+  // Firms you haven't researched have no contact yet; research them all in one go (about a minute each).
+  if (bulkResearch) { fill($("#jobs-summary"), text, text ? " · " : "", h("span", { class: "small" }, bulkResearch)); return; }
+  const todo = jobs.filter((j) => j.kind === "firm" && !j.research);
+  if (!todo.length) { $("#jobs-summary").textContent = text; return; }
+  const btn = h("button", { class: "small secondary", type: "button", title: "Finds each firm's founder or partner and their email" },
+    `Research ${todo.length} firm${todo.length === 1 ? "" : "s"} without a contact`);
+  btn.addEventListener("click", async () => {
+    let done = 0, failed = 0;
+    for (const j of todo) {
+      bulkResearch = `Researching ${j.company} (${done + failed + 1} of ${todo.length}, about a minute each)…`;
+      jobsSummary();
+      try { replaceJob(await api(`/api/jobs/${j.id}/research`, { method: "POST" })); done++; }
+      catch (err) { failed++; }
+    }
+    bulkResearch = null;
+    jobsSummary();
+    const note = h("span", { class: "msg ok small" }, ` Researched ${done} firm${done === 1 ? "" : "s"}${failed ? `; ${failed} couldn't be researched (open them to see why)` : ""}.`);
+    $("#jobs-summary").append(note);
+  });
+  fill($("#jobs-summary"), text, text ? " · " : "", btn);
 }
 
 loaders.jobs = async () => {

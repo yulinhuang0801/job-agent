@@ -91,6 +91,64 @@ def find_website(name):
     return ""
 
 
+# ---------- Finding the decision-maker (the Salt Creek research method) ----------
+# Website first; then searches for the owner, founder or president; LinkedIn only through search results (Job Agent
+# never logs into LinkedIn or Apollo). A person only counts if the source is about THIS firm (same name, place, field).
+
+LINKEDIN_RE = re.compile(r"^https?://([a-z]{2,3}\.)?linkedin\.com/in/[A-Za-z0-9_%-]+/?$")
+CONTACT_TYPES = ("Owner", "Founder", "Co-Owner", "Family Owner", "President", "CEO", "Managing Partner", "Partner", "Other Leadership")
+PHONE_TYPES = ("Mobile", "Direct Line", "Main Office", "VoIP", "Not Found")
+
+
+def people_searches(company, site):
+    """[(query, results)]: who owns or leads the firm, from search engines (Serper or Tavily)."""
+    if not company or not (services.serper_enabled() or services.search_enabled()):
+        return []
+    queries = [f'"{company}" founder OR owner OR "managing partner"']
+    if not site or len(site.get("pages", [])) < 3:  # thin website: search harder
+        queries.append(f'"{company}" president OR principal OR "managing director" OR CEO')
+    out = []
+    for q in queries:
+        found = services.find_search({"query": q, "max_results": 6})
+        results = [{"title": r.get("title", ""), "url": r.get("url", ""), "content": r.get("content", "")[:400]} for r in found.get("results", [])]
+        if results:
+            out.append((q, results))
+    return out
+
+
+def find_linkedin(name, company):
+    """A LinkedIn profile URL from search results (never by visiting LinkedIn); '' when no result clearly matches."""
+    if not (name and company and (services.serper_enabled() or services.search_enabled())):
+        return ""
+    found = services.find_search({"query": f'site:linkedin.com/in "{name}" "{company}"', "max_results": 5, "include_domains": ["linkedin.com"]})
+    last = name.split()[-1].lower()
+    for r in found.get("results", []):
+        url = (r.get("url") or "").split("?")[0]
+        text = f"{r.get('title', '')} {r.get('content', '')}".lower()
+        if LINKEDIN_RE.search(url) and last in text and company.split()[0].lower() in text:
+            return url
+    return ""
+
+
+def _drop_found(notes, linkedin, email):
+    """The AI writes its notes before the LinkedIn and email lookups; drop the parts those lookups answered."""
+    parts = [p.strip() for p in re.split(r"[;.]\s*", notes) if p.strip()]
+    keep = [p for p in parts if not ((linkedin and "linkedin" in p.lower()) or (email and "email" in p.lower() and "not" in p.lower()))]
+    return "; ".join(keep)
+
+
+def email_confidence(email, how):
+    """High: published or confirmed by two sources. Medium: a reliable database. Low: a guess or a general inbox."""
+    if not email:
+        return "Not Found"
+    how = how or ""
+    if "published" in how or "entered by you" in how or "pattern and Hunter" in how:
+        return "High"
+    if "Hunter" in how:
+        return "Medium"
+    return "Low"  # pattern guesses (including ones built from a known email) and general inboxes
+
+
 # ---------- Email patterns ----------
 
 PATTERNS = {
@@ -166,9 +224,10 @@ def research(job):
             material.append(f"PAGE {p['url']}\n{p['text'][:8000]}")
         material.append("EMAILS FOUND ON THE SITE: " + (", ".join(site["emails"]) or "none"))
         material.append("APPLICATION / ATS LINKS FOUND: " + (", ".join(site["ats_links"]) or "none"))
-    if services.search_enabled():
-        found = services.web_search({"query": f"{job.get('company')} team founder managing partner", "max_results": 5})
-        material.append("SEARCH RESULTS:\n" + json.dumps(found.get("results", []), ensure_ascii=False))
+    sources = [p["url"] for p in site["pages"]] if site else []
+    for query, results in people_searches(job.get("company") or "", site):
+        material.append(f"SEARCH RESULTS for {query}:\n" + json.dumps(results, ensure_ascii=False))
+        sources += [r.get("url", "") for r in results]
     if job.get("description"):
         material.append("JOB POSTING:\n" + job["description"][:6000])
     if not material:
@@ -184,6 +243,12 @@ def research(job):
     domain = site["domain"] if site else ""
     contact = out.get("primary_contact") or {}
     email, how = contact_email(contact, people, emails, domain) if contact.get("name") or emails else ("", "not found: look it up on Apollo.io, Hunter.io or RocketReach")
+    linkedin = next((p.get("linkedin") for p in people if p.get("name") == contact.get("name") and p.get("linkedin")), "")
+    if contact.get("name") and not LINKEDIN_RE.search(linkedin or ""):
+        linkedin = find_linkedin(contact["name"], job.get("company") or "")
+    source = contact.get("source_url") or ""
+    if source and source not in sources:
+        source = ""  # only a page or search result we actually read counts as a source
     channel = out.get("channel") or "email"
     if job.get("kind") == "posting" and job.get("url"):
         channel = "form"
@@ -193,9 +258,14 @@ def research(job):
     job["research"]["people"] = people
     job["research"]["pages"] = [p["url"] for p in site["pages"]] if site else []
     job["research"]["emails_found"] = emails
+    phone_type = contact.get("phone_type") if contact.get("phone_type") in PHONE_TYPES else ("Main Office" if contact.get("phone") else "Not Found")
     job["contact"] = {"name": contact.get("name", ""), "title": contact.get("title", ""), "why": contact.get("why", ""),
-                      "email": email, "email_source": how,
-                      "linkedin": next((p.get("linkedin") for p in people if p.get("name") == contact.get("name") and p.get("linkedin")), "")}
+                      "email": email, "email_source": how, "email_confidence": email_confidence(email, how),
+                      "contact_type": contact.get("contact_type") if contact.get("contact_type") in CONTACT_TYPES else ("Other Leadership" if contact.get("name") else ""),
+                      "verified": contact.get("verified") if contact.get("verified") in ("Yes", "No", "Unclear") else ("Unclear" if contact.get("name") else ""),
+                      "source_url": source, "linkedin": linkedin if LINKEDIN_RE.search(linkedin or "") else "",
+                      "phone": contact.get("phone") or "", "phone_type": phone_type if contact.get("phone") else "Not Found",
+                      "notes": _drop_found(str(contact.get("missing") or ""), linkedin, email)[:400]}
     job["channel"] = channel
     if out.get("apply_url") and not job.get("apply_url"):
         job["apply_url"] = out["apply_url"]
@@ -223,5 +293,6 @@ def email_from_example(job, known_email, known_name):
         raise llm.LLMError("Add the contact's full name (first and last).")
     contact["email"] = f"{PATTERNS[pattern](first, last)}@{domain}"
     contact["email_source"] = f"built from the {pattern} pattern of {known_email}; verify before sending"
+    contact["email_confidence"] = "Low"
     job["contact"] = contact
     return job

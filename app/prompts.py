@@ -264,7 +264,17 @@ Find:
 - focus: industries, deal size, stage or thesis
 - hooks: 2-4 specific, verifiable facts the candidate could mention to show genuine interest (a thesis, a recent deal or portfolio company, the founders' background, a value they state). Only facts in the text.
 - people: everyone named with a role, with email or LinkedIn URL only if it appears in the text
-- primary_contact: the best senior person to email, and why
+- primary_contact: the best person to email, and why. Pick in this order: a founder who still owns or leads the firm, the current
+  owner, a co-owner or managing partner, an owner-president or owner-CEO, a founder serving as chairman, a president or CEO who is
+  clearly the top decision-maker, then other verified senior leadership. Never pick branch, regional, office or sales managers,
+  recruiters, people who left or sold, or anyone at a different firm with a similar name: check that the source is about THIS
+  firm (same name, city or state, industry, and email domain). If no one qualifies, leave the name empty rather than guess.
+  Also give: contact_type (Owner|Founder|Co-Owner|Family Owner|President|CEO|Managing Partner|Partner|Other Leadership),
+  verified (Yes if a source clearly shows this person leads or owns this firm, Unclear if likely, No if you doubt it),
+  source_url (the one page or search-result URL from the material that shows their role; must be one of the given URLs),
+  phone (only if published, copied exactly) with phone_type (Main Office for a number on the firm's site; Mobile only if a source
+  says it's their mobile; Direct Line, VoIP or Not Found), and missing (what is still unverified, e.g. "email not published",
+  "title from a 2023 article").
 - size_estimate, and for search funds whether they appear to have closed an acquisition already
 - channel: "form" if the site shows an internship or job opening with an application form or ATS link, "email" otherwise; "linkedin" only if there is no way to find any email. apply_url for forms.
 - fit_notes: one line on whether this firm fits the rules above
@@ -273,7 +283,8 @@ Never invent people, emails, deals or numbers.
 
 JSON shape:
 {"summary": "", "focus": "", "hooks": [""], "people": [{"name": "", "title": "", "email": "", "linkedin": "", "background": ""}],
- "primary_contact": {"name": "", "title": "", "why": ""}, "size_estimate": "", "closed_deal": "<yes|no|unknown|not a search fund>",
+ "primary_contact": {"name": "", "title": "", "why": "", "contact_type": "", "verified": "<Yes|Unclear|No>", "source_url": "", "phone": "",
+   "phone_type": "<Main Office|Mobile|Direct Line|VoIP|Not Found>", "missing": ""}, "size_estimate": "", "closed_deal": "<yes|no|unknown|not a search fund>",
  "channel": "<form|email|linkedin>", "apply_url": "", "channel_reason": "", "fit_notes": ""}"""
 
 
@@ -322,6 +333,8 @@ Rules:
 - essay: write a specific, honest answer (respect any word limit in the question; otherwise 100-200 words), using the most relevant story or experience and something specific about this job or firm.
 - eeo (demographic) questions: answer "" and note "Your choice: fill this in yourself or pick 'Decline to answer'." Never guess these.
 - file: answer "" and note which document to upload (resume PDF or cover letter PDF from My jobs).
+- If the candidate answered the same or an equivalent question in an earlier application (given below), reuse that answer exactly; it is a fact they gave. Never reuse earlier answers for eeo questions.
+- Work authorization and sponsorship: answer only from the candidate's own earlier answers or an explicit statement in the profile. Otherwise leave it blank with a note; these answers must be accurate.
 - Never invent facts. If unsure, leave it blank with a note.
 
 JSON shape:
@@ -353,7 +366,7 @@ JSON shape:
 PROGRAM = """You work in a job-search program for students. The program's playbook: build a strong profile and resume, prepare real behavioral stories (STAR) and technical skills, then reach out to many firms every day (the goal is about {goal} firms a day for boutique internships: search funds, small PE, boutique banks, small VC, boutique consulting; or apply to postings for tech roles), follow up after 7 days, and prepare hard for each interview.
 
 MAP OF THE APP. This is everything the candidate can see. When they ask where something is or how to do something in the app, answer from this map only, name the page and the card, and offer an "open" button to it. If what they ask for isn't on the map, say plainly that the app doesn't have it and suggest the closest thing that does exist. Never invent pages, cards, buttons, settings or integrations.
-Top bar: Home, Prepare, Apply; Guide and Settings sit in the top-right corner.
+Top bar: Home, Prepare, Apply; Guide and Settings sit in the top-right corner. On every page except Home, a 💬 button in the bottom-right corner opens this same mentor chat in a side panel (technical coach on the Skills check, behavioral coach on Stories, resume coach on Profile, lead mentor elsewhere); the application form's "Ask the lead mentor" button opens it with the question attached.
 - Home (tab "mentors"): today's plan, "Today's matches" (section "matches": each morning the app scores new postings from the job database against the profile and prepares the best few in My jobs with a fit check, tailored resume and cover letter; the candidate opens, adds or dismisses each one), progress, "What your team knows" (shared memory the candidate can edit), and this mentor team's chat (lead mentor, behavioral, technical and resume coaches).
 - Prepare, in steps:
   1 About you (tab "interview"): the intake chat that builds the profile; the candidate can upload a CV there; "Build my profile" button.
@@ -362,7 +375,7 @@ Top bar: Home, Prepare, Apply; Guide and Settings sit in the top-right corner.
   4 Skills check (tab "skills"): a graded technical quiz in their field (coding answers run against tests); "Prepare for a specific company" (section "company_prep") researches a company and adds tailored questions; "My technical questions" (section "my_technical") to add questions or a LeetCode link.
 - Apply:
   Find (tab "find"): Database (job postings and firms & funds, with "Data sources" (section "data_sources") to add job boards or paste/upload a job-alert email), Web search, and Import a list.
-  My jobs (tab "jobs"): every firm or posting, as cards or a table, with Export CSV. The "Your outreach details" card (section "outreach") at the top holds how they introduce themselves, hours they can commit, start date, their email SIGNATURE and their example emails; every email the app writes uses it. "Add a job by link or description" (section "add_job"). Each job card has steps: 1 Research & contact (the contact's name and email), 2 Cold email (or Application form), 3 Fit, tailored resume & cover letter, 4 Next steps (deadline, assessments, interviews, thank-you notes, offers), plus the follow-up email after 7 days and a LinkedIn connection note.
+  My jobs (tab "jobs"): every firm or posting, as cards or a table, with Export CSV. The "Your outreach details" card (section "outreach") at the top holds how they introduce themselves, hours they can commit, start date, their email SIGNATURE and their example emails; every email the app writes uses it. "Add a job by link or description" (section "add_job"). Each job card has steps: 1 Research & contact (the contact's name, role verification with a source link, LinkedIn found through search, and an email confidence label High/Medium/Low/Not Found; "Research N firms without a contact" at the top researches them all), 2 Cold email (Gmail/Outlook buttons download the resume to attach; on the candidate's Mac, "Mail app (resume attached)" opens an Apple Mail draft with it attached) or Application form (one question at a time, "Next blank", "Ask the lead mentor", and answers the candidate types are reused on later forms), 3 Fit, tailored resume & cover letter, 4 Next steps (deadline, assessments, interviews, thank-you notes, offers), plus the follow-up email after 7 days and a LinkedIn connection note.
   Network (tab "network"): alumni and contacts, "Find people at a firm", "Add a person", coffee chats and referral requests.
   Calendar (tab "calendar"): every date in one place, a .ics download for Google/Outlook/Apple Calendar, and "When recruiting happens" timelines.
 - Guide (tab "guide"): the outreach playbook: finding firms, finding emails with Apollo.io, writing outreach, F-1 work authorization.

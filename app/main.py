@@ -4,6 +4,8 @@ import io
 import json
 import re
 import os
+import subprocess
+import sys
 import uuid
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -132,6 +134,7 @@ def _public_settings():
         **{k: s[k] for k in ("automatch", "automatch_prepare", "automatch_depth", "automatch_min", "discover_searches")},
         "demo": DEMO,
         "has_relay": bool(shared.active()),
+        "mail_drafts": mail_drafts_available(),
         "relay_host": shared.active()[0].split("//")[-1] if shared.active() else "",
         "has_ai": bool(s["api_key"]) or bool(shared.active()),
     }
@@ -758,6 +761,7 @@ def update_job(job_id: str, body: JobPatch):
         job["contact"] = {**(job.get("contact") or {}), **contact}
         if "email" in contact:
             job["contact"]["email_source"] = "entered by you"
+            job["contact"]["email_confidence"] = "High" if contact["email"].strip() else "Not Found"
     if changes.get("status") and changes["status"] != job.get("status"):
         memory.log("job", f"{job.get('company')}: {job.get('status')} → {changes['status']}", job["id"])
     job.update(changes)
@@ -848,6 +852,64 @@ def job_cover_letter_pdf(job_id: str):
     profile, job = _job_docs(job_id)
     data = pdf.render_cover_letter(_header(profile), job["documents"].get("cover_letter") or {}, job.get("company", ""))
     return _pdf_response(data, _slug(profile.get("name"), job.get("company"), "Cover_Letter"))
+
+
+# ---------- Mail app draft with the resume attached (macOS, running on your own computer) ----------
+
+MAIL_SCRIPT = """on run argv
+  set toAddr to item 1 of argv
+  set subj to item 2 of argv
+  set bodyText to item 3 of argv
+  set filePath to item 4 of argv
+  tell application "Mail"
+    set m to make new outgoing message with properties {subject:subj, content:bodyText & return & return, visible:true}
+    tell m
+      if toAddr is not "" then make new to recipient at end of to recipients with properties {address:toAddr}
+      make new attachment with properties {file name:(POSIX file filePath as alias)} at after the last paragraph
+    end tell
+    activate
+  end tell
+end run"""
+
+
+def mail_drafts_available():
+    """Apple Mail drafts only work when the app runs on your own Mac (not the demo or an online copy)."""
+    return sys.platform == "darwin" and not DEMO and not os.environ.get("APP_PASSWORD")
+
+
+class MailDraftIn(BaseModel):
+    to: str = ""
+    subject: str = ""
+    body: str = ""
+
+
+@app.post("/api/jobs/{job_id}/mail-draft")
+def mail_draft(job_id: str, body: MailDraftIn):
+    """Open a new draft in Apple Mail with this job's resume attached. It never sends: you review and press Send."""
+    if not mail_drafts_available():
+        raise HTTPException(400, "Mail app drafts work only when Job Agent runs on your own Mac.")
+    profile = _require_profile()
+    job = _find(_jobs(), job_id)
+    if job.get("documents"):
+        data, name = pdf.render_resume(_header(profile), job["documents"]), _slug(profile.get("name"), "Resume")
+    else:
+        data, name = pdf.render_resume(_header(profile), _resume_from_profile(profile)), _slug(profile.get("name"), "Resume")
+    folder = store.DATA_DIR / "outbox"
+    folder.mkdir(parents=True, exist_ok=True)
+    path = folder / f"{name}.pdf"
+    path.write_bytes(data)
+    try:
+        r = subprocess.run(["osascript", "-e", MAIL_SCRIPT, body.to.strip(), body.subject, body.body, str(path)],
+                           capture_output=True, text=True, timeout=60)
+    except (OSError, subprocess.TimeoutExpired) as e:
+        raise HTTPException(400, f"Couldn't open Mail ({e.__class__.__name__}).")
+    if r.returncode != 0:
+        msg = r.stderr.strip()
+        if "not allowed" in msg.lower() or "-1743" in msg:
+            raise HTTPException(400, "macOS blocked Job Agent from opening Mail. Allow it in System Settings → Privacy & Security → "
+                                     "Automation (Terminal → Mail), then try again.")
+        raise HTTPException(400, f"Mail couldn't create the draft: {msg[:200]}")
+    return {"ok": True, "attached": path.name}
 
 
 @app.get("/api/jobs.csv")
@@ -1022,6 +1084,7 @@ def form_answer(job_id: str, body: FormAnswerIn):
             raise HTTPException(404, "No such question.")
         if body.answer is not None:
             qs[body.index]["answer"] = body.answer
+            outreach.remember_answer(qs[body.index].get("question"), body.answer, qs[body.index].get("category", ""))
         if body.done is not None:
             qs[body.index]["done"] = body.done
         job["form"]["step"] = body.index
@@ -1045,6 +1108,17 @@ def form_txt(job_id: str):
     name = _slug(job.get("company"), "Application")
     return Response("\ufeff" + outreach.form_txt(job), media_type="text/plain; charset=utf-8",
                     headers={"Content-Disposition": f'attachment; filename="{name}.txt"'})
+
+
+@app.get("/api/answers")
+def saved_answers():
+    return outreach.load_answers()
+
+
+@app.delete("/api/answers/{key:path}")
+def delete_answer(key: str):
+    outreach.forget_answer(key)
+    return outreach.load_answers()
 
 
 @app.get("/api/outreach")
@@ -1423,12 +1497,47 @@ def mentor_chat(coach: str):
     return mentors.chat(coach)
 
 
+class MentorMessageIn(BaseModel):
+    text: str
+    page: str = ""  # the side panel says where you are: a page name, and maybe a job and a form question
+    job_id: str = ""
+    question_index: Optional[int] = None
+    note: str = ""  # e.g. the skills-check question on screen
+
+
+def _page_context(body):
+    """What the candidate is looking at, for the side-panel mentor: (label shown in the chat, details for the model)."""
+    if not (body.page or body.job_id):
+        return "", ""
+    parts, label = [f"Page: {body.page or 'jobs'}"], body.page or ""
+    if body.job_id:
+        job = next((j for j in _jobs() if j["id"] == body.job_id), None)
+        if job:
+            label = f"{job.get('company')}: {job.get('title') or 'firm'}"
+            parts.append(f"Job: {job.get('title')} at {job.get('company')} (status {job.get('status')}, id {job['id']})")
+            if job.get("description"):
+                parts.append("Posting excerpt: " + job["description"][:2500])
+            qs = (job.get("form") or {}).get("questions") or []
+            if body.question_index is not None and 0 <= body.question_index < len(qs):
+                q = qs[body.question_index]
+                label += f" · question {body.question_index + 1}"
+                parts.append("Application form question they're on: " + json.dumps(
+                    {k: q.get(k) for k in ("question", "type", "options", "required", "category", "answer", "note")}, ensure_ascii=False))
+            blanks = [q["question"][:120] for q in qs if not (q.get("answer") or "").strip() and q.get("category") not in ("eeo", "file")]
+            if blanks:
+                parts.append(f"Form questions still blank ({len(blanks)}): " + json.dumps(blanks[:20], ensure_ascii=False))
+    if body.note:
+        parts.append("On screen: " + body.note[:2500])
+    return label, "\n".join(parts)
+
+
 @app.post("/api/mentor/chat/{coach}")
-def mentor_message(coach: str, body: MessageIn):
+def mentor_message(coach: str, body: MentorMessageIn):
     text = body.text.strip()
     if not text:
         raise HTTPException(400, "Message is empty.")
-    return mentors.coach_turn(coach, text)
+    label, context = _page_context(body)
+    return mentors.coach_turn(coach, text, context=context, context_label=label)
 
 
 @app.delete("/api/mentor/chat/{coach}")
