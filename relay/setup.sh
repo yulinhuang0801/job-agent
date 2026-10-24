@@ -29,7 +29,7 @@ echo "3/5  Deploying the relay…"
 # account), while keeping a copy of its output to read the relay's address from.
 log=$(mktemp)
 if command -v script >/dev/null && [ "$(uname)" = Darwin ]; then script -q "$log" $W deploy; else $W deploy 2>&1 | tee "$log"; fi
-url=$(grep -oE 'https://[a-z0-9.-]+\.workers\.dev' "$log" | head -1); rm -f "$log"
+url=$(grep -oE 'https://job-agent-relay\.[a-z0-9-]+\.workers\.dev' "$log" | head -1); rm -f "$log"
 if [ -z "$url" ]; then
   echo
   echo "The relay didn't deploy, so setup stopped here (nothing else was changed)."
