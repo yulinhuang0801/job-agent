@@ -25,8 +25,20 @@ fi
 $W d1 execute job-agent-relay --remote --file schema.sql >/dev/null
 
 echo "3/5  Deploying the relay…"
-url=$($W deploy 2>&1 | tee /dev/stderr | grep -oE 'https://[a-z0-9.-]+\.workers\.dev' | head -1)
-[ -n "$url" ] && echo "$url" > .relay-url
+# Run deploy attached to the terminal so wrangler can ask questions (e.g. to register a workers.dev subdomain on a new
+# account), while keeping a copy of its output to read the relay's address from.
+log=$(mktemp)
+if command -v script >/dev/null && [ "$(uname)" = Darwin ]; then script -q "$log" $W deploy; else $W deploy 2>&1 | tee "$log"; fi
+url=$(grep -oE 'https://[a-z0-9.-]+\.workers\.dev' "$log" | head -1); rm -f "$log"
+if [ -z "$url" ]; then
+  echo
+  echo "The relay didn't deploy, so setup stopped here (nothing else was changed)."
+  echo "If it asked for a workers.dev subdomain: open https://dash.cloudflare.com → Workers & Pages, pick a subdomain"
+  echo "(e.g. your name), then run ./setup.sh again."
+  exit 1
+fi
+echo "$url" > .relay-url
+echo "   ✓ Relay is live at $url"
 
 echo "4/5  Your keys (paste each and press Enter; Enter alone skips an optional one). Nothing is shown as you paste."
 put() { # name, label, required
