@@ -41,13 +41,18 @@ echo "$url" > .relay-url
 echo "   ✓ Relay is live at $url"
 
 echo "4/5  Your keys (paste each and press Enter; Enter alone skips an optional one). Nothing is shown as you paste."
+saved_names=$($W secret list 2>/dev/null | grep -oE '"name": ?"[A-Z_]+"' | grep -oE '[A-Z_]{3,}' || true)
 put() { # name, label, required
-  local v=""
-  while :; do
-    read -r -s -p "   $2: " v; echo
-    [ -n "$v" ] || [ "$3" != "required" ] && break
-    echo "   This one is required."
-  done
+  local v="" req="$3"
+  if printf '%s\n' "$saved_names" | grep -qx "$1"; then
+    req=""; read -r -s -p "   $2 [already saved; Enter keeps it]: " v; echo
+  else
+    while :; do
+      read -r -s -p "   $2: " v; echo
+      [ -n "$v" ] || [ "$req" != "required" ] && break
+      echo "   This one is required."
+    done
+  fi
   [ -n "$v" ] && printf '%s' "$v" | $W secret put "$1" >/dev/null && echo "   ✓ $1 saved"
   return 0
 }
