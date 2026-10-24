@@ -149,6 +149,8 @@ Old links like `#tracker` or `#mentors` still work.
 | `app/shared.py` | Shared key: invite links to the relay, used for any service without your own key |
 | `relay/` | The shared-key relay (Cloudflare Worker + D1): daily ¥ limit for AI, search limits inside free plans, invites |
 | `demo/` | The demo's sample student (`source.json`), the AI-written seed (`seed/`), and the scripts that build and start it |
+| `DESIGN.md` | The design system: palette and roles (light and dark), type scale, spacing, components, do's and don'ts. Read it before adding UI |
+| `static/fonts/` | Figtree (SIL Open Font License), served locally so it also works where Google Fonts is blocked |
 | `static/matches.js` | Home → Today's matches card |
 | `static/editor.js` | VS Code (Monaco) code editor for the Skills check, with a basic fallback |
 | `app/db.py` | Local firm and job database (SQLite): schema, search with filters and counts |

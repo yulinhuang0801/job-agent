@@ -6,6 +6,12 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": ["run.sh"],
       "port": 8000
+    },
+    {
+      "name": "job-agent-demo",
+      "runtimeExecutable": "/usr/bin/env",
+      "runtimeArgs": ["JOB_AGENT_DATA=data/demo", "JOB_AGENT_DEMO=1", ".venv/bin/uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8001"],
+      "port": 8001
     }
   ]
 }
