@@ -54,7 +54,8 @@ def fake(messages, max_tokens=4000, temperature=0.4, **kw):
                 "skills": [{"area": "Python", "level": "intermediate", "evidence": "solid answers"},
                            {"area": "SQL & databases", "level": "beginner", "evidence": "one gap"}], "summary": "Study joins."}
     if s.startswith("You are a recruiter screening"):
-        return {"title": "SWE Intern", "company": "Beta", "score": 80, "verdict": "Good fit", "summary": "ok", "matched": [], "gaps": [],
+        return {"title": "SWE Intern", "company": "Beta", "dims": {"role": 3, "requirements": 3, "level": 4, "logistics": 4},
+                "summary": "ok", "matched": [], "gaps": [],
                 "missing_keywords": [], "worth_applying": True, "deadline": "2030-01-15",
                 "work_authorization": {"requirement": "none stated", "evidence": "", "ok_for_candidate": None, "note": ""}}
     raise AssertionError("unexpected prompt: " + s[:80])
@@ -126,7 +127,8 @@ ok("delete custom question", c.delete(f"/api/questions/{q['technical'][-1]['id']
 # Jobs: add by description, score fit (deadline comes along), status change is remembered
 j = c.post("/api/jobs", json={"description": "Software engineering intern at Beta. Python required.", "company": "Beta"}).json()
 j = c.post(f"/api/jobs/{j['id']}/analyze").json()
-ok("fit score and deadline", j["fit"]["score"] == 80 and j["deadline"] == "2030-01-15")
+ok("fit score computed from the parts, with deadline", j["fit"]["score"] == 89 and j["fit"]["band"]["label"] == "Strong"
+   and j["fit"]["verdict"] == "Strong fit" and j["deadline"] == "2030-01-15")
 j = c.patch(f"/api/jobs/{j['id']}", json={"status": "Applied"}).json()
 ok("status change logged", j["applied_date"] and any("Applied" in e["text"] for e in memory.events(5)))
 ok("bad status refused", c.patch(f"/api/jobs/{j['id']}", json={"status": "Nope"}).status_code == 400)

@@ -13,7 +13,7 @@ import json
 import re
 from datetime import date, datetime, timedelta
 
-from . import db, dice, llm, memory, prompts, store, taxonomy
+from . import db, dice, llm, memory, prompts, scoring, store, taxonomy
 
 NAME = "Daily matches"
 POOL = 600  # newest prefiltered postings considered
@@ -50,6 +50,7 @@ def preferences(profile):
     return {"keywords": keywords, "functions": functions, "interns": dice.wants_internships(t),
             "remote_only": bool(locations) and all(re.search(r"remote|anywhere", x, re.I) for x in locations),
             "locations": locations, "international": bool(_INTERNATIONAL.search(auth)) and not _DOMESTIC.search(auth),
+            "status_known": bool(_INTERNATIONAL.search(auth) or _DOMESTIC.search(auth)),
             "tokens": tokens, "skills": {s for s in skills if s}}
 
 
@@ -128,6 +129,7 @@ def _profile_brief(profile):
 
 def score(profile, rows):
     out = {}
+    prefs = preferences(profile)
     brief = _profile_brief(profile)
     facts = memory.shared_block(max_facts=15, max_events=0)
     for i in range(0, len(rows), BATCH):
@@ -139,16 +141,19 @@ def score(profile, rows):
                 {"role": "system", "content": prompts.MATCH_SYSTEM},
                 {"role": "user", "content": f"STUDENT PROFILE:\n{brief}\n" + (f"\nNEWER FACTS:\n{facts}\n" if facts else "")
                                             + "\nPOSTINGS:\n" + json.dumps(items, ensure_ascii=False)},
-            ], max_tokens=3000, temperature=0, think=False, timeout=120)
+            ], max_tokens=4000, temperature=0, think=False, timeout=120)
         except llm.LLMError:
             continue
         for m in res.get("matches") or []:
             if m.get("id") in {r["id"] for r in batch}:
-                try:
-                    out[m["id"]] = {"score": max(0, min(100, int(m.get("score") or 0))), "why": str(m.get("why") or "")[:300],
-                                    "concerns": str(m.get("concerns") or "")[:200]}
-                except (TypeError, ValueError):
+                row = next(r for r in batch if r["id"] == m["id"])
+                gate = m.get("eligibility") if m.get("eligibility") in ("ok", "unclear", "blocked") else "ok"
+                dims = scoring.role_rule(m.get("dims"), row.get("function") or "", prefs["functions"])
+                result = scoring.compute(dims, gate, len(row.get("description") or "") >= 300)
+                if result["score"] is None:
                     continue
+                out[m["id"]] = {"score": result["score"], "band": result["band"], "dims": result["dims"], "gate": gate,
+                                "estimate": result["estimate"], "why": str(m.get("why") or "")[:300], "concerns": str(m.get("concerns") or "")[:200]}
     return out
 
 
@@ -181,7 +186,8 @@ def run(prepare=None, progress=None, force=False):
         new.append({"id": r["id"], "date": today, "title": r["title"], "company": r["company"], "location": r["location"],
                     "remote": bool(r["remote"]), "url": r["url"], "posted": r["posted"], "source": r["source"], "job_type": r["job_type"],
                     "sponsorship": r["sponsorship"] or "", "description": r["description"] or "",
-                    "score": s["score"], "why": s["why"], "concerns": s["concerns"], "status": "new", "job_id": "", "prepared": []})
+                    "score": s["score"], "band": s["band"], "dims": s["dims"], "gate": s["gate"], "estimate": s["estimate"],
+                    "why": s["why"], "concerns": s["concerns"], "status": "new", "job_id": "", "prepared": []})
     new.sort(key=lambda m: -m["score"])
 
     prepared = 0
@@ -190,6 +196,9 @@ def run(prepare=None, progress=None, force=False):
             say(f"Preparing {m['company']}: {DEPTHS[cfg['depth']]}…")
             res = prepare(m, cfg["depth"]) or {}
             m["job_id"], m["prepared"], m["prepare_error"] = res.get("job_id", ""), res.get("done", []), res.get("error", "")
+            fit = next((j.get("fit") for j in store.load("jobs", []) if j["id"] == m["job_id"]), None) if m["job_id"] else None
+            if fit and fit.get("score") is not None:
+                m["fit_score"], m["fit_band"] = fit["score"], fit.get("band")
             if m["job_id"]:
                 m["status"] = "added"
                 prepared += 1
@@ -215,6 +224,18 @@ def run(prepare=None, progress=None, force=False):
     state["history"] = (state.get("history", []) + [{"date": today, "scored": scored, "strong": strong, "prepared": prepared}])[-60:]
     store.save("matches", state)
     return len(new), msg
+
+
+def sync_fit(job_id, fit):
+    """A full fit check ran on a job that came from Home: show its score there too (it replaces the estimate)."""
+    if not fit or fit.get("score") is None:
+        return
+    state = load()
+    for m in state.get("items", []):
+        if m.get("job_id") == job_id:
+            m["fit_score"], m["fit_band"] = fit["score"], fit.get("band")
+            store.save("matches", state)
+            return
 
 
 def today_items(state=None):
@@ -248,7 +269,9 @@ def summary_for_mentors():
     cfg = settings()
     items = [m for m in state.get("items", []) if m["status"] in ("new", "added")]
     return {"last_run": state.get("date", ""),
-            "strong": [{"company": m["company"], "title": m["title"], "score": m["score"], "why": m["why"], "concerns": m["concerns"],
+            "strong": [{"company": m["company"], "title": m["title"], "score": m.get("fit_score", m["score"]),
+                        "score_kind": "full fit" if m.get("fit_score") is not None else ("estimate" if m.get("estimate") else "match"),
+                        "why": m["why"], "concerns": m["concerns"],
                         "job_id": m["job_id"], "prepared": m["prepared"], "date": m["date"]}
                        for m in items if m["score"] >= cfg["min_score"]][:8],
             "others_waiting": sum(1 for m in items if m["score"] < cfg["min_score"] and m["status"] == "new")}

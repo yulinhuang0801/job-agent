@@ -9,7 +9,7 @@ import hashlib
 import json
 import re
 
-from . import llm
+from . import llm, scoring
 
 RUBRIC_VERSION = "stories-v2"  # v2 adds competency tags
 
@@ -203,6 +203,7 @@ def _finish(item, raw):
         seen.add(name)
         comps.append({"name": name, "level": level, "level_name": LEVEL_NAMES[level], "quote": quote})
     return {"version": RUBRIC_VERSION, "dims": out, "stars": n_stars, "total": total, "max": max_total,
+            "band": scoring.band_from_points(total, max_total / 4, max_total),
             "top_fix": str((raw or {}).get("top_fix") or "").strip(), "words": words, "hash": text_hash(item),
             "competencies": comps[:3]}
 

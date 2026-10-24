@@ -57,10 +57,17 @@ def fake(messages, max_tokens=4000, temperature=0.4, **kw):
     calls.append(s[:25])
     if s.startswith("You pick job postings"):
         items = json.loads(messages[1]["content"].split("POSTINGS:\n", 1)[1])
-        score = {"Alpha": 92, "Beta": 81, "Eta": 64}
-        return {"matches": [{"id": i["id"], "score": score.get(i["company"], 50), "why": f"{i['company']} fits", "concerns": ""} for i in items]}
+        # Rated parts (role, requirements, level, logistics); in-field roles count as 4 by rule → Alpha 100, Beta 86, Eta 71, Zeta 50
+        dims = {"Alpha": (4, 4, 4, 4), "Beta": (4, 3, 3, 4), "Eta": (2, 2, 3, 3)}
+        out = []
+        for i in items:
+            r, q, l, g = dims.get(i["company"], (1, 1, 2, 1))
+            out.append({"id": i["id"], "dims": {"role": r, "requirements": q, "level": l, "logistics": g}, "eligibility": "ok",
+                        "why": f"{i['company']} fits", "concerns": ""})
+        return {"matches": out}
     if s.startswith("You are a recruiter screening"):
-        return {"title": "", "company": "", "score": 88, "verdict": "Strong fit", "summary": "ok", "matched": [], "gaps": [],
+        return {"title": "", "company": "", "dims": {"role": 4, "requirements": {"score": 3, "why": "most"}, "level": 4, "logistics": 4},
+                "summary": "ok", "matched": [], "gaps": [],
                 "missing_keywords": [], "worth_applying": True, "deadline": "",
                 "work_authorization": {"requirement": "none stated", "evidence": "", "ok_for_candidate": None, "note": ""}}
     if s.startswith("You tailor"):
@@ -98,6 +105,9 @@ jobs = store.load("jobs", [])
 ok("top matches prepared in My jobs", {j["company"] for j in jobs} == {"Alpha", "Beta"}
    and all(j["fit"] and j["documents"] and j["status"] == "Ready" and j["auto_match"]["score"] >= 75 for j in jobs))
 ok("prepared steps recorded", m["items"][0]["prepared"] == ["fit", "documents"] and m["items"][0]["status"] == "added")
+ok("match scores computed from the rubric", [x["score"] for x in m["items"]] == [100, 86, 71, 50] and m["items"][0]["band"]["label"] == "Strong"
+   and not m["items"][0]["estimate"])
+ok("full fit replaces the estimate on Home", m["items"][0]["fit_score"] == 89 and m["items"][1]["fit_score"] == 89)
 ok("below the bar not prepared", m["items"][2]["job_id"] == "" and m["items"][2]["status"] == "new")
 ok("mentors see today's strong matches", [x["company"] for x in main.mentors.snapshot()["daily_matches"]["strong"]] == ["Alpha", "Beta"])
 

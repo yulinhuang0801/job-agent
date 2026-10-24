@@ -4,7 +4,7 @@ import json
 import uuid
 from pathlib import Path
 
-from . import coderun, grading, llm, memory, onet, prompts, qlibrary, store
+from . import coderun, grading, llm, memory, onet, prompts, qlibrary, scoring, store
 
 BANK = json.loads((Path(__file__).resolve().parent / "question_bank.json").read_text(encoding="utf-8"))
 BEHAVIORAL = BANK["behavioral"]
@@ -172,7 +172,8 @@ def public_stories(state):
         "done": current is None and bool(state["messages"]),
         "messages": [{**m, "content": f"📄 Pasted my prep document ({len(m['content']):,} characters)"}
                      if m.get("kind") == "import" else m for m in state["messages"]],
-        "stories": {c: {**e, "grade_stale": bool(e.get("grade")) and (e["grade"].get("hash") != grading.text_hash({**e, "kind": all_comps[c]["kind"]})
+        "stories": {c: {**e, **({"grade": {**e["grade"], "band": scoring.band_from_points(e["grade"]["total"], e["grade"]["max"] / 4, e["grade"]["max"])}}
+                            if e.get("grade") and e["grade"].get("max") else {}), "grade_stale": bool(e.get("grade")) and (e["grade"].get("hash") != grading.text_hash({**e, "kind": all_comps[c]["kind"]})
                                                                      or e["grade"].get("version") != grading.RUBRIC_VERSION)}
                     for c, e in state["stories"].items() if c in all_comps},
         "coverage": grading.coverage({c: e for c, e in state["stories"].items() if c in all_comps},
@@ -442,7 +443,10 @@ def public_skills(state):
     """Hide rubrics until graded so the candidate can't read the answer key."""
     hide = state["status"] != "graded"
     qs = [{k: v for k, v in q.items() if not (hide and k == "rubric")} for q in state["questions"]]
-    return {**state, "questions": qs}
+    results = state.get("results")
+    if results and results.get("max") and not results.get("band"):
+        results = {**results, "band": scoring.band_from_points(results["total"], 0, results["max"])}
+    return {**state, "questions": qs, "results": results}
 
 
 def _bank_lines(only=None):
@@ -633,6 +637,7 @@ def grade_skills(answers):
     }
     results["total"] = sum(g["score"] for g in results["grades"])
     results["max"] = 4 * len(results["grades"])
+    results["band"] = scoring.band_from_points(results["total"], 0, results["max"])
     state.update({"status": "graded", "results": results})
     memory.log("skills", f"Skills check graded: {results['total']}/{results['max']} ("
                + ", ".join(f"{s.get('area')}: {s.get('level')}" for s in results["skills"]) + ")")

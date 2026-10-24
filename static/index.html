@@ -107,6 +107,20 @@
         </ul>
       </div>
 
+      <div class="card" id="how-scores-work">
+        <h2>How scores work</h2>
+        <p>Every score in Job Agent is on one 0-100 scale with the same four bands:
+          <span class="score hi">Strong</span> 80 and up, <span class="score good">Good</span> 65-79,
+          <span class="score mid">Stretch</span> 50-64, <span class="score lo">Weak</span> under 50.</p>
+        <ul class="tight">
+          <li><b>Job fit</b> (My jobs) and <b>Today's matches</b> (Home) use the same rubric. The AI rates four parts from 0 to 4 with a reason: role and field match (counts ×2), requirements met (×3), level and timing (×1), location and hours (×1). Job Agent computes the score from those parts; the AI never picks the number. Open "Fit" on a job, or "Why this score" on a match, to see the parts.</li>
+          <li><b>Work authorization is a gate, not points.</b> If a posting clearly excludes you (for example US citizens only), the score is capped at 40 and says why. If it's unclear, you get a flag to check, and the score doesn't change.</li>
+          <li><b>Estimates</b> (shown as <span class="score">~80 est.</span>): when there's no posting text, requirements can't be judged, so they count as a middle 2 of 4. Once the full posting is read, Home shows the update, for example "Estimate 80 → 58 after reading the full posting".</li>
+          <li><b>Stories</b> keep their stars and points from the story rubric; the points map onto the same bands (all 1s is 0, all 4s is 100).</li>
+          <li><b>Skills check</b>: points out of the maximum map onto the same bands.</li>
+        </ul>
+      </div>
+
       <div class="card" id="sources">
         <h2>Where Job Agent's knowledge comes from</h2>
         <p class="muted small">Official frameworks the rubrics use, references for checking the question banks, and the employers whose own interview pages company prep reads. Pages are fetched only where the site's robots.txt allows it, at most one request every two seconds per site, and cached on this computer.</p>

@@ -19,7 +19,7 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import alerts, assess, automatch, shared, coderun, crawlers, db, dice, discover, grading, llm, memory, mentors, official, onet, outreach, pdf, pipeline, prep, profile_merge, prompts, qlibrary, research, timelines, resume_text, services, sourcing, store
+from . import alerts, assess, automatch, scoring, shared, taxonomy, coderun, crawlers, db, dice, discover, grading, llm, memory, mentors, official, onet, outreach, pdf, pipeline, prep, profile_merge, prompts, qlibrary, research, timelines, resume_text, services, sourcing, store
 from .jobs_fetch import FetchError, fetch_job
 
 STATIC = Path(__file__).resolve().parent.parent / "static"
@@ -802,11 +802,17 @@ def analyze_job(job_id: str):
     profile = _require_profile()
     jobs = _jobs()
     job = _find(jobs, job_id)
+    own = [a for a in outreach.load_answers() if re.search(r"authoriz|sponsor|citizen|visa|work in the", a["question"], re.I)][:8]
     fit = llm.chat_json([
         {"role": "system", "content": prompts.FIT_SYSTEM},
-        {"role": "user", "content": f"CANDIDATE PROFILE (json):\n{_profile_for_ai(profile)}\n\nJOB POSTING:\n{_posting(job)}"},
-    ], max_tokens=8000, temperature=0.2)
-    job["fit"] = fit
+        {"role": "user", "content": f"CANDIDATE PROFILE (json):\n{_profile_for_ai(profile)}\n\nJOB POSTING:\n{_posting(job)}"
+                                    + ("\n\nTHE CANDIDATE'S OWN ANSWERS ON EARLIER APPLICATION FORMS:\n"
+                                       + json.dumps([{"question": a["question"], "answer": a["answer"]} for a in own], ensure_ascii=False) if own else "")},
+    ], max_tokens=8000, temperature=0, think=False)  # the same posting should get the same score every time
+    prefs = automatch.preferences(profile)
+    job["fit"] = scoring.finish_fit(fit, len(job.get("description") or ""), taxonomy.classify_function(job.get("title") or fit.get("title") or ""),
+                                    prefs["functions"], prefs["international"] if prefs["status_known"] else None)
+    automatch.sync_fit(job["id"], job["fit"])
     for field in ("title", "company", "location"):
         if not job.get(field) and fit.get(field):
             job[field] = fit[field]
@@ -1208,7 +1214,7 @@ def _auto_prepare(m, depth):
     job = {"id": uuid.uuid4().hex[:10], "created_at": datetime.now().isoformat(timespec="seconds"), "kind": "posting",
            "url": m.get("url", ""), "title": m.get("title", ""), "company": m.get("company", ""), "location": m.get("location", ""),
            "description": description[:MAX_JD_CHARS], "status": "Saved", "applied_date": "", "channel": "form",
-           "notes": f"Daily match ({m['score']}): {m['why']}" + (f" ⚠ {m['concerns']}" if m.get("concerns") else ""),
+           "notes": f"Daily match{' estimate' if m.get('estimate') else ''} ({m['score']}): {m['why']}" + (f" ⚠ {m['concerns']}" if m.get("concerns") else ""),
            "fit": None, "documents": None, "auto_match": {"score": m["score"], "why": m["why"], "date": m["date"]}}
     jobs = _jobs()
     jobs.insert(0, job)

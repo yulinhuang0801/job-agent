@@ -489,3 +489,9 @@ body.dock-open main { margin-right: min(420px, 100vw); }
   .dock { top: auto; height: 82vh; border-left: 0; border-top: 1px solid var(--border); border-radius: 14px 14px 0 0; }
   .dock-toggle span:last-child { display: none; }
 }
+
+/* Shared score bands (app/scoring.py): Strong / Good / Stretch / Weak */
+.score.good, .score-badge.good { background: var(--accent-soft); color: var(--accent-ink); }
+.score-badge.hi { background: var(--ok-soft); color: var(--ok); }
+.score-badge.mid { background: var(--warn-soft); color: var(--warn); }
+.score-badge.lo { background: var(--bad-soft); color: var(--bad); }

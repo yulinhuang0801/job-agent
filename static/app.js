@@ -697,7 +697,7 @@ function gradeBlock(comp, s) {
   if (!g) return h("div", { class: "row" }, regrade);
   return h("div", { class: "rubric" },
     h("div", { class: "row" }, h("b", {}, "Rubric grade"), h("span", { class: "quality" }, "★".repeat(g.stars) + "☆".repeat(5 - g.stars)),
-      h("span", { class: "muted small" }, `${g.total}/${g.max} points`),
+      h("span", { class: "muted small" }, `${g.total}/${g.max} points`), bandChip(pctFromPoints(g.total, g.max / 4, g.max)),
       s.grade_stale ? h("span", { class: "badge warn" }, "answer changed since grading") : null, h("span", { class: "spacer" }), regrade),
     h("div", { class: "rubric-rows" }, g.dims.map((d) => h("div", { class: "rubric-row" },
       h("div", { class: "rubric-label" }, d.label), dots(d.score),
@@ -1000,7 +1000,7 @@ function renderSkills() {
 
   const r = skills.results;
   $("#skills-results").replaceChildren(...(graded ? [h("div", { class: "card" },
-    h("div", { class: "big-score" }, `${r.total} / ${r.max}`),
+    h("div", { class: "row" }, h("div", { class: "big-score" }, `${r.total} / ${r.max}`), bandChip(pctFromPoints(r.total, 0, r.max))),
     h("p", {}, r.summary),
     chips((r.skills || []).map((s) => `${s.area}: ${s.level}`)),
     h("p", { class: "muted small" }, "These levels were added to your profile's skills as verified (✓). Skills you edited by hand are left alone."))] : []));
@@ -1660,7 +1660,36 @@ $("#import-go").addEventListener("click", (e) => busy(e.target, "Reading…", as
 
 let jobs = [];
 const openJobs = new Set();
-const scoreClass = (s) => (s >= 75 ? "hi" : s >= 50 ? "mid" : "lo");
+// One set of bands for every score in the app (same as app/scoring.py): Strong 80+, Good 65-79, Stretch 50-64, Weak <50.
+const BANDS = [[80, "Strong", "hi"], [65, "Good", "good"], [50, "Stretch", "mid"], [0, "Weak", "lo"]];
+const bandOf = (score) => { const [, label, cls] = BANDS.find(([floor]) => score >= floor) || BANDS[3]; return { label, cls }; };
+const scoreClass = (s) => bandOf(s).cls;
+const pctFromPoints = (total, lowest, highest) => (highest > lowest ? Math.round((100 * (total - lowest)) / (highest - lowest)) : 0);
+function bandChip(score, prefix = "") {
+  const b = bandOf(score);
+  return h("span", { class: `score ${b.cls}`, title: "Strong 80+ · Good 65-79 · Stretch 50-64 · Weak under 50 (same scale everywhere)" }, `${prefix}${b.label}`);
+}
+// A fit or match score: the number, its band, and "estimate" when there was no posting text to judge requirements.
+function scoreTag(score, opts = {}) {
+  if (score == null) return h("span", { class: "score" }, "–");
+  const b = bandOf(score);
+  return h("span", { class: `score ${b.cls}`, title: opts.title || `${b.label} on the shared scale (Strong 80+, Good 65-79, Stretch 50-64, Weak <50)` },
+    `${opts.estimate ? "~" : ""}${score}${opts.withLabel ? ` · ${b.label}` : ""}${opts.estimate ? " est." : ""}`);
+}
+// The parts behind a fit or match score (same rubric for both), with the work-authorization gate.
+function scoreBreakdown(src) {
+  const dims = src && src.dims;
+  if (!dims || Array.isArray(dims) || !Object.keys(dims).length) return null;
+  const rows = Object.values(dims).map((d) => h("div", { class: "rubric-row" },
+    h("span", { class: "rubric-label" }, d.label, h("span", { class: "muted" }, ` ×${d.weight}`)),
+    d.score == null ? h("span", { class: "muted" }, "n/a") : h("span", { class: `dots s${Math.max(1, d.score)}`, title: `${d.score}/4` }, "●".repeat(d.score) + "○".repeat(4 - d.score)),
+    h("span", { class: "rubric-why" }, d.score == null ? `Not judged without the posting text${d.assumed != null ? `; counted as ${d.assumed} of 4 for this estimate` : ""}.` : d.why || "")));
+  const gate = src.gate === "blocked" ? h("p", { class: "small missing-note" }, "Work authorization: the posting appears to exclude you, so the score is capped at 40.")
+    : src.gate === "unclear" ? h("p", { class: "small warn-text" }, "Work authorization: unclear for you; check before applying (it doesn't change the score).") : null;
+  return h("div", { class: "rubric" },
+    h("div", { class: "small muted" }, "Score = weighted average of the parts (each 0-4) → 0-100.", src.estimate ? " Estimate: without the posting text, requirements count as a middle 2 of 4." : ""),
+    h("div", { class: "rubric-rows" }, rows), gate);
+}
 
 function replaceJob(updated) {
   jobs = jobs.map((j) => (j.id === updated.id ? updated : j));
@@ -1690,8 +1719,17 @@ function copyButton(getText, label = "Copy") {
 }
 
 function fitDetails(fit) {
+  const rubric = fit.scoring === "rubric-v1";
   return h("details", { class: "fit" },
-    h("summary", {}, `Fit: ${fit.score} · ${fit.verdict}`),
+    h("summary", {}, "Fit: ", rubric ? scoreTag(fit.score, { estimate: fit.estimate }) : `${fit.score}`, ` · ${fit.verdict}`),
+    rubric ? scoreBreakdown(fit) : h("p", { class: "small muted" }, "Scored before the shared rubric. Press Fit again (step 3) to re-score it the same way as everything else."),
+    (fit.requirements_checklist || []).length ? h("details", { class: "small" }, h("summary", {}, "Qualifications checklist (what \"Requirements met\" counts)"),
+      ["required", "preferred"].map((kind) => {
+        const rows = fit.requirements_checklist.filter((i) => (i.kind === "required") === (kind === "required"));
+        return rows.length ? [h("b", {}, kind === "required" ? "Required" : "Preferred"),
+          h("ul", { class: "tight" }, rows.map((i) => h("li", {}, h("span", { class: i.met ? "ok-text" : "missing-note" }, i.met ? "✓ " : "✗ "), i.item,
+            i.evidence ? h("span", { class: "muted" }, ` (${i.evidence})`) : null)))] : null;
+      })) : null,
     fit.summary ? h("p", {}, fit.summary) : null,
     (fit.matched || []).length ? [h("b", {}, "Where you match"), list(fit.matched.map((m) => `${m.requirement}: ${m.evidence}`))] : null,
     (fit.gaps || []).length ? [h("b", {}, "Gaps"),
@@ -2008,7 +2046,7 @@ function jobCard(job) {
     h("summary", { class: "job-top" },
       h("div", {}, h("div", { class: "job-title" }, job.company || "Unknown company", job.title && job.kind !== "firm" ? ` · ${job.title}` : ""),
         h("div", { class: "muted small" }, where, " · ", job.status)),
-      fit ? h("span", { class: `score ${scoreClass(fit.score)}` }, `${fit.score}`) : null),
+      fit ? scoreTag(fit.score, { estimate: fit.estimate }) : null),
     h("div", { class: "row actions" }, msg),
     researchSection(job, run),
     job.channel === "form" ? formSection(job) : emailSection(job, run),
@@ -2157,7 +2195,7 @@ function trackerRow(job) {
     h("td", {}, job.website ? h("a", { href: job.website, target: "_blank", rel: "noopener" }, job.company || "?") : job.company || "?"),
     h("td", {}, job.url && job.kind !== "firm" ? h("a", { href: job.url, target: "_blank", rel: "noopener" }, job.title || "posting") : job.title || ""),
     h("td", { class: "small" }, c.name || "", c.email ? h("div", { class: "muted" }, c.email) : null),
-    h("td", {}, fit ? h("span", { class: `score ${scoreClass(fit.score)}` }, fit.score) : "–"),
+    h("td", {}, fit ? scoreTag(fit.score, { estimate: fit.estimate }) : "–"),
     h("td", {}, status),
     h("td", {}, dateInput),
     h("td", { class: "small" + (due && due <= today ? " sev-high" : "") }, due ? (due <= today ? `due ${due}` : due) : ""),

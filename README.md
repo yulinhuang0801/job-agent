@@ -47,6 +47,8 @@ The app has three areas, plus Guide and Settings in the top corner:
 
 Old links like `#tracker` or `#mentors` still work.
 
+**Scores:** every score (job fit, Home matches, stories, skills check) uses one 0-100 scale and the same bands: Strong 80+, Good 65-79, Stretch 50-64, Weak under 50 (`app/scoring.py`). Job fit and Home matches share one rubric: role and field match (×2), requirements met (×3), level and timing (×1), location and hours (×1), each 0-4, and the app computes the score from them. To keep scores repeatable, two parts are decided by rule: "requirements met" is counted from a checklist of the posting's required and preferred qualifications, and "role" is 4 whenever the job's field is one you target. Work authorization is a gate: postings that clearly exclude you (citizens only, clearance, quoted from the posting) cap at 40; "must be authorized" or "no sponsorship" is a flag. Without posting text a score is an estimate (requirements count as 2 of 4), and Home shows "estimate → full score" once the posting is read. Stories and the skills check map their points onto the same bands. Guide → How scores work explains it in the app.
+
 **Mentor side panel:** on every page except Home, the 💬 button bottom-right opens your mentor beside what you're doing: the technical coach on the Skills check, behavioral on Stories, resume on Profile, the lead mentor everywhere else (same conversation as on Home).
 
 0. **Home → Today's matches**: every morning (from 6am, while the app is running) Job Agent finds new boards, refreshes postings if the last crawl is a day old, and picks postings that fit your level (internship or new grad), the job functions your target roles map to, remote if that's all you asked for, and no "US citizens only" roles if you're international. It ranks them by title words, skills and recency, has the AI score the top 30 (0–100, with a one-line reason and any concern), and **prepares the best few in My jobs**: a fit check, a tailored resume and a cover letter, and on "full" also company and contact research. Each match can be opened, added or dismissed; postings are never scored twice. Settings → Daily matches sets on/off, how many to prepare (default 3), how far, the score bar (default 70) and web searches a day. It never applies or sends anything. The lead mentor puts prepared matches in today's plan.
@@ -172,6 +174,7 @@ Old links like `#tracker` or `#mentors` still work.
 | `tests/calibration/` | Fixed answers with expected grades; `run_calibration.py` is the grading regression test |
 | `app/qlibrary.py` | Outside questions: Tech Interview Handbook, LeetCode (alfa-leetcode-api), Open Interview |
 | `app/sourcing.py` | Find tab: category searches, SimplifyJobs lists, Hacker News, your sites, AI screening, list/CSV import |
+| `app/scoring.py` | One scoring model: shared bands, the fit rubric computed from its parts, the work-authorization gate, estimates |
 | `app/research.py` | Reads a firm's website, finds the contact and their email (incl. email patterns, Hunter.io) |
 | `app/outreach.py` | Cold emails, application forms (Greenhouse/Workable/Lever questions, your reusable answers), .txt export |
 | `static/dock.js` | The mentor side panel on every page except Home (coach by page, with page context) |

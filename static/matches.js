@@ -17,9 +17,13 @@ async function loadMatches() {
   if (matches.running) matchesTimer = setTimeout(loadMatches, 4000);
 }
 
-function scoreBadge(score) {
-  const kind = score >= 85 ? "ok" : score >= 70 ? "warn" : "";
-  return h("span", { class: "score-badge " + kind, title: "Match score (0-100)" }, String(score));
+// The badge shows the full fit score once the posting was read; until then the matcher's estimate (same rubric, same bands).
+function scoreBadge(m) {
+  const real = m.fit_score != null;
+  const score = real ? m.fit_score : m.score;
+  const b = bandOf(score);
+  return h("span", { class: `score-badge ${b.cls}`, title: real ? `Fit score from the full posting (${b.label})` : `${m.estimate ? "Estimate" : "Match score"} (${b.label})` },
+    `${!real && m.estimate ? "~" : ""}${score}`);
 }
 
 const PREP_LABELS = { fit: "fit check", documents: "resume + cover letter", contacts: "contact" };
@@ -41,13 +45,18 @@ function matchRow(m) {
     renderMatches();
   });
   const where = [m.location || (m.remote ? "Remote" : ""), m.posted ? `posted ${m.posted}` : "", m.source].filter(Boolean).join(" · ");
-  return h("div", { class: "match" + (m.score >= (matches.settings.min_score || 70) ? " strong" : "") },
-    scoreBadge(m.score),
+  const real = m.fit_score != null;
+  const scoreLine = real && m.fit_score !== m.score
+    ? h("div", { class: "small" }, h("b", {}, `${m.estimate ? "Estimate" : "Match score"} ${m.score} → ${m.fit_score} `), `after reading the full posting (${bandOf(m.fit_score).label}).`)
+    : !real && m.estimate ? h("div", { class: "small muted" }, "~ Estimate: scored from the title and company only; adding it reads the full posting.") : null;
+  const why = m.dims ? h("details", { class: "small" }, h("summary", {}, "Why this score"), scoreBreakdown(m)) : null;
+  return h("div", { class: "match" + ((real ? m.fit_score : m.score) >= (matches.settings.min_score || 70) ? " strong" : "") },
+    scoreBadge(m),
     h("div", { class: "grow" },
       h("div", { class: "task-title" }, m.url ? h("a", { href: m.url, target: "_blank", rel: "noopener" }, m.title) : m.title,
         h("span", { class: "muted" }, ` · ${m.company}`)),
       where ? h("div", { class: "muted small" }, where) : null,
-      m.why ? h("div", { class: "small" }, m.why) : null,
+      m.why ? h("div", { class: "small" }, m.why) : null, scoreLine, why,
       m.concerns ? h("div", { class: "small warn-text" }, "⚠ ", m.concerns) : null,
       (m.prepared || []).length ? h("div", { class: "small ok-text" }, "✓ Prepared: ", m.prepared.map((p) => PREP_LABELS[p] || p).join(", ")) : null,
       m.prepare_error ? h("div", { class: "small muted" }, "Couldn't finish preparing: ", m.prepare_error) : null,
