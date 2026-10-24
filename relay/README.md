@@ -28,6 +28,17 @@ cd relay
 
 It opens Cloudflare in your browser to log in (sign up free if needed), creates the database, deploys the relay, then asks you to paste your keys. They go straight into Cloudflare's encrypted secrets; nothing is printed or saved on your computer except an admin token in `relay/.admin-token` (git ignores it).
 
+## Your private dashboard
+
+After setup, open **`https://job-agent-relay.<your-subdomain>.workers.dev/dashboard`** on any device and sign in with the dashboard password you chose in `setup.sh`. Bookmark it. It shows:
+- today's AI spend against the ¥20 limit (peak or off-peak prices, time until the Beijing-midnight reset) and who used it today;
+- the free-plan quotas (Tavily, Serper, Hunter);
+- the last 14 days of spend;
+- everyone you invited, with their usage, **Copy invite**, and **Turn off / Turn on**;
+- **New invite**, which also writes the message to send.
+
+Only someone with your password (or the admin token in `relay/.admin-token`) can see it. After 10 wrong passwords in an hour, owner access pauses until the next hour (friends' invites keep working). The page isn't indexed by search engines and can't be embedded in other sites. "Remember on this device" keeps you signed in on that browser; use **Sign out** on shared computers.
+
 ## Invite friends
 
 ```bash
@@ -48,8 +59,9 @@ The text of each AI request and search passes through the relay to DeepSeek, Tav
 ```bash
 cd relay && npm install
 # relay/.dev.vars holds fake keys and tiny limits for local testing, for example:
-#   DEEPSEEK_KEY=real-deepseek-key  ADMIN_TOKEN=test-admin  DEEPSEEK_BASE=http://127.0.0.1:9911  DAILY_CNY=0.05 …
-npx wrangler d1 execute job-agent-relay --local --file schema.sql
+#   DEEPSEEK_KEY=real-deepseek-key  ADMIN_TOKEN=test-admin  DASHBOARD_PASSWORD=test-dashboard-pw
+#   DEEPSEEK_BASE=http://127.0.0.1:9911  DAILY_CNY=0.05 …   (then open http://127.0.0.1:8787/dashboard)
+rm -rf .wrangler && npx wrangler d1 execute job-agent-relay --local --file schema.sql
 ../.venv/bin/python ../tests/relay/mock_upstream.py 9911 &
 npx wrangler dev --local --port 8787 &
 ../.venv/bin/python ../tests/relay/test_relay.py http://127.0.0.1:8787 test-admin

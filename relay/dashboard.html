@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Job Agent · Owner</title>
+<style>
+/* Owner dashboard for the shared-key relay. Tokens follow DESIGN.md (calm study-tool look). */
+:root {
+  --bg: #f6f6f3; --surface: #ffffff; --surface-2: #f0f0ec;
+  --text: #1c2126; --text-2: #454d55; --muted: #68707a; --faint: #9aa1a8;
+  --border: #e4e4df; --border-strong: #d2d2cc;
+  --accent: #1f6e68; --accent-hover: #185a55; --accent-soft: #e2efec; --accent-ink: #175650; --accent-text: #ffffff;
+  --focus: rgba(31, 110, 104, 0.28);
+  --ok: #1e7b4f; --ok-soft: #e3f2e9; --warn: #9a5b00; --warn-soft: #fbefd9; --bad: #b4372c; --bad-soft: #fbe6e3;
+  --info: #2d5da8; --info-soft: #e5edf9;
+  --shadow-1: 0 1px 2px rgba(17, 24, 28, 0.05), 0 1px 1px rgba(17, 24, 28, 0.03);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root {
+  --bg: #111416; --surface: #181c1f; --surface-2: #1f2427;
+  --text: #e6e9eb; --text-2: #c2c8cd; --muted: #969ea6; --faint: #6c747b;
+  --border: #2a3035; --border-strong: #3a4147;
+  --accent: #5fb5ac; --accent-hover: #77c4bc; --accent-soft: #1a3331; --accent-ink: #8fd3cb; --accent-text: #0d1a19;
+  --focus: rgba(95, 181, 172, 0.32);
+  --ok: #56c48a; --ok-soft: #16301f; --warn: #e2aa52; --warn-soft: #33280f; --bad: #f07b6e; --bad-soft: #3a1c19;
+  --info: #7fa8ee; --info-soft: #1a2740; --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.35);
+  color-scheme: dark;
+} }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; -webkit-font-smoothing: antialiased; }
+.top { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 0 max(16px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left)); background: var(--surface); border-bottom: 1px solid var(--border); }
+.brand { font-weight: 700; display: inline-flex; align-items: center; gap: 8px; }
+.brand::before { content: ""; width: 12px; height: 12px; border-radius: 3px; background: var(--accent); box-shadow: 3px 3px 0 var(--accent-soft); }
+.brand small { font-weight: 500; color: var(--muted); }
+.spacer { flex: 1; }
+main { max-width: 980px; margin: 0 auto; padding: 24px 16px 64px; }
+h1 { font-size: 26px; font-weight: 650; letter-spacing: -0.015em; margin: 0 0 4px; }
+h2 { font-size: 17px; font-weight: 620; margin: 0 0 12px; }
+.muted { color: var(--muted); } .small { font-size: 13px; }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; min-width: 0; }
+.span2 { grid-column: 1 / -1; }
+.eyebrow { font-size: 12px; font-weight: 640; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.big { font-size: 34px; font-weight: 680; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.big span { font-size: 18px; color: var(--muted); font-weight: 560; }
+.bar { height: 10px; background: var(--surface-2); border-radius: 999px; overflow: hidden; margin: 12px 0 8px; }
+.bar > i { display: block; height: 100%; background: var(--ok); border-radius: 999px; transition: width 0.4s; }
+.bar.warn > i { background: var(--warn); } .bar.bad > i { background: var(--bad); }
+.bar.thin { height: 6px; margin: 6px 0 2px; }
+.quota { padding: 10px 0; border-top: 1px solid var(--border); }
+.quota:first-of-type { border-top: 0; padding-top: 0; }
+.quota .row { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; }
+.quota b { font-variant-numeric: tabular-nums; }
+.chart { display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); gap: 6px; align-items: end; height: 150px; margin-top: 8px; }
+.col { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 4px; min-width: 0; }
+.col i { width: 100%; max-width: 34px; background: var(--accent); border-radius: 4px 4px 0 0; min-height: 2px; }
+.col.today i { background: var(--accent-ink); }
+.col span { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.col em { font-style: normal; font-size: 11px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { padding: 9px 10px; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
+th { font-size: 12px; font-weight: 640; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+tbody tr:last-child td { border-bottom: 0; }
+.pill { display: inline-block; font-size: 12px; font-weight: 620; padding: 0 9px; border-radius: 999px; line-height: 1.7; }
+.pill.on { background: var(--ok-soft); color: var(--ok); } .pill.off { background: var(--surface-2); color: var(--muted); }
+.pill.peak { background: var(--warn-soft); color: var(--warn); } .pill.offpeak { background: var(--info-soft); color: var(--info); }
+button { display: inline-flex; align-items: center; justify-content: center; min-height: 34px; padding: 6px 13px; border-radius: 6px; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-text); font: inherit; font-size: 14px; font-weight: 620; cursor: pointer; }
+button:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+button.secondary { background: var(--surface); border-color: var(--border-strong); color: var(--accent-ink); }
+button.secondary:hover { background: var(--accent-soft); border-color: var(--accent); }
+button.ghost { background: transparent; border-color: var(--border); color: var(--text-2); }
+button.ghost:hover { background: var(--surface-2); }
+button.small { min-height: 28px; padding: 3px 9px; font-size: 13px; }
+button:disabled { opacity: 0.45; cursor: default; }
+input { width: 100%; min-height: 38px; padding: 8px 11px; border: 1px solid var(--border-strong); border-radius: 6px; background: var(--surface); color: var(--text); font: inherit; }
+input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--focus); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+label { display: block; font-size: 13px; font-weight: 620; margin: 12px 0 5px; }
+.check { display: inline-flex; gap: 7px; align-items: center; font-weight: 450; color: var(--text-2); margin-top: 10px; }
+.check input { width: auto; min-height: 0; accent-color: var(--accent); }
+.form-row { display: flex; gap: 8px; }
+.form-row input { flex: 1; min-width: 0; }
+.msg { font-size: 14px; margin-top: 8px; min-height: 1.4em; } .msg.err { color: var(--bad); } .msg.ok { color: var(--ok); }
+.signin { max-width: 380px; margin: 12vh auto 0; }
+.made { margin-top: 14px; padding: 14px; background: var(--accent-soft); border-radius: 8px; display: grid; gap: 8px; }
+.made code, .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 13px; word-break: break-all; }
+.made textarea { width: 100%; min-height: 150px; padding: 10px; border: 1px solid var(--border-strong); border-radius: 6px; background: var(--surface); color: var(--text); font: inherit; font-size: 14px; resize: vertical; }
+.today-list { margin: 10px 0 0; padding: 0; list-style: none; font-size: 14px; }
+.today-list li { display: flex; justify-content: space-between; padding: 3px 0; }
+.empty { color: var(--muted); font-size: 14px; }
+[hidden] { display: none !important; }
+@media (max-width: 720px) { .grid { grid-template-columns: 1fr; } .chart { gap: 3px; } .col span { font-size: 9px; } .col em { display: none; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <span class="brand">Job Agent <small>· Owner</small></span>
+  <span class="spacer"></span>
+  <span id="updated" class="muted small"></span>
+  <button id="refresh" class="ghost small" type="button" hidden>Refresh</button>
+  <button id="signout" class="ghost small" type="button" hidden>Sign out</button>
+</header>
+
+<main>
+  <section id="signin" class="card signin" hidden>
+    <h1>Owner dashboard</h1>
+    <p class="muted small">Your shared key's budget, who's using it, and invites. Only you have the password (set in <span class="mono">relay/setup.sh</span>).</p>
+    <form id="signin-form">
+      <label for="pw">Dashboard password</label>
+      <input id="pw" type="password" autocomplete="current-password" required>
+      <label class="check"><input id="remember" type="checkbox" checked> Remember on this device</label>
+      <div style="margin-top:14px"><button type="submit">Sign in</button></div>
+      <p id="signin-msg" class="msg err"></p>
+    </form>
+  </section>
+
+  <div id="app" hidden>
+    <div style="margin-bottom:16px">
+      <h1>Shared key</h1>
+      <p class="muted small" id="subtitle"></p>
+    </div>
+    <div class="grid">
+      <section class="card">
+        <div class="eyebrow">AI budget today</div>
+        <div class="big" id="ai-spent"></div>
+        <div class="bar" id="ai-bar"><i></i></div>
+        <div class="small muted" id="ai-note"></div>
+        <ul class="today-list" id="today-list"></ul>
+      </section>
+      <section class="card">
+        <div class="eyebrow" style="margin-bottom:10px">Free-plan quotas</div>
+        <div id="quotas"></div>
+      </section>
+      <section class="card span2">
+        <h2>Last 14 days</h2>
+        <div class="chart" id="chart"></div>
+        <p class="small muted" id="chart-note" style="margin:10px 0 0"></p>
+      </section>
+      <section class="card span2">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px"><h2 style="margin:0">People</h2><span class="spacer"></span><span class="small muted">last 14 days</span></div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Name</th><th>Invite</th><th class="num">AI calls</th><th class="num">AI cost</th><th class="num">Searches</th><th>Last active</th><th></th></tr></thead>
+          <tbody id="people"></tbody>
+        </table></div>
+      </section>
+      <section class="card span2">
+        <h2>New invite</h2>
+        <form id="invite-form" class="form-row">
+          <input id="invite-name" placeholder="Friend's name, e.g. Alex Kim" maxlength="60" required>
+          <button type="submit">Create invite</button>
+        </form>
+        <p id="invite-msg" class="msg"></p>
+        <div id="made" class="made" hidden></div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<script>
+"use strict";
+const $ = (s) => document.querySelector(s);
+const KEY = "ja_owner";
+function el(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v == null || v === false) continue;
+    if (k === "class") e.className = v; else if (k === "style") e.style.cssText = v; else if (k.startsWith("on")) e.addEventListener(k.slice(2), v); else e.setAttribute(k, v);
+  }
+  for (const c of kids.flat()) if (c != null && c !== false) e.append(c instanceof Node ? c : String(c));
+  return e;
+}
+function store(get, value, remember) {
+  try {
+    if (get) return localStorage.getItem(KEY) || sessionStorage.getItem(KEY) || "";
+    localStorage.removeItem(KEY); sessionStorage.removeItem(KEY);
+    if (value) (remember ? localStorage : sessionStorage).setItem(KEY, value);
+  } catch (e) { /* storage blocked: sign in each visit */ }
+  return "";
+}
+let token = store(true);
+let timer = null;
+
+async function call(path, opts = {}) {
+  const r = await fetch(path, { ...opts, headers: { authorization: `Bearer ${token}`, "content-type": "application/json", ...(opts.headers || {}) } });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) { const err = new Error((data.error && data.error.message) || `Error ${r.status}`); err.status = r.status; throw err; }
+  return data;
+}
+const yuan = (n) => `¥${Number(n || 0).toFixed(2)}`;
+function level(frac) { return frac >= 0.9 ? "bad" : frac >= 0.7 ? "warn" : ""; }
+function bar(used, cap, thin) {
+  const frac = cap ? Math.min(1, used / cap) : 0;
+  const b = el("div", { class: `bar ${thin ? "thin" : ""} ${level(frac)}` }, el("i", { style: `width:${(frac * 100).toFixed(1)}%` }));
+  return b;
+}
+function untilMidnightBeijing() {
+  const now = Date.now(), bj = new Date(now + 8 * 3600e3);
+  const next = Date.UTC(bj.getUTCFullYear(), bj.getUTCMonth(), bj.getUTCDate() + 1) - 8 * 3600e3;
+  const m = Math.max(0, Math.round((next - now) / 60000));
+  return `${Math.floor(m / 60)}h ${m % 60}m`;
+}
+function friendMessage(name, invite) {
+  return `Hey ${name.split(" ")[0]}! I built Job Agent, an AI job-search coach that runs on your laptop. Download it from https://github.com/yulinhuang0801/job-agent (Code → Download ZIP) and double-click "Start Job Agent". Then open Settings → Shared key and paste this invite:\n${invite}\n\nIt uses my AI key, shared by everyone: ¥20 of AI a day in total plus a few searches, reset at midnight Beijing time. If it says the budget's used up, try again tomorrow. Your resume and answers stay on your computer. Please don't share the link; it's just for you. I'd love feedback!`;
+}
+
+function render(d) {
+  const st = d.status, L = d.limits;
+  $("#subtitle").textContent = `Limits for everyone together · day ${st.day} (Beijing time) · resets in ${untilMidnightBeijing()}`;
+  $("#ai-spent").replaceChildren(yuan(st.ai.spent_cny), el("span", {}, ` of ¥${st.ai.cap_cny}`));
+  $("#ai-bar").replaceWith(Object.assign(bar(st.ai.spent_cny, st.ai.cap_cny), { id: "ai-bar" }));
+  $("#ai-note").replaceChildren(`${yuan(st.ai.left_cny)} left · `,
+    el("span", { class: `pill ${st.peak_prices_now ? "peak" : "offpeak"}` }, st.peak_prices_now ? "Peak prices now" : "Off-peak (half price)"));
+  $("#today-list").replaceChildren(...(d.today.length ? d.today.map((t) =>
+    el("li", {}, el("span", {}, t.name || "(removed invite)"), el("span", { class: "mono" }, `${yuan(t.cost_cny)} · ${t.calls} calls`)))
+    : [el("li", { class: "empty" }, "No AI use yet today.")]));
+
+  const q = [];
+  const quota = (title, used, cap, extra) => el("div", { class: "quota" },
+    el("div", { class: "row" }, el("span", {}, title), el("b", {}, `${used} / ${cap}`)), bar(used, cap, true), extra ? el("div", { class: "small muted" }, extra) : null);
+  if (st.web_search) q.push(quota("Web searches today (Tavily)", st.web_search.today, st.web_search.per_day, `This month ${st.web_search.this_month} / ${st.web_search.per_month} (free plan: 1,000)`));
+  if (st.google_search) q.push(quota("Google searches today (Serper)", st.google_search.today, st.google_search.per_day, `All time ${st.google_search.total} / ${st.google_search.total_cap} (free credits: 2,500, one time)`));
+  if (st.email_finder) q.push(quota("Email lookups this month (Hunter)", st.email_finder.this_month, st.email_finder.per_month, "Free plan: 50 a month"));
+  $("#quotas").replaceChildren(...(q.length ? q : [el("p", { class: "empty" }, "No search keys added to the relay.")]));
+
+  const byDay = Object.fromEntries(d.days.map((x) => [x.day, x]));
+  const cols = [], bj = new Date(Date.now() + 8 * 3600e3);
+  let total = 0;
+  for (let i = 13; i >= 0; i--) {
+    const day = new Date(bj.getTime() - i * 86400e3).toISOString().slice(0, 10);
+    const x = byDay[day] || { cost_cny: 0, ai_calls: 0 };
+    total += x.cost_cny;
+    const h = L.ai ? Math.min(100, (x.cost_cny / L.ai) * 100) : 0;
+    cols.push(el("div", { class: `col ${i === 0 ? "today" : ""}`, title: `${day}: ${yuan(x.cost_cny)}, ${x.ai_calls} AI calls, ${x.lookups || 0} searches` },
+      el("em", {}, x.cost_cny ? x.cost_cny.toFixed(x.cost_cny >= 1 ? 1 : 2) : ""), el("i", { style: `height:${h.toFixed(1)}%` }), el("span", {}, day.slice(5))));
+  }
+  $("#chart").replaceChildren(...cols);
+  $("#chart-note").textContent = `${yuan(total)} in 14 days · bar height is the share of the ¥${L.ai} daily limit · days are Beijing time`;
+
+  $("#people").replaceChildren(...(d.people.length ? d.people.map((p) => {
+    const invite = `${location.origin}/join/${p.code}`;
+    const copy = el("button", { class: "secondary small", type: "button" }, "Copy invite");
+    copy.addEventListener("click", async () => {
+      try { await navigator.clipboard.writeText(invite); copy.textContent = "Copied"; } catch (e) { prompt("Invite link", invite); }
+      setTimeout(() => (copy.textContent = "Copy invite"), 1500);
+    });
+    const toggle = el("button", { class: "ghost small", type: "button" }, p.active ? "Turn off" : "Turn on");
+    toggle.addEventListener("click", async () => {
+      toggle.disabled = true;
+      try { await call(`/admin/codes/${p.code}${p.active ? "" : "/on"}`, { method: p.active ? "DELETE" : "POST" }); await load(); }
+      catch (e) { alert(e.message); toggle.disabled = false; }
+    });
+    return el("tr", {},
+      el("td", {}, p.name), el("td", {}, el("span", { class: `pill ${p.active ? "on" : "off"}` }, p.active ? "Active" : "Off")),
+      el("td", { class: "num" }, p.ai_calls), el("td", { class: "num" }, yuan(p.cost_cny)), el("td", { class: "num" }, p.lookups),
+      el("td", { class: "muted" }, p.last_day || "never"), el("td", { style: "display:flex;gap:6px;justify-content:flex-end" }, copy, toggle));
+  }) : [el("tr", {}, el("td", { colspan: 7, class: "empty" }, "No invites yet. Create one below."))]));
+  $("#updated").textContent = `Updated ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+}
+
+async function load() {
+  try {
+    render(await call("/admin/summary"));
+    show(true);
+  } catch (e) {
+    if (e.status === 401 || e.status === 429) { token = store(false); show(false); $("#signin-msg").textContent = e.message; }
+    else $("#updated").textContent = `Couldn't refresh: ${e.message}`;
+  }
+}
+function show(signedIn) {
+  $("#app").hidden = !signedIn; $("#signin").hidden = signedIn;
+  $("#refresh").hidden = $("#signout").hidden = !signedIn;
+  clearInterval(timer);
+  if (signedIn) timer = setInterval(() => { if (!document.hidden) load(); }, 60000);
+  else setTimeout(() => $("#pw").focus(), 0);
+}
+
+$("#signin-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  token = $("#pw").value;
+  $("#signin-msg").textContent = "";
+  try { const d = await call("/admin/summary"); store(false, token, $("#remember").checked); $("#pw").value = ""; render(d); show(true); }
+  catch (err) { token = ""; $("#signin-msg").textContent = err.message; }
+});
+$("#signout").addEventListener("click", () => { token = store(false); show(false); });
+$("#refresh").addEventListener("click", load);
+$("#invite-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const name = $("#invite-name").value.trim();
+  if (!name) return;
+  const msg = $("#invite-msg");
+  try {
+    const r = await call("/admin/codes", { method: "POST", body: JSON.stringify({ name }) });
+    $("#invite-name").value = "";
+    msg.className = "msg ok"; msg.textContent = `Invite created for ${r.name}. Send them the message below.`;
+    const text = el("textarea", { "aria-label": "Message to send" }, friendMessage(r.name, r.invite));
+    const copy = el("button", { class: "secondary small", type: "button" }, "Copy message");
+    copy.addEventListener("click", async () => {
+      try { await navigator.clipboard.writeText(text.value); copy.textContent = "Copied"; } catch (err) { text.select(); }
+    });
+    $("#made").replaceChildren(el("div", { class: "small" }, "Invite link: ", el("code", {}, r.invite)), text, el("div", {}, copy));
+    $("#made").hidden = false;
+    load();
+  } catch (err) { msg.className = "msg err"; msg.textContent = err.message; }
+});
+
+if (token) load(); else show(false);
+</script>
+</body>
+</html>

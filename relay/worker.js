@@ -6,6 +6,8 @@
 //   - Searches and email lookups: per-day and per-month (or one-time) counts kept inside the free plans.
 // The keys live only in this Worker's secrets; the apps never see them. Every request needs an active invite code.
 
+import DASHBOARD from "./dashboard.html";
+
 const PRICES = { // yuan per 1M tokens at peak: [input cache hit, input cache miss, output]. Off-peak is half.
   "deepseek-flash": [0.04, 2, 8],
   "deepseek-v4-flash": [0.04, 2, 8],
@@ -192,8 +194,46 @@ async function status(env) {
 
 // ---------- Owner tools (ADMIN_TOKEN) ----------
 
+// Owner sign-in: the admin token (invite.sh) or the dashboard password (setup.sh). After 10 wrong tries in an hour,
+// owner access pauses for the rest of that hour, so the password can't be guessed by brute force.
+const MAX_FAILS_PER_HOUR = 10;
+
+function same(a, b) { // constant-time string comparison
+  if (!a || !b || a.length !== b.length) return false;
+  let d = 0;
+  for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return d === 0;
+}
+
+async function owner(request, env) {
+  const hour = `adminfail:${new Date().toISOString().slice(0, 13)}`;
+  if ((await counter(env, hour)) >= MAX_FAILS_PER_HOUR) return "locked";
+  const given = bearer(request);
+  if (same(given, env.ADMIN_TOKEN || "") || same(given, env.DASHBOARD_PASSWORD || "")) return "ok";
+  await add(env, hour, 1);
+  return "no";
+}
+
+async function summary(env) {
+  const since = new Date(Date.now() + 8 * 3600e3 - 13 * 86400e3).toISOString().slice(0, 10);
+  const days = (await env.DB.prepare("SELECT day, SUM(CASE WHEN service = 'ai' THEN cost ELSE 0 END) AS cost_cny, " +
+    "SUM(CASE WHEN service = 'ai' THEN calls ELSE 0 END) AS ai_calls, SUM(CASE WHEN service != 'ai' THEN calls ELSE 0 END) AS lookups " +
+    "FROM usage WHERE day >= ? GROUP BY day ORDER BY day").bind(since).all()).results;
+  const people = (await env.DB.prepare("SELECT c.code, c.name, c.active, c.created, " +
+    "COALESCE(SUM(CASE WHEN u.service = 'ai' THEN u.calls END), 0) AS ai_calls, COALESCE(SUM(CASE WHEN u.service = 'ai' THEN u.cost END), 0) AS cost_cny, " +
+    "COALESCE(SUM(CASE WHEN u.service != 'ai' THEN u.calls END), 0) AS lookups, MAX(u.day) AS last_day " +
+    "FROM codes c LEFT JOIN usage u ON u.code = c.code AND u.day >= ? GROUP BY c.code ORDER BY c.active DESC, cost_cny DESC, c.created")
+    .bind(since).all()).results;
+  const today = beijing().day;
+  const todayBy = (await env.DB.prepare("SELECT c.name, ROUND(SUM(u.cost), 3) AS cost_cny, SUM(u.calls) AS calls FROM usage u " +
+    "LEFT JOIN codes c ON c.code = u.code WHERE u.day = ? AND u.service = 'ai' GROUP BY u.code ORDER BY 2 DESC").bind(today).all()).results;
+  return { status: await status(env), limits: limits(env), days, people, today: todayBy };
+}
+
 async function admin(request, env, url) {
-  if (!env.ADMIN_TOKEN || bearer(request) !== env.ADMIN_TOKEN) return fail(401, "Admin token required.");
+  const auth = await owner(request, env);
+  if (auth === "locked") return fail(429, "Too many wrong passwords. Owner access is paused until the next hour.");
+  if (auth !== "ok") return fail(401, "Wrong password.");
   const path = url.pathname.replace(/^\/admin/, "");
   if (path === "/codes" && request.method === "POST") {
     const { name } = await request.json().catch(() => ({}));
@@ -212,6 +252,12 @@ async function admin(request, env, url) {
     await env.DB.prepare("UPDATE codes SET active = 0 WHERE code = ?").bind(off[1]).run();
     return json({ ok: true });
   }
+  const on = path.match(/^\/codes\/([a-z0-9]+)\/on$/);
+  if (on && request.method === "POST") {
+    await env.DB.prepare("UPDATE codes SET active = 1 WHERE code = ?").bind(on[1]).run();
+    return json({ ok: true });
+  }
+  if (path === "/summary") return json(await summary(env));
   if (path === "/usage") {
     const since = new Date(Date.now() + 8 * 3600e3 - 13 * 86400e3).toISOString().slice(0, 10);
     const { results } = await env.DB.prepare("SELECT u.day, c.name, u.service, u.calls, ROUND(u.cost, 3) AS cost_cny FROM usage u " +
@@ -244,6 +290,11 @@ export default {
     const url = new URL(request.url);
     try {
       if (url.pathname.startsWith("/admin")) return await admin(request, env, url);
+      if (url.pathname === "/dashboard" && request.method === "GET") {
+        return new Response(DASHBOARD, { headers: { "content-type": "text/html; charset=utf-8", "x-robots-tag": "noindex, nofollow",
+          "cache-control": "no-cache", "referrer-policy": "no-referrer", "x-frame-options": "DENY",
+          "content-security-policy": "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'" } });
+      }
       const join = url.pathname.match(/^\/join\/([a-z0-9]+)$/);
       if (join && request.method === "GET") {
         return (await member(env, join[1])) ? joinPage(url, join[1], limits(env)) : new Response("This invite isn't active.", { status: 404 });

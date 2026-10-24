@@ -43,6 +43,15 @@ put DEEPSEEK_KEY "DeepSeek API key (required)" required
 put TAVILY_KEY "Tavily key (optional, web search)"
 put SERPER_KEY "Serper key (optional, Google results)"
 put HUNTER_KEY "Hunter.io key (optional, email finder)"
+if ! grep -q dashboard-password-set .admin-token.meta 2>/dev/null; then
+  while :; do
+    read -r -s -p "   Choose a password for your owner dashboard (12+ characters): " pw; echo
+    [ ${#pw} -ge 12 ] && break
+    echo "   Use at least 12 characters."
+  done
+  printf '%s' "$pw" | $W secret put DASHBOARD_PASSWORD >/dev/null && echo "   ✓ Dashboard password saved" && echo dashboard-password-set > .admin-token.meta
+  unset pw
+fi
 if [ ! -s .admin-token ]; then
   (umask 077; openssl rand -hex 24 > .admin-token)
   $W secret put ADMIN_TOKEN < .admin-token >/dev/null
@@ -50,4 +59,5 @@ if [ ! -s .admin-token ]; then
 fi
 
 echo "5/5  Done. Relay: $(cat .relay-url 2>/dev/null || echo '(see the deploy output above)')"
-echo "Make an invite for each friend:  ./invite.sh \"Their name\""
+echo "Your private dashboard (bookmark it): $(cat .relay-url 2>/dev/null)/dashboard"
+echo "Make invites there, or here:  ./invite.sh \"Their name\""

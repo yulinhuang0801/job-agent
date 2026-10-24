@@ -28,7 +28,7 @@ An invite link (from `relay/invite.sh`) lets your copy use someone else's AI and
 - Your profile, stories and jobs stay on your computer. The text each step needs passes through the relay to the AI or search service; the relay keeps only counts and cost per person.
 - Any key of your own in Settings is used instead of the shared one.
 
-Setting up the relay and making invites: see [relay/README.md](relay/README.md).
+Setting up the relay and making invites: see [relay/README.md](relay/README.md). The owner gets a private dashboard at `<relay>/dashboard` (password-protected) showing today's spend, each person's usage and invites.
 
 ### Show it to someone: the demo
 

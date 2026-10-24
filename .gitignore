@@ -9,3 +9,4 @@ relay/.wrangler/
 relay/.dev.vars
 relay/.admin-token
 relay/.relay-url
+relay/.admin-token.meta

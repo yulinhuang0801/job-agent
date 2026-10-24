@@ -1,6 +1,8 @@
 """Test the shared-key relay against a local `wrangler dev` with tests/relay/mock_upstream.py (no real keys, no cost).
 See relay/README.md → "Test it locally". Usage: .venv/bin/python tests/relay/test_relay.py [http://127.0.0.1:8787] [admin token]
-Expects the low limits in relay/.dev.vars: DAILY_CNY=0.05, TAVILY_PER_DAY=3, SERPER_PER_DAY=2, HUNTER_PER_MONTH=1."""
+Expects the low limits in relay/.dev.vars: DAILY_CNY=0.05, TAVILY_PER_DAY=3, SERPER_PER_DAY=2, HUNTER_PER_MONTH=1,
+and DASHBOARD_PASSWORD=test-dashboard-pw. Start from a fresh local database (rm -rf relay/.wrangler); the last check
+locks owner access for the rest of the hour on purpose."""
 import sys
 
 import httpx
@@ -51,4 +53,17 @@ usage = c.get("/admin/usage", headers=ADMIN).json()["last_14_days"]
 ok("owner sees usage by person", any(u["name"] == "Alex" and u["service"] == "ai" and u["calls"] == calls for u in usage))
 c.delete(f"/admin/codes/{code}", headers=ADMIN)
 ok("turned-off invite refused", c.get("/status", headers=me).status_code == 401)
+c.post(f"/admin/codes/{code}/on", headers=ADMIN)
+ok("invite turned back on", c.get("/status", headers=me).status_code == 200)
+
+page = c.get("/dashboard")
+ok("dashboard page served, not indexed, not framed", page.status_code == 200 and "Owner dashboard" in page.text
+   and "noindex" in page.headers.get("x-robots-tag", "") and page.headers.get("x-frame-options") == "DENY")
+PW = {"authorization": "Bearer test-dashboard-pw"}
+summ = c.get("/admin/summary", headers=PW).json()
+ok("dashboard password opens the summary", summ["limits"]["ai"] == 0.05 and any(p["name"] == "Alex" and p["ai_calls"] == calls for p in summ["people"]))
+codes = [c.get("/admin/summary", headers={"authorization": f"Bearer guess-{i}"}).status_code for i in range(11)]
+ok("wrong passwords lock owner access for the hour", codes[0] == 401 and codes[-1] == 429
+   and c.get("/admin/summary", headers=PW).status_code == 429)
+ok("friends' invites still work while locked", c.get("/status", headers=me).status_code == 200)
 print("ALL PASSED")

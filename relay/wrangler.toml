@@ -3,6 +3,12 @@ name = "job-agent-relay"
 main = "worker.js"
 compatibility_date = "2026-09-01"
 
+# The owner dashboard (/dashboard) is a plain HTML file bundled as text.
+[[rules]]
+type = "Text"
+globs = ["**/*.html"]
+fallthrough = true
+
 [[d1_databases]]
 binding = "DB"
 database_name = "job-agent-relay"
